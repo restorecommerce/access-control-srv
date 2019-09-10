@@ -222,6 +222,7 @@ dedicated [docker compose definition](https://github.com/restorecommerce/system)
 docker run \
  --name restorecommerce_access_control_srv \
  --hostname access-control-srv \
+ --network=system_test \
  -e NODE_ENV=production \
  -p 50061:50061 \
  restorecommerce/access-control-srv
