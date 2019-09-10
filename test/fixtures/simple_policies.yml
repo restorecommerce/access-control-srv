@@ -1,0 +1,140 @@
+policy_sets:
+  - id: 'PS1'
+    name: 'Simple policy set'
+    description: 'Just a policy set with no-target policies'
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    policies:
+      - id: 'P1'
+        name: 'Policy A'
+        description: 'Policy with simple rules for Alice & Bob; combining algorithm does not matter'
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        rules:
+          - id: 'R1'
+            name: Rule A1
+            description: A rule targeting Alice's 'read' permission to the resource 'organization'
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Alice
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: 'R2'
+            name: Rule A2
+            description: A rule targeting Bob's 'read' permission to the resource 'organization'
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Bob
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: DENY
+          - id: 'R3'
+            name: Rule A3
+            description: A rule targeting Alice's 'modify' permission to the resource 'organization'
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Alice
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: DENY
+      - id: 'P2'
+        name: 'Policy B'
+        description: 'Policy to test combining algorithm permit-overrides'
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        rules:
+          - id: 'R4'
+            name: Rule B1
+            description: A rule targeting John's 'read' permission to the resource 'organization'
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: John
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: DENY
+          - id: 'R5'
+            name: Rule B2
+            description: A rule targeting John's overall permission
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: John
+            effect: PERMIT
+      - id: 'P3'
+        name: 'Policy C'
+        description: 'Policy to test combining algorithm deny-overrides'
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides
+        rules:
+          - id: 'R6'
+            name: Rule C1
+            description: A rule targeting Anna's 'read' permission to the resource 'user'
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Anna
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:user.User
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: DENY
+          - id: 'R7'
+            name: Rule C2
+            description: A rule targeting Anna's overall permission
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Anna
+            effect: PERMIT
+      - id: 'P4'
+        name: 'Policy D'
+        description: 'Policy to test combining algorithm first-applicable'
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:first-applicable
+        rules:
+          - id: 'R8'
+            name: Rule D1
+            description: A rule targeting Alice's 'read' permission to the resource 'address'
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Alice
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:address.Address
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: DENY
+          - id: 'R9'
+            name: Rule D2
+            description: Another rule targeting Alice's 'read' permission to the resource 'address'
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Alice
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:address.Address
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT

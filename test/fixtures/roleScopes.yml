@@ -1,0 +1,47 @@
+  policy_sets:
+  - id: policySetA
+    name: Policy set A
+    description: A policy set
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    policies:
+      - id: policyA
+        name: Policy A
+        description: Policy with two rules targeting scoped roles
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        rules:
+          - id: ruleAA1
+            name: Rule AA1
+            descripton: A rule targeting a 'read' action by a SimpleUser
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:location.Location
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: ruleAA2
+            name: Rule AA2
+            descripton: A rule targeting 'modify' action by an Admin
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: Admin
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:location.Location
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: PERMIT
+          - id: ruleAA3
+            name: Fallback rule
+            description: Always deny
+            effect: DENY

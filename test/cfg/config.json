@@ -1,0 +1,251 @@
+{
+  "protosPathPrefix": "io/restorecommerce/",
+  "protosServicePrefix": "io.restorecommerce.",
+  "protosRoot": "node_modules/@restorecommerce/protos/",
+  "server": {
+    "services": {
+      "io-restorecommerce-access-control-srv": {
+        "isAllowed": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "whatIsAllowed": {
+          "transport": [
+            "grpc"
+          ]
+        }
+      },
+      "io-restorecommerce-policy-srv": {
+        "read": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "create": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "upsert": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "update": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "delete": {
+          "transport": [
+            "grpc"
+          ]
+        }
+      },
+      "io-restorecommerce-rule-srv": {
+        "read": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "create": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "upsert": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "update": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "delete": {
+          "transport": [
+            "grpc"
+          ]
+        }
+      },
+      "io-restorecommerce-policy-set-srv": {
+        "read": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "create": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "delete": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "upsert": {
+          "transport": [
+            "grpc"
+          ]
+        },
+        "update": {
+          "transport": [
+            "grpc"
+          ]
+        }
+      },
+      "io-restorecommerce-access-control-ci": {
+        "command": {
+          "transport": [
+            "grpc"
+          ]
+        }
+      }
+    },
+    "transports": [
+      {
+        "name": "grpc",
+        "provider": "grpc",
+        "services": {
+          "io-restorecommerce-access-control-srv": "io.restorecommerce.access_control.Service",
+          "io-restorecommerce-policy-srv": "io.restorecommerce.policy.Service",
+          "io-restorecommerce-rule-srv": "io.restorecommerce.rule.Service",
+          "io-restorecommerce-policy-set-srv": "io.restorecommerce.policy_set.Service",
+          "io-restorecommerce-access-control-ci": "io.restorecommerce.commandinterface.Service"
+        },
+        "protos": [
+          "io/restorecommerce/access_control.proto",
+          "io/restorecommerce/policy.proto",
+          "io/restorecommerce/rule.proto",
+          "io/restorecommerce/policy_set.proto",
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "addr": "localhost:50061"
+      }
+    ]
+  },
+  "events": {
+    "kafka": {
+      "provider": "kafka",
+      "groupId": "access-control-srv",
+      "clientId": "room-service-management-srv",
+      "connectionString": "localhost:2181",
+      "healthCheckCommand": {
+        "protos": [
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
+      },
+      "healthCheckResponse": {
+        "protos": [
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
+      },
+      "versionCommand": {
+        "protos": [
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
+      },
+      "versionResponse": {
+        "protos": [
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
+      },
+      "restoreCommand": {
+        "protos": [
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
+      },
+      "restoreResponse": {
+        "protos": [
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
+      },
+      "resetCommand": {
+        "protos": [
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
+      },
+      "resetResponse": {
+        "protos": [
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
+      },
+      "topics": {
+        "policy.resource": {
+          "topic": "io.restorecommerce.policies.resource"
+        },
+        "rule.resource": {
+          "topic": "io.restorecommerce.rules.resource"
+        },
+        "policy_set.resource": {
+          "topic": "io.restorecommerce.policy_sets.resource"
+        },
+        "command": {
+          "topic": "io.restorecommerce.command",
+          "events": [
+            "healthCheckCommand",
+            "versionCommand",
+            "restoreCommand",
+            "resetCommand"
+          ]
+        }
+      }
+    }
+  },
+  "policies": {
+    "type": "database",
+    "options": {
+      "urns": {
+        "roleScopingEntity": "urn:restorecommerce:acs:names:roleScopingEntity",
+        "roleScopingInstance": "urn:restorecommerce:acs:names:roleScopingInstance",
+        "ownerEntity": "urn:restorecommerce:acs:names:ownerIndicatoryEntity",
+        "ownerInstance": "urn:restorecommerce:acs:names:ownerInstance",
+        "resourceID": "urn:oasis:names:tc:xacml:1.0:resource:resource-id",
+        "entity": "urn:restorecommerce:acs:names:model:entity",
+        "role": "urn:restorecommerce:acs:names:role"
+      },
+      "combiningAlgorithms": [
+        {
+          "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides",
+          "method": "denyOverrides"
+        },
+        {
+          "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides",
+          "method": "permitOverrides"
+        },
+        {
+          "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:first-applicable",
+          "method": "firstApplicable"
+        }
+      ]
+    }
+  },
+  "adapter": {
+    "graphql": {
+      "url": "http://example.com/graphql",
+      "options": {
+        "headers": {}
+      }
+    }
+  }
+}

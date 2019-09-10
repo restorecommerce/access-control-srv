@@ -1,0 +1,52 @@
+policy_sets:
+  - id: policySetA
+    name: 'Policy set A'
+    description: 'Just a policy set with no-target policies'
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    policies:
+      - id: policyA
+        name: 'Policy A'
+        description: 'Policy with a simple conditional rule'
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        rules:
+          - id: ruleAA1
+            name: Rule AA1
+            descripton: Targets permission to `modify` a `Location`'s address
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:location.Location
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:location.Location#address
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: PERMIT
+            context_query:
+              # use `address_id` property from any provided Location
+              filters:
+                - field: id
+                  operation: eq
+                  value: urn:restorecommerce:acs:model:location.Location#address
+              query: 'query getAllAddresses ($filter: [FilterOpts]) {
+                        getAllAddresses (filter: $filter) {
+                          details {
+                            country_id
+                          }, error {
+                            code, message
+                          }
+                        }
+                      }'
+            # match if location has a German address
+            condition: 'context._queryResult.find((address) => {
+                if (address.country_id != "Germany") {
+                  return true;
+                }
+              }) == null;'
+          - id: ruleAA2
+            name: Rule AA2
+            descripton: Fallback & deny
+            effect: DENY

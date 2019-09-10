@@ -1,0 +1,50 @@
+{
+  "logger": {
+    "elasticsearch": {
+      "level": "error",
+      "clientOpts": {
+        "host": "elasticsearch:9200"
+      },
+      "source": "access-control-srv"
+    }
+  },
+  "server": {
+    "transports": [
+      {
+        "name": "grpc",
+        "provider": "grpc",
+        "services": {
+          "io-restorecommerce-access-control-srv": "io.restorecommerce.access_control.Service",
+          "io-restorecommerce-policy-srv": "io.restorecommerce.policy.Service",
+          "io-restorecommerce-rule-srv": "io.restorecommerce.rule.Service",
+          "io-restorecommerce-policy-set-srv": "io.restorecommerce.policy_set.Service",
+          "io-restorecommerce-access-control-ci": "io.restorecommerce.commandinterface.Service"
+        },
+        "protos": [
+          "io/restorecommerce/access_control.proto",
+          "io/restorecommerce/policy.proto",
+          "io/restorecommerce/rule.proto",
+          "io/restorecommerce/policy_set.proto",
+          "io/restorecommerce/commandinterface.proto"
+        ],
+        "protoRoot": "protos/",
+        "addr": "0.0.0.0:50061"
+      }
+    ]
+  },
+  "events": {
+    "kafka": {
+      "kafkaHost": "kafka:9092"
+    }
+  },
+  "database": {
+    "main": {
+      "host": "arangodb"
+    }
+  },
+  "adapter": {
+    "graphql": {
+      "url": "https://api.restorecommerce.io/graphql"
+    }
+  }
+}

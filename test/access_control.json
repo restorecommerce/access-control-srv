@@ -1,0 +1,25 @@
+{
+  "combiningAlgorithms": [
+    {
+      "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides",
+      "method": "denyOverrides"
+    },
+    {
+      "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides",
+      "method": "permitOverrides"
+    },
+    {
+      "urn":"urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:first-applicable",
+      "method":"firstApplicable"
+    }
+  ],
+  "urns": {
+    "roleScopingEntity": "urn:restorecommerce:acs:names:roleScopingEntity",
+    "roleScopingInstance": "urn:restorecommerce:acs:names:roleScopingInstance",
+    "ownerEntity": "urn:restorecommerce:acs:names:ownerIndicatoryEntity",
+    "ownerInstance": "urn:restorecommerce:acs:names:ownerInstance",
+    "resourceID": "urn:oasis:names:tc:xacml:1.0:resource:resource-id",
+    "entity": "urn:restorecommerce:acs:names:model:entity",
+    "role": "urn:restorecommerce:acs:names:role"
+  }
+}

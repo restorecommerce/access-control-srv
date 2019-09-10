@@ -1,0 +1,82 @@
+policy_sets:
+  - id: PS1
+    name: Policy set A
+    description: A policy set targeting Users
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    target:
+      subject:
+        - id: urn:restorecommerce:acs:names:role
+          value: SimpleUser
+    policies:
+      - id: P1
+        name: Policy AA
+        description: A Policy targeting a generic User who wants to access 'Organization' resources
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        target:
+          # subject already defined in policy set target
+          resources:
+            - id: urn:restorecommerce:acs:names:model:entity
+              value: urn:restorecommerce:acs:model:organization.Organization
+          # any action
+        rules:
+          - id: R1
+            name: Rule AA1
+            description: A rule targeting 'read' permission'
+            target:
+              # resources: any Organization resource property
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: R2
+            name: Rule AA2
+            description: A rule targeting 'modify' permission'
+            target:
+              # resources: any Organization resource property
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: DENY
+          - id: R3
+            name: Rule AA3
+            description: A rule targeting all permissions for Alice
+            target:
+              # resources: any Organization resource property
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Alice
+            effect: Permit
+  - id: PS2
+    name: 'Policy set B'
+    description: 'A policy set targeting ExternalUsers'
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    target:
+      subject:
+        - id: urn:restorecommerce:acs:names:role
+          value: ExternalUser
+    policies:
+      - id: P2
+        name: Policy BA
+        description: A Policy targeting access from ExternalUsers to 'User' resource content
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        target:
+          resources:
+            - id: urn:restorecommerce:acs:names:model:entity
+              value: urn:restorecommerce:acs:model:user.User
+        rules:
+          - id: R4
+            name: Rule BA1
+            description: A rule targeting 'modify' actions
+            target:
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: DENY
+          - id: R5
+            name: Rule BA2
+            description: A rule targeting 'read' actions
+            target:
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT

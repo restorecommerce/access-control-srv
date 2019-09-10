@@ -1,0 +1,59 @@
+policy_sets:
+  - id: policySetA
+    name: 'Policy set A'
+    description: 'A simple policy set'
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    policies:
+      - id: policyA
+        name: 'Policy A'
+        description: 'Policy with a conditional rule'
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        rules:
+          - id: ruleAA1
+            name: Rule AA1
+            descripton: A rule targeting a user's 'read' permission regarding a User account
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:user.User
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: ruleAA2
+            name: Rule AA2
+            descripton: A rule targeting a user's 'modify' permission regarding a User account
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:user.User
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: PERMIT
+            condition: "
+                const subjectID = context.subject.id;
+                const resources = context.resources;
+                resources.find((resource) => {
+                    return resource.id == subjectID;
+                }) != null;"
+          - id: ruleAA3
+            name: Rule AA3
+            descripton: A rule targeting a user's 'modify' permission regarding a User account
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:user.User
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: DENY

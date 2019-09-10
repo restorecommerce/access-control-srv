@@ -1,0 +1,99 @@
+policy_sets:
+  - id: PS1
+    name: 'Simple policy set'
+    description: 'A policy set with some policies'
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    policies:
+      - id: P1
+        name: Policy A
+        description: A Policy targeting a generic User who wants to access 'organization' resources
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        target:
+          subject:
+            - id: urn:restorecommerce:acs:names:role
+              value: SimpleUser
+          resources:
+            - id: urn:restorecommerce:acs:names:model:entity
+              value: urn:restorecommerce:acs:model:organization.Organization
+          # any action
+        rules:
+          - id: R1
+            name: Rule A1
+            descripton: A rule targeting 'read' permission to a certain attribute of an organization by any User'
+            target:
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:organization.Organization#sensible_attribute
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: R2
+            name: Rule A2
+            descripton: A rule targeting 'modify' permission to a certain attribute of an organization by any User
+            target:
+              # subject:
+              #   - id: urn:restorecommerce:acs:names:role
+              #     value: SimpleUser
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:organization.Organization#sensible_attribute
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: DENY
+          - id: R3
+            name: Rule A3
+            descripton: A rule targeting 'modify' permission to a certain attribute of an organization by the User 'Alice'
+            target:
+              subject:
+                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                  value: Alice
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:organization.Organization#sensible_attribute
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: PERMIT
+      - id: P2
+        name: Policy B
+        description: A Policy targeting a generic User who wants to access 'address' resources
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        target:
+          resources:
+            - id: urn:restorecommerce:acs:names:model:entity
+              value: urn:restorecommerce:acs:model:address.Address
+        rules:
+          - id: R4
+            name: Rule B1
+            descripton: A rule targeting all actions to a certain attribute of an address
+            target:
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:address.Address
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:address.Address#street
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: PERMIT
+          - id: R5
+            name: Rule B2
+            descripton: A rule targeting all actions upon an address
+            effect: DENY
+      - id: P3
+        name: Policy C
+        description: A Policy targeting all users with ID 'Anna'
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        target:
+          subject:
+            - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+              value: Anna
+        effect: DENY
