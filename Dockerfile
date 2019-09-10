@@ -35,7 +35,7 @@ RUN pwd
 USER app
 RUN npm install
 
-EXPOSE 50051
+EXPOSE 50061
 CMD [ "npm", "start" ]
 
 # To build the image:
