@@ -27,7 +27,7 @@
           "io/restorecommerce/policy_set.proto",
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "addr": "0.0.0.0:50061"
       }
     ]

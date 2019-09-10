@@ -123,7 +123,7 @@
           "io/restorecommerce/policy_set.proto",
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "addr": "localhost:50061"
       }
     ]
@@ -154,56 +154,56 @@
         "protos": [
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
       },
       "healthCheckResponse": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
       },
       "versionCommand": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
       },
       "versionResponse": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
       },
       "restoreCommand": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
       },
       "restoreResponse": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
       },
       "resetCommand": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
       },
       "resetResponse": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
         ],
-        "protoRoot": "protos/",
+        "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
       },
       "topics": {
