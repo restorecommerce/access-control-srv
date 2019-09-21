@@ -52,7 +52,7 @@
     "typescript": "^3.6.2"
   },
   "scripts": {
-    "start": "cross-env NODE_ENV=production node start.js",
+    "start": "node start.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch './*.ts' --exec 'ts-node' start.ts --trace-warnings",
     "pretest": "npm run tsctests && npm run lint",
     "test": "cross-env NODE_ENV=test nyc npm run mocha",
