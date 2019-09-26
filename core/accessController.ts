@@ -176,7 +176,7 @@ export class AccessController {
             for (let [, rule] of policy.combinables) {
               let ruleRQ: RuleRQ;
               if (_.isEmpty(rule.target) || this.targetMatches(rule.target, request.target, 'whatIsAllowed')) {
-                ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect']));
+                ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition']));
                 policyRQ.rules.push(ruleRQ);
               }
             }
@@ -273,6 +273,7 @@ export class AccessController {
   }
 
   private conditionMatches(condition: string, request: Request): boolean {
+    condition = condition.replace(/\\n/g, '\n');
     return nodeEval(condition, 'condition.js', request);
   }
 
