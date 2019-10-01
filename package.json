@@ -23,6 +23,7 @@
     "@restorecommerce/protos": "github:restorecommerce/protos",
     "@restorecommerce/resource-base-interface": "github:restorecommerce/resource-base-interface",
     "@restorecommerce/service-config": "^0.1.4",
+    "@restorecommerce/grpc-client": "github:restorecommerce/grpc-client",
     "apollo-boost": "^0.4.4",
     "cross-fetch": "^3.0.4",
     "graphql": "^14.5.4",
@@ -33,7 +34,6 @@
     "traverse": "^0.6.6"
   },
   "devDependencies": {
-    "@restorecommerce/grpc-client": "github:restorecommerce/grpc-client",
     "@types/lodash": "^4.14.138",
     "@types/mocha": "^5.2.7",
     "@types/nock": "^10.0.3",
@@ -64,7 +64,8 @@
     "tsctests": "tsc -d -p tsconfig.test.json",
     "build:tsc": "tsc -d",
     "build:clean": "rimraf *.js core/**/*.js",
-    "build": "npm-run-all lint build:clean build:tsc"
+    "build": "npm-run-all lint build:clean build:tsc",
+    "healthcheck": "node healthcheck.js"
   },
   "engines": {
     "node": ">= 9.2.0"

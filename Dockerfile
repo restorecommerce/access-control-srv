@@ -39,5 +39,7 @@ RUN npm install
 COPY --chown=app . $APP_HOME
 RUN npm run build
 
+HEALTHCHECK CMD npm run healthcheck
+
 EXPOSE 50061
 CMD [ "npm", "start" ]
