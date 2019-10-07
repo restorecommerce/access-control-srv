@@ -18,12 +18,12 @@
   "dependencies": {
     "@restorecommerce/chassis-srv": "github:restorecommerce/chassis-srv",
     "@restorecommerce/cluster-service": "github:restorecommerce/cluster-service",
+    "@restorecommerce/grpc-client": "^0.0.1",
     "@restorecommerce/kafka-client": "^0.1.5",
     "@restorecommerce/logger": "^0.1.11",
     "@restorecommerce/protos": "github:restorecommerce/protos",
     "@restorecommerce/resource-base-interface": "github:restorecommerce/resource-base-interface",
     "@restorecommerce/service-config": "^0.1.4",
-    "@restorecommerce/grpc-client": "github:restorecommerce/grpc-client",
     "apollo-boost": "^0.4.4",
     "cross-fetch": "^3.0.4",
     "graphql": "^14.5.4",
@@ -54,7 +54,7 @@
   "scripts": {
     "start": "node start.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch './*.ts' --exec 'ts-node' start.ts --trace-warnings",
-    "pretest": "npm run tsctests && npm run lint",
+    "pretest": "npm run build && npm run tsctests && npm run lint",
     "test": "cross-env NODE_ENV=test nyc npm run mocha",
     "lint": "cross-env NODE_ENV=development tslint core/**/*.ts *.ts test/core_test.ts test/microservice_test.ts",
     "mocha": "cross-env NODE_ENV=test mocha -R spec --timeout 60000 test/core_test.js test/microservice_test.js --stack-trace --exit",
