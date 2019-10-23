@@ -246,7 +246,19 @@ export class AccessController {
       const id = attribute.id;
       const value = attribute.value;
       const match = !!requestAttributes.find((requestAttribute) => {
-        return requestAttribute.id == id && requestAttribute.value == value;
+        // return requestAttribute.id == id && requestAttribute.value == value;
+        if (requestAttribute.id == id && requestAttribute.value == value) {
+          return true;
+        } else if (requestAttribute.id == id) {
+          let pattern = value.substring(value.lastIndexOf(':') + 1);
+          let regexValue = pattern.split('.')[0];
+          const reExp = new RegExp(regexValue);
+          if (requestAttribute.value.match(reExp)) {
+            return true;
+          }
+        } else {
+          return false;
+        }
       });
 
       if (!match) {

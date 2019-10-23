@@ -51,7 +51,16 @@ export function checkHierarchicalScope(ruleTarget: Target, request: Request, urn
       for (let reqAttribute of reqTarget.resources) {
         if (reqAttribute.id == attribute.id && reqAttribute.value == currentResourceEntity) {
           entitiesMatch = true; // a resource entity that matches the request and the rule's target
-        } else if (reqAttribute.id == urns.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
+        } else if (reqAttribute.id == attribute.id) {
+          // Add Regex matching and set entitiesMatch to true
+          let pattern = currentResourceEntity.substring(currentResourceEntity.lastIndexOf(':') + 1);
+          let regexValue = pattern.split('.')[0];
+          const reExp = new RegExp(regexValue);
+          if (reqAttribute.value.match(reExp)) {
+            entitiesMatch = true;
+          }
+        }
+        else if (reqAttribute.id == urns.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
           const instanceID = reqAttribute.value;
           // found resource instance ID, iterating through the context to check if owner entities match the scoping entities
           let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
@@ -207,7 +216,7 @@ export function checkHierarchicalScope(ruleTarget: Target, request: Request, urn
 }
 
 function getAllValues(obj: any, pushedValues: any): any {
-  for (let value of (<any> Object).values(obj)) {
+  for (let value of (<any>Object).values(obj)) {
     if (_.isArray(value)) {
       getAllValues(value, pushedValues);
     } else if (typeof value == 'string') {
