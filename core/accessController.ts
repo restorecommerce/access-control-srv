@@ -218,6 +218,16 @@ export class AccessController {
               if (reqAttribute.id == urn && reqAttribute.value == attribute.value) {
                 found = true;
                 break;
+              } else if (reqAttribute.id == urn) {
+                // check for regex pattern
+                const value = attribute.value;
+                let pattern = value.substring(value.lastIndexOf(':') + 1);
+                let regexValue = pattern.split('.')[0];
+                const reExp = new RegExp(regexValue);
+                if (reqAttribute.value.match(reExp)) {
+                  found = true;
+                  break;
+                }
               }
             }
 
