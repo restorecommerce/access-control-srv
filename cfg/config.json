@@ -208,13 +208,28 @@
       },
       "topics": {
         "policy.resource": {
-          "topic": "io.restorecommerce.policies.resource"
+          "topic": "io.restorecommerce.policies.resource",
+          "events": [
+            "policyCreated",
+            "policyModified",
+            "policyDeleted"
+          ]
         },
         "rule.resource": {
-          "topic": "io.restorecommerce.rules.resource"
+          "topic": "io.restorecommerce.rules.resource",
+          "events": [
+            "ruleCreated",
+            "ruleModified",
+            "ruleDeleted"
+          ]
         },
         "policy_set.resource": {
-          "topic": "io.restorecommerce.policy_sets.resource"
+          "topic": "io.restorecommerce.policy_sets.resource",
+          "events": [
+            "policy_setCreated",
+            "policy_setModified",
+            "policy_setDeleted"
+          ]
         },
         "command": {
           "topic": "io.restorecommerce.command",

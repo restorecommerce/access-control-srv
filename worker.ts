@@ -29,29 +29,22 @@ export class Worker {
     let ruleConfig = genEventsConfig('rule', this.cfg);
 
     this.cfg.set('events:kafka',
-    _.assign({}, kafkaConfig, policySetConfig, policyConfig, ruleConfig));
+      _.assign({}, kafkaConfig, policySetConfig, policyConfig, ruleConfig));
 
     kafkaConfig = this.cfg.get('events:kafka');
+    const acsEvents = [
+      'policy_setCreated',
+      'policy_setModified',
+      'policy_setDeleted',
+      'policyCreated',
+      'policyModified',
+      'policyDeleted',
+      'ruleCreated',
+      'ruleModified',
+      'ruleDeleted',
+    ];
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
-
-    const that = this;
-    const eventListener = async function eventListener(msg: any,
-      context: any, config: any, eventName: string): Promise<any> {
-      // default: command events
-      await that.commandInterface.command(msg, context);
-    };
-
-    for (let topicLabel in kafkaConfig.topics) {
-      const topicCfg = kafkaConfig.topics[topicLabel];
-      const topic = events.topic(topicCfg.topic);
-
-      if (topicCfg.events) {
-        for (let eventName of topicCfg.events) {
-          await topic.on(eventName, eventListener);
-        }
-      }
-    }
 
     this.accessController = new core.AccessController(this.logger, this.cfg.get('policies:options'));
 
@@ -78,6 +71,27 @@ export class Worker {
     this.logger.info('Access control service started correctly!');
     this.logger.info('Loading resources...');
     await accessControlService.loadPolicies();
+
+    const that = this;
+    const eventListener = async function eventListener(msg: any,
+      context: any, config: any, eventName: string): Promise<any> {
+      if (acsEvents.indexOf(eventName) > -1) {
+        await accessControlService.loadPolicies();
+      } else {
+        await that.commandInterface.command(msg, context);
+      }
+    };
+
+    for (let topicLabel in kafkaConfig.topics) {
+      const topicCfg = kafkaConfig.topics[topicLabel];
+      const topic = events.topic(topicCfg.topic);
+
+      if (topicCfg.events) {
+        for (let eventName of topicCfg.events) {
+          await topic.on(eventName, eventListener);
+        }
+      }
+    }
 
     return accessControlService;
   }
