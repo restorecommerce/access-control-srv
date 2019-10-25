@@ -195,7 +195,7 @@ describe('Testing access control core', () => {
       await requestAndValidate(ac, request, core.Decision.PERMIT);
     });
 
-    it('should DENY based on policy C', async () => {
+    it('should PERMIT based on policy C', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Anna',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -204,7 +204,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, core.Decision.PERMIT);
     });
   });
 
