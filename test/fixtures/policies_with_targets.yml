@@ -96,4 +96,4 @@ policy_sets:
           subject:
             - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
               value: Anna
-        effect: DENY
+        effect: PERMIT
