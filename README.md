@@ -7,7 +7,7 @@
 [depend]: https://img.shields.io/david/restorecommerce/access-control-srv.svg?style=flat-square
 [cover]: http://img.shields.io/coveralls/restorecommerce/access-control-srv/master.svg?style=flat-square
 
-This microservice' features:
+Features:
 
 - [Attribute-based access control](https://en.wikipedia.org/wiki/Attribute-based_access_control) inspired by [XACML](https://en.wikipedia.org/wiki/XACML)
 - Implementing the PAP (partially), PDP, PRP
