@@ -61,13 +61,13 @@ The `subject`, `resource`, `action` properties are arrays and can contain 1..n e
 There are two main operations exposed through the API:
 
 ```ts
-`isAllowed(request: Request): Response`
+isAllowed(request: Request): Response
 ```
 
 This method is used to evaluate a request based on the active policies.
 
 ```ts
-`whatIsAllowed(request: Request): PolicySetList`
+whatIsAllowed(request: Request): PolicySetList
 ```
 
 This method returns a set of policies which match the request's target for client-side evaluation.
