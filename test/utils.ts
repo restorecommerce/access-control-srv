@@ -2,8 +2,8 @@ import * as _ from 'lodash';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 
-import * as core from '../core';
-import { formatTarget } from '../core/utils';
+import * as core from '../lib/core';
+import { formatTarget } from '../lib/core/utils';
 export { formatTarget };
 
 /**

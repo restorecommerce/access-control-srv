@@ -4,31 +4,19 @@ import * as yaml from 'js-yaml';
 import { AccessController } from './accessController';
 import * as interfaces from './interfaces';
 
-export async function loadPoliciesFromDoc(accessController: AccessController, filepath: string): Promise<AccessController> {
-  if (_.isNil(filepath)) {
-    throw new Error('No filepath specified for policies document');
+export const formatTarget = (target: any): interfaces.Target => {
+  if (!target) {
+    return null;
   }
 
-  if (_.isNil(accessController)) {
-    throw new Error('No filepath specified for policies document');
-  }
+  return {
+    subject: target.subject ? target.subject : [],
+    resources: target.resources ? target.resources : [],
+    action: target.action ? target.action : []
+  };
+};
 
-  return new Promise<AccessController>((resolve, reject) => {
-    fs.exists(filepath, (exists) => {
-      if (!exists) {
-        reject(`Policies file ${filepath} does not exist`);
-      }
-
-      fs.readFile(filepath, (err, data) => {
-        const document = yaml.safeLoad(data, 'utf8');
-        loadPolicies(document, accessController);
-        resolve(accessController);
-      });
-    });
-  });
-}
-
-function loadPolicies(document: any, accessController: AccessController): AccessController {
+const loadPolicies = (document: any, accessController: AccessController): AccessController => {
   const policySets = document.policy_sets;
 
   for (let policySetYaml of policySets) {
@@ -93,16 +81,28 @@ function loadPolicies(document: any, accessController: AccessController): Access
   }
 
   return accessController;
-}
+};
 
-export function formatTarget(target: any): interfaces.Target {
-  if (!target) {
-    return null;
+export const loadPoliciesFromDoc = async (accessController: AccessController, filepath: string): Promise<AccessController> => {
+  if (_.isNil(filepath)) {
+    throw new Error('No filepath specified for policies document');
   }
 
-  return {
-    subject: target.subject ? target.subject : [],
-    resources: target.resources ? target.resources : [],
-    action: target.action ? target.action : []
-  };
-}
+  if (_.isNil(accessController)) {
+    throw new Error('No filepath specified for policies document');
+  }
+
+  return new Promise<AccessController>((resolve, reject) => {
+    fs.exists(filepath, (exists) => {
+      if (!exists) {
+        reject(`Policies file ${filepath} does not exist`);
+      }
+
+      fs.readFile(filepath, (err, data) => {
+        const document = yaml.safeLoad(data, 'utf8');
+        loadPolicies(document, accessController);
+        resolve(accessController);
+      });
+    });
+  });
+};
