@@ -95,7 +95,7 @@ as demanding such evaluation  would require a replication of this functionality 
 
     # To identify a single resource by its unique ID
     - id         ex: urn:oasis:names:tc:xacml:1.0:resource:resource-id
-    - value      ex: <some UUID>
+    - value      ex: <some uniq>
 
     # To identify a property of the selected resource(s)
     - id         ex: urn:restorecommerce:acs:names:model:property
@@ -137,7 +137,8 @@ as demanding such evaluation  would require a replication of this functionality 
 
 ### XACML
 
-- `urn:oasis:names:tc:xacml:1.0:resource:resource-id`         An resource ID which can uniquely identify an instance of a given entity type
+- `urn:oasis:names:tc:xacml:1.0:resource:resource-id`         A resource ID which can uniquely identify an instance of a given entity type
+- `ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id`       An ID of a subject
 - `urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm`     Diverse rule combining algorithms
 - `urn:oasis:names:tc:xacml:1.0:action:action-id`             Denotes an action ID that in-turn defines an action performed on the given resource
 
@@ -147,8 +148,8 @@ as demanding such evaluation  would require a replication of this functionality 
 
 A role might be scoped with a scoping entity which introduces a scope as third dimension to the typical RBAC tupel of user and role.
 This is an important concept for multi-tenancy whereas the scope can be perceived as a tenant. As an example take a multi-national corporation with
-lots of branches and business units and these business units need to be isolated from each other in terms of data visibility.
-As the entity might be modeled to foresee a hierarchical relationship via a `parent` property, hierarchy aware isolation is possible.
+lots of branches and business units and these business units need to be separated from each other in terms of data visibility.
+As the entity might be modeled to have a hierarchical relationship via a `parent` property, hierarchy aware separation is possible. Thus the hierarchy supports a tree data structure.
 
 # Examples
 
@@ -163,10 +164,8 @@ Request:
 request:
     target:
         subject:
-           - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+           - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
              value: Alice
-           - id: urn:restorecommerce:acs:names:role
-             value: admin
            - id: urn:restorecommerce:acs:names:roleScopingEntity
              value: urn:restorecommerce:acs:model:organization.Organization
            - id: urn:restorecommerce:acs:names:roleScopeInstance
@@ -242,13 +241,8 @@ policy_sets:
           effect: PERMIT
 ```
 
-As a precondition, the targeted resources should be owned by a hierarchical resource among the user's role scoping entities.
-All relevant information under the `subject` and `resources` property are passed within the context.
-If one of the device's owner attributes exists within the subject's role scoping entities,
-the request's target is then matched against the existing rules. Otherwise, the access is denied.
-
-In the given example, the targeted resource's owner has among its attributes an `Organization` with ID `OrgA`,
-which is passed in the subject's contextual information with organization 'OrgB' as its children.
+In the example, the target resource's owner has among its attributes an `Organization` with ID `OrgA`,
+which is passed in the subject's contextual information with organization ID `OrgB` as its children.
 Since the device is owned by `OrgB`, it is considered to be under the subject's hierarchical scope and therefore the matching rules can be checked.
 
 There is one policy with one rule, which permits access by `Organization`-scoped users with role `admin` to resources of entity `Device`.
