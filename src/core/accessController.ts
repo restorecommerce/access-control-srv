@@ -3,7 +3,7 @@ import * as nodeEval from 'node-eval';
 import {
   Rule, Policy, PolicySet, Request, Response,
   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
-  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation
+  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope
 } from './interfaces';
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
@@ -63,14 +63,15 @@ export class AccessController {
       const policySet: PolicySet = value;
       let policyEffects: Effect[] = [];
 
-      if ((!!policySet.target && this.targetMatches(policySet.target, request.target))
+      if ((!!policySet.target && this.targetMatches(policySet.target, request))
         || !policySet.target) {
 
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
 
           const ruleEffects: Effect[] = [];
-          if ((!!policy.target && this.targetMatches(policy.target, request.target))
+          // TODO check for an exact match of Policy resource here if not then make another request below
+          if ((!!policy.target && this.targetMatches(policy.target, request))
             || !policy.target) {
 
             const rules: Map<string, Rule> = policy.combinables;
@@ -84,10 +85,11 @@ export class AccessController {
             else {
               for (let [, rule] of policy.combinables) {
                 // if rule has not target it should be always applied inside the policy scope
-                let matches = !rule.target || this.targetMatches(rule.target, requestTarget);
+                this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
+                let matches = !rule.target || this.targetMatches(rule.target, request);
 
                 if (matches) {
-                  this.logger.verbose(`Checking rule ${rule.name}...`);
+                  this.logger.verbose(`Checking rule ${rule.name}`);
                   if (matches && rule.target) {
                     matches = checkHierarchicalScope(rule.target, request, this.urns);
                   }
@@ -161,13 +163,13 @@ export class AccessController {
     let policySets: PolicySetRQ[] = [];
     for (let [, value] of this.policySets) {
       let pSet: PolicySetRQ;
-      if (_.isEmpty(value.target) || this.targetMatches(value.target, request.target)) {
+      if (_.isEmpty(value.target) || this.targetMatches(value.target, request)) {
         pSet = _.merge({}, { combining_algorithm: value.combiningAlgorithm }, _.pick(value, ['id', 'target', 'effect']));
         pSet.policies = [];
 
         for (let [, policy] of value.combinables) {
           let policyRQ: PolicyRQ;
-          if (_.isEmpty(policy.target) || this.targetMatches(policy.target, request.target)) {
+          if (_.isEmpty(policy.target) || this.targetMatches(policy.target, request)) {
             policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect']));
             policyRQ.rules = [];
 
@@ -175,7 +177,7 @@ export class AccessController {
 
             for (let [, rule] of policy.combinables) {
               let ruleRQ: RuleRQ;
-              if (_.isEmpty(rule.target) || this.targetMatches(rule.target, request.target, 'whatIsAllowed')) {
+              if (_.isEmpty(rule.target) || this.targetMatches(rule.target, request, 'whatIsAllowed')) {
                 ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition']));
                 policyRQ.rules.push(ruleRQ);
               }
@@ -198,11 +200,12 @@ export class AccessController {
  * @param targetA
  * @param targetB
  */
-  private targetMatches(ruleTarget: Target, requestTarget: Target, operation: AccessControlOperation = 'isAllowed'): boolean {
-    const subjectMatches = (operation == 'whatIsAllowed' && _.isEmpty(requestTarget.subject))
-      || this.attributesMatch(ruleTarget.subject, requestTarget.subject);
+  private targetMatches(ruleTarget: Target, request: Request, operation: AccessControlOperation = 'isAllowed'): boolean {
+    const requestTarget = request.target;
+    const subMatches = (operation == 'whatIsAllowed' && _.isEmpty(requestTarget.subject))
+      || this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request);
 
-    const match = subjectMatches && this.attributesMatch(ruleTarget.action, requestTarget.action);
+    const match = subMatches && this.attributesMatch(ruleTarget.action, requestTarget.action);
     if (!match) {
       return false;
     }
@@ -244,12 +247,12 @@ export class AccessController {
   }
 
   /**
- * Check if the attributes of a subject, action or resources from a rule, policy
- * or policy set match the attributes from a request.
- *
- * @param ruleAttributes
- * @param requestAttributes
- */
+   * Check if the attributes of a action or resources from a rule, policy
+   * or policy set match the attributes from a request.
+   *
+   * @param ruleAttributes
+   * @param requestAttributes
+   */
   private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[]): boolean {
 
     for (let attribute of ruleAttributes) {
@@ -277,6 +280,107 @@ export class AccessController {
     }
 
     return true;
+  }
+
+  /**
+   * Check if the attributes of subject from a rule, policy
+   * or policy set match the attributes from a request.
+   *
+   * @param ruleAttributes
+   * @param requestSubAttributes
+   */
+  private checkSubjectMatches(ruleSubAttributes: Attribute[],
+    requestSubAttributes: Attribute[], request: Request): boolean {
+    // 1) Check if the rule subject entity exists, if so then check
+    // request->target->subject->orgInst or roleScopeInst matches with
+    // context->subject->role_associations->roleScopeInst or hierarchical_scope
+    // 2) if 1 is true then subject match is considered
+    // 3) If rule subject entity does not exist (as for master data resources)
+    // then check context->subject->role_associations->role against
+    // Rule->subject->role
+    const scopingEntity = this.urns.get('roleScopingEntity');
+    const scopingInstance = this.urns.get('roleScopingInstance');
+    const role = this.urns.get('role');
+    let matches = false;
+    let scopingEntExists = false;
+    if (ruleSubAttributes && ruleSubAttributes.length === 0) {
+      matches = true;
+      return matches;
+    }
+    for (let ruleSubAttribute of ruleSubAttributes) {
+      if (ruleSubAttribute.id === scopingEntity) {
+        // match the scoping entity value
+        scopingEntExists = true;
+        for (let requestSubAttribute of requestSubAttributes) {
+          if (requestSubAttribute.value === ruleSubAttribute.value) {
+            matches = true;
+            break;
+          }
+        }
+      }
+    }
+    if (scopingEntExists && matches) {
+      matches = false;
+      // check the target scoping instance is present in
+      // the context subject roleassociations and then update matches to true
+      const context = request.context;
+      if (context && context.subject && context.subject.role_associations) {
+        for (let requestSubAttribute of requestSubAttributes) {
+          if (requestSubAttribute.id === scopingInstance) {
+            const targetScopingInstance = requestSubAttribute.value;
+            // check in role_associations
+            const userRoleAssocs = context.subject.role_associations;
+            for (let role of userRoleAssocs) {
+              const attributes = role.attributes;
+              for (let attribute of attributes) {
+                if (attribute.id === scopingInstance &&
+                  attribute.value === targetScopingInstance) {
+                  matches = true;
+                  return matches;
+                }
+              }
+            }
+            if (!matches) {
+              // check for HR scope
+              const hrScopes = context.subject.hierarchical_scope;
+              for (let hrScope of hrScopes) {
+                if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
+                  matches = true;
+                  return matches;
+                }
+              }
+            }
+          }
+        }
+      }
+    } else if (!scopingEntExists && request.context.subject) {
+      // scoping entity does not exist - check for point 3.
+      const userRoleAssocs = request.context.subject.role_associations;
+      for (let ruleSubAttribute of ruleSubAttributes) {
+        if (ruleSubAttribute.id === role) {
+          for (let userRoleAssoc of userRoleAssocs) {
+            if (userRoleAssoc.role === ruleSubAttribute.value) {
+              matches = true;
+              return matches;
+            }
+          }
+        }
+      }
+      return false;
+    }
+    return matches;
+  }
+
+  private checkTargetInstanceExists(hrScope: HierarchicalScope,
+    targetScopingInstance: string): boolean {
+    if (hrScope.id === targetScopingInstance) {
+      return true;
+    } else {
+      for (let child of hrScope.children) {
+        return this.checkTargetInstanceExists(child, targetScopingInstance);
+      }
+      return false;
+    }
   }
 
   /**
