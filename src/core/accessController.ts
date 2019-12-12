@@ -57,7 +57,6 @@ export class AccessController {
       throw new errors.InvalidRequest('target');
     }
 
-    const requestTarget = request.target;
     let effect: Effect;
     for (let [, value] of this.policySets) {
       const policySet: PolicySet = value;
@@ -65,13 +64,22 @@ export class AccessController {
 
       if ((!!policySet.target && this.targetMatches(policySet.target, request))
         || !policySet.target) {
+        let exactMatch: boolean = false;
+        for (let [, policyValue] of policySet.combinables) {
+          const policy: Policy = policyValue;
+          if (this.targetMatches(policy.target, request)) {
+            exactMatch = true;
+            break;
+          }
+        }
 
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
 
           const ruleEffects: Effect[] = [];
-          // TODO check for an exact match of Policy resource here if not then make another request below
-          if ((!!policy.target && this.targetMatches(policy.target, request))
+          if ((!!policy.target && exactMatch && this.targetMatches(policy.target, request))
+            // regex match
+            || (!!policy.target && !exactMatch && this.targetMatches(policy.target, request, 'isAllowed', true))
             || !policy.target) {
 
             const rules: Map<string, Rule> = policy.combinables;
@@ -167,9 +175,19 @@ export class AccessController {
         pSet = _.merge({}, { combining_algorithm: value.combiningAlgorithm }, _.pick(value, ['id', 'target', 'effect']));
         pSet.policies = [];
 
+        let exactMatch: boolean = false;
+        for (let [, policy] of value.combinables) {
+          if (this.targetMatches(policy.target, request)) {
+            exactMatch = true;
+            break;
+          }
+        }
+
         for (let [, policy] of value.combinables) {
           let policyRQ: PolicyRQ;
-          if (_.isEmpty(policy.target) || this.targetMatches(policy.target, request)) {
+          if (_.isEmpty(policy.target)
+            || (exactMatch && this.targetMatches(policy.target, request))
+            || (!exactMatch && this.targetMatches(policy.target, request, 'whatIsAllowed', true))) {
             policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect']));
             policyRQ.rules = [];
 
@@ -200,7 +218,8 @@ export class AccessController {
  * @param targetA
  * @param targetB
  */
-  private targetMatches(ruleTarget: Target, request: Request, operation: AccessControlOperation = 'isAllowed'): boolean {
+  private targetMatches(ruleTarget: Target, request: Request,
+    operation: AccessControlOperation = 'isAllowed', regexMatch?: boolean): boolean {
     const requestTarget = request.target;
     const subMatches = (operation == 'whatIsAllowed' && _.isEmpty(requestTarget.subject))
       || this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request);
@@ -221,7 +240,7 @@ export class AccessController {
               if (reqAttribute.id == urn && reqAttribute.value == attribute.value) {
                 found = true;
                 break;
-              } else if (reqAttribute.id == urn) {
+              } else if (regexMatch && reqAttribute.id == urn) {
                 // check for regex pattern
                 const value = attribute.value;
                 let pattern = value.substring(value.lastIndexOf(':') + 1);
@@ -242,7 +261,7 @@ export class AccessController {
         return true;
       case 'isAllowed':
       default:
-        return this.attributesMatch(ruleTarget.resources, requestTarget.resources);
+        return this.attributesMatch(ruleTarget.resources, requestTarget.resources, regexMatch);
     }
   }
 
@@ -253,7 +272,8 @@ export class AccessController {
    * @param ruleAttributes
    * @param requestAttributes
    */
-  private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[]): boolean {
+  private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[],
+    regexMatch?: boolean): boolean {
 
     for (let attribute of ruleAttributes) {
       const id = attribute.id;
@@ -262,7 +282,7 @@ export class AccessController {
         // return requestAttribute.id == id && requestAttribute.value == value;
         if (requestAttribute.id == id && requestAttribute.value == value) {
           return true;
-        } else if (requestAttribute.id == id) {
+        } else if (regexMatch && requestAttribute.id == id) {
           let pattern = value.substring(value.lastIndexOf(':') + 1);
           let regexValue = pattern.split('.')[0];
           const reExp = new RegExp(regexValue);
