@@ -64,7 +64,7 @@ export class AccessController {
 
       if ((!!policySet.target && this.targetMatches(policySet.target, request))
         || !policySet.target) {
-        let exactMatch: boolean = false;
+        let exactMatch = false;
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
           if (this.targetMatches(policy.target, request)) {
@@ -175,7 +175,7 @@ export class AccessController {
         pSet = _.merge({}, { combining_algorithm: value.combiningAlgorithm }, _.pick(value, ['id', 'target', 'effect']));
         pSet.policies = [];
 
-        let exactMatch: boolean = false;
+        let exactMatch = false;
         for (let [, policy] of value.combinables) {
           if (this.targetMatches(policy.target, request)) {
             exactMatch = true;
