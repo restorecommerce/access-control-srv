@@ -94,7 +94,7 @@ export class AccessController {
               for (let [, rule] of policy.combinables) {
                 // if rule has not target it should be always applied inside the policy scope
                 this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
-                let matches = !rule.target || this.targetMatches(rule.target, request);
+                let matches = !rule.target || this.targetMatches(rule.target, request, 'isAllowed', true);
 
                 if (matches) {
                   this.logger.verbose(`Checking rule ${rule.name}`);
@@ -195,7 +195,7 @@ export class AccessController {
 
             for (let [, rule] of policy.combinables) {
               let ruleRQ: RuleRQ;
-              if (_.isEmpty(rule.target) || this.targetMatches(rule.target, request, 'whatIsAllowed')) {
+              if (_.isEmpty(rule.target) || this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
                 ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition']));
                 policyRQ.rules.push(ruleRQ);
               }
