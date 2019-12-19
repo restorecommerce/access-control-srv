@@ -1,6 +1,7 @@
 import * as mocha from 'mocha';
 import * as nock from 'nock';
 import * as should from 'should';
+import * as fs from 'fs';
 
 import * as core from '../src/core';
 import * as testUtils from './utils';
@@ -9,7 +10,7 @@ import * as srvConfig from '@restorecommerce/service-config';
 import { Logger } from '@restorecommerce/logger';
 
 const cfg = srvConfig(process.cwd() + '/test');
-const acConfig = require('./access_control.json');
+const acConfig = JSON.parse(fs.readFileSync('./test/access_control.json', 'utf8'));
 const logger = new Logger(cfg.get('logger'));
 
 let ac: core.AccessController;
