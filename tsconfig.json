@@ -9,9 +9,13 @@
     "alwaysStrict": true
   },
   "include": [
-    "./*.ts",
-    "core/*.ts",
-    "core/**/*.ts"
+    "src/core/*.ts",
+    "src/core/**/*.ts",
+    "src/service.ts",
+    "src/healthcheck.ts",
+    "src/start.ts",
+    "src/worker.ts",
+    "src/resourceManager.ts"
   ],
   "exclude": [
     "node_modules"

@@ -1,10 +1,40 @@
 import * as _ from 'lodash';
 import * as chassis from '@restorecommerce/chassis-srv';
 import { Events } from '@restorecommerce/kafka-client';
-import { AccessControlService, AccessControlCommandInterface } from './accessControlService';
+import { AccessControlService, AccessControlCommandInterface } from './service';
 import { ResourceManager } from './resourceManager';
 
 import * as core from './core';
+
+const capitalized = (collectionName: string) => {
+  const labels = collectionName.split('_').map((element) => {
+    return element.charAt(0).toUpperCase() + element.substr(1);
+  });
+  return _.join(labels, '');
+};
+
+/**
+ * Generates Kafka configs for CRUD events.
+ */
+const genEventsConfig = (collectionName: string, cfg: any) => {
+  const pathPrefix = cfg.get('protosPathPrefix');
+  const servicePrefix = cfg.get('protosServicePrefix');
+  const root = cfg.get('protosRoot');
+
+  const crudEvents = ['Created', 'Modified', 'Deleted'];
+
+  const kafkaCfg = cfg.get('events:kafka');
+  for (let event of crudEvents) {
+    kafkaCfg[`${collectionName}${event}`] = {
+      protos: [
+        `${pathPrefix}${collectionName}.proto`
+      ],
+      protoRoot: root,
+      messageObject: `${servicePrefix}${collectionName}.${capitalized(collectionName)}`
+    };
+  }
+  return kafkaCfg;
+};
 
 /**
  * Access Control Service
@@ -73,8 +103,7 @@ export class Worker {
     await accessControlService.loadPolicies();
 
     const that = this;
-    const eventListener = async function eventListener(msg: any,
-      context: any, config: any, eventName: string): Promise<any> {
+    const eventListener = async (msg: any, context: any, config: any, eventName: string) => {
       if (acsEvents.indexOf(eventName) > -1) {
         await accessControlService.loadPolicies();
       } else {
@@ -100,36 +129,6 @@ export class Worker {
     await this.events.stop();
     await this.server.stop();
   }
-}
-
-/**
- * Generates Kafka configs for CRUD events.
- */
-function genEventsConfig(collectionName: string, cfg: any): any {
-  const pathPrefix = cfg.get('protosPathPrefix');
-  const servicePrefix = cfg.get('protosServicePrefix');
-  const root = cfg.get('protosRoot');
-
-  const crudEvents = ['Created', 'Modified', 'Deleted'];
-
-  const kafkaCfg = cfg.get('events:kafka');
-  for (let event of crudEvents) {
-    kafkaCfg[`${collectionName}${event}`] = {
-      protos: [
-        `${pathPrefix}${collectionName}.proto`
-      ],
-      protoRoot: root,
-      messageObject: `${servicePrefix}${collectionName}.${capitalized(collectionName)}`
-    };
-  }
-  return kafkaCfg;
-}
-
-function capitalized(collectionName: string): string {
-  const labels = collectionName.split('_').map((element) => {
-    return element.charAt(0).toUpperCase() + element.substr(1);
-  });
-  return _.join(labels, '');
 }
 
 if (require.main === module) {
