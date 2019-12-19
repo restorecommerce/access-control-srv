@@ -284,7 +284,9 @@ export class AccessController {
           return true;
         } else if (regexMatch && requestAttribute.id == id) {
           let pattern = value.substring(value.lastIndexOf(':') + 1);
-          let regexValue = pattern.split('.')[0];
+          // let regexValue = pattern.split('.')[0];
+          // get Entity name last element
+          let regexValue = pattern.split(/[.]+/).pop();
           const reExp = new RegExp(regexValue);
           if (requestAttribute.value.match(reExp)) {
             return true;

@@ -67,7 +67,9 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
         } else if (reqAttribute.id == attribute.id) {
           // Add Regex matching and set entitiesMatch to true
           let pattern = currentResourceEntity.substring(currentResourceEntity.lastIndexOf(':') + 1);
-          let regexValue = pattern.split('.')[0];
+          // let regexValue = pattern.split('.')[0];
+          // get Entity name last element
+          let regexValue = pattern.split(/[.]+/).pop();
           const reExp = new RegExp(regexValue);
           if (reqAttribute.value.match(reExp)) {
             entitiesMatch = true;
