@@ -1,23 +1,21 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "ES6",
     "module": "commonjs",
     "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "alwaysStrict": true
+    "alwaysStrict": true,
+    "outDir": "lib"
   },
   "include": [
-    "src/core/*.ts",
-    "src/core/**/*.ts",
-    "src/service.ts",
-    "src/healthcheck.ts",
-    "src/start.ts",
-    "src/worker.ts",
-    "src/resourceManager.ts"
+    "./src/**/*.ts",
+    "./test/**/*.ts"
   ],
   "exclude": [
+    "doc",
+    "lib",
     "node_modules"
   ]
 }
