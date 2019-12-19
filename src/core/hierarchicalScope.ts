@@ -5,7 +5,7 @@ import { Target, Request, Attribute } from '.';
 import { Resource } from './interfaces';
 
 const getAllValues = (obj: any, pushedValues: any) => {
-  for (let value of (<any>Object).values(obj)) {
+  for (let value of (<any> Object).values(obj)) {
     if (_.isArray(value)) {
       getAllValues(value, pushedValues);
     } else if (typeof value == 'string') {
