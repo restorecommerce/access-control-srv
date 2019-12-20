@@ -39,14 +39,14 @@ export interface ContextQuery {
 }
 
 export enum Effect {
-  PERMIT = 'PERMIT',
-  DENY = 'DENY'
+  PERMIT = "PERMIT",
+  DENY = "DENY"
 }
 
 export enum Decision {
-  PERMIT = 'PERMIT',
-  DENY = 'DENY',
-  INDETERMINATE = 'INDETERMINATE'
+  PERMIT = "PERMIT",
+  DENY = "DENY",
+  INDETERMINATE = "INDETERMINATE"
 }
 
 export interface Request {

@@ -1,8 +1,8 @@
 import * as mocha from 'mocha';
 import * as should from 'should';
 
-import * as core from '../src/core';
-import { Worker } from '../src/worker';
+import * as core from '../core';
+import { Worker } from '../worker';
 import * as testUtils from './utils';
 
 import * as srvConfig from '@restorecommerce/service-config';

@@ -2,7 +2,7 @@ node_modules
 npm-debug.log
 *.d.ts
 *.js
-!.eslintrc.js
+
 dist
 coverage
 .nyc_output

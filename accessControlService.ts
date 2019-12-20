@@ -24,7 +24,6 @@ export class AccessControlService {
       this.accessController.createResourceAdapter(adapterCfg);
     }
   }
-
   async loadPolicies(): Promise<void> {
     this.logger.info('Loading policies....');
 

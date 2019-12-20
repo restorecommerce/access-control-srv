@@ -4,19 +4,6 @@ import * as traverse from 'traverse';
 import { Target, Request, Attribute } from '.';
 import { Resource } from './interfaces';
 
-const getAllValues = (obj: any, pushedValues: any) => {
-  for (let value of (<any> Object).values(obj)) {
-    if (_.isArray(value)) {
-      getAllValues(value, pushedValues);
-    } else if (typeof value == 'string') {
-      pushedValues.push(value);
-    } else {
-      // It is an object
-      getAllValues(value, pushedValues);
-    }
-  }
-};
-
 export function checkHierarchicalScope(ruleTarget: Target, request: Request, urns: Map<string, string>): boolean {
   const scopedRoles = new Map<string, Map<string, string[]>>(); // <role, <scopingEntity, scopingInstances[]>>
   let role: string;
@@ -226,4 +213,17 @@ export function checkHierarchicalScope(ruleTarget: Target, request: Request, urn
   }
 
   return check;
+}
+
+function getAllValues(obj: any, pushedValues: any): any {
+  for (let value of (<any>Object).values(obj)) {
+    if (_.isArray(value)) {
+      getAllValues(value, pushedValues);
+    } else if (typeof value == 'string') {
+      pushedValues.push(value);
+    } else {
+      // It is an object
+      getAllValues(value, pushedValues);
+    }
+  }
 }
