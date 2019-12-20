@@ -322,9 +322,10 @@ export class AccessController {
     // Rule->subject->role
     const scopingEntity = this.urns.get('roleScopingEntity');
     const scopingInstance = this.urns.get('roleScopingInstance');
-    const role = this.urns.get('role');
+    const roleURN = this.urns.get('role');
     let matches = false;
     let scopingEntExists = false;
+    let ruleRole;
     if (ruleSubAttributes && ruleSubAttributes.length === 0) {
       matches = true;
       return matches;
@@ -339,6 +340,8 @@ export class AccessController {
             break;
           }
         }
+      } else if (ruleSubAttribute.id === roleURN) {
+        ruleRole = ruleSubAttribute.value;
       }
     }
     if (scopingEntExists && matches) {
@@ -353,12 +356,15 @@ export class AccessController {
             // check in role_associations
             const userRoleAssocs = context.subject.role_associations;
             for (let role of userRoleAssocs) {
+              const roleID = role.role;
               const attributes = role.attributes;
               for (let attribute of attributes) {
                 if (attribute.id === scopingInstance &&
                   attribute.value === targetScopingInstance) {
-                  matches = true;
-                  return matches;
+                  if (!ruleRole || (ruleRole && ruleRole === roleID)) {
+                    matches = true;
+                    return matches;
+                  }
                 }
               }
             }
@@ -367,8 +373,15 @@ export class AccessController {
               const hrScopes = context.subject.hierarchical_scope;
               for (let hrScope of hrScopes) {
                 if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
-                  matches = true;
-                  return matches;
+                  const userRoleAssocs = context.subject.role_associations;
+                  for (let role of userRoleAssocs) {
+                    const roleID = role.role;
+                    if (!ruleRole || (ruleRole && ruleRole === roleID)) {
+                      matches = true;
+                      return matches;
+                    }
+                  }
+
                 }
               }
             }
@@ -379,7 +392,7 @@ export class AccessController {
       // scoping entity does not exist - check for point 3.
       const userRoleAssocs = request.context.subject.role_associations;
       for (let ruleSubAttribute of ruleSubAttributes) {
-        if (ruleSubAttribute.id === role) {
+        if (ruleSubAttribute.id === roleURN) {
           for (let userRoleAssoc of userRoleAssocs) {
             if (userRoleAssoc.role === ruleSubAttribute.value) {
               matches = true;
@@ -398,8 +411,10 @@ export class AccessController {
     if (hrScope.id === targetScopingInstance) {
       return true;
     } else {
-      for (let child of hrScope.children) {
-        return this.checkTargetInstanceExists(child, targetScopingInstance);
+      if (hrScope.children) {
+        for (let child of hrScope.children) {
+          return this.checkTargetInstanceExists(child, targetScopingInstance);
+        }
       }
       return false;
     }
