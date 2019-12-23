@@ -241,14 +241,35 @@ export class AccessController {
                 found = true;
                 break;
               } else if (regexMatch && reqAttribute.id == urn) {
-                // check for regex pattern
+                // rule entity
                 const value = attribute.value;
                 let pattern = value.substring(value.lastIndexOf(':') + 1);
-                let regexValue = pattern.split('.')[0];
-                const reExp = new RegExp(regexValue);
-                if (reqAttribute.value.match(reExp)) {
-                  found = true;
-                  break;
+                let nsEntityArray = pattern.split('.');
+                // firstElement could be either entity or namespace
+                let nsOrEntity = nsEntityArray[0];
+                let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
+                let reqNS, ruleNS;
+                if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
+                  // rule name space is present
+                  ruleNS = nsOrEntity.toUpperCase();
+                }
+                // request entity
+                let reqValue = reqAttribute.value;
+                let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
+                let reqNSEntityArray = reqPattern.split('.');
+                // firstElement could be either entity or namespace
+                let reqNSOrEntity = reqNSEntityArray[0];
+                let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
+                if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
+                  // request name space is present
+                  reqNS = reqNSOrEntity.toUpperCase();
+                }
+
+                if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
+                  const reExp = new RegExp(entityRegexValue);
+                  if (reqAttribute.value.match(reExp)) {
+                    return true;
+                  }
                 }
               }
             }
@@ -283,13 +304,35 @@ export class AccessController {
         if (requestAttribute.id == id && requestAttribute.value == value) {
           return true;
         } else if (regexMatch && requestAttribute.id == id) {
+          // rule entity
           let pattern = value.substring(value.lastIndexOf(':') + 1);
-          // let regexValue = pattern.split('.')[0];
-          // get Entity name last element
-          let regexValue = pattern.split(/[.]+/).pop();
-          const reExp = new RegExp(regexValue);
-          if (requestAttribute.value.match(reExp)) {
-            return true;
+          let nsEntityArray = pattern.split('.');
+          // firstElement could be either entity or namespace
+          let nsOrEntity = nsEntityArray[0];
+          let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
+          let reqNS, ruleNS;
+          if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
+            // rule name space is present
+            ruleNS = nsOrEntity.toUpperCase();
+          }
+
+          // request entity
+          let reqValue = requestAttribute.value;
+          let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
+          let reqNSEntityArray = reqPattern.split('.');
+          // firstElement could be either entity or namespace
+          let reqNSOrEntity = reqNSEntityArray[0];
+          let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
+          if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
+            // request name space is present
+            reqNS = reqNSOrEntity.toUpperCase();
+          }
+
+          if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
+            const reExp = new RegExp(entityRegexValue);
+            if (requestAttribute.value.match(reExp)) {
+              return true;
+            }
           }
         } else {
           return false;
