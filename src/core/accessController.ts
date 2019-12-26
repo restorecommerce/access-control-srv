@@ -3,7 +3,7 @@ import * as nodeEval from 'node-eval';
 import {
   Rule, Policy, PolicySet, Request, Response,
   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
-  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation
+  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope
 } from './interfaces';
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
@@ -57,20 +57,29 @@ export class AccessController {
       throw new errors.InvalidRequest('target');
     }
 
-    const requestTarget = request.target;
     let effect: Effect;
     for (let [, value] of this.policySets) {
       const policySet: PolicySet = value;
       let policyEffects: Effect[] = [];
 
-      if ((!!policySet.target && this.targetMatches(policySet.target, request.target))
+      if ((!!policySet.target && this.targetMatches(policySet.target, request))
         || !policySet.target) {
+        let exactMatch = false;
+        for (let [, policyValue] of policySet.combinables) {
+          const policy: Policy = policyValue;
+          if (this.targetMatches(policy.target, request)) {
+            exactMatch = true;
+            break;
+          }
+        }
 
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
 
           const ruleEffects: Effect[] = [];
-          if ((!!policy.target && this.targetMatches(policy.target, request.target))
+          if ((!!policy.target && exactMatch && this.targetMatches(policy.target, request))
+            // regex match
+            || (!!policy.target && !exactMatch && this.targetMatches(policy.target, request, 'isAllowed', true))
             || !policy.target) {
 
             const rules: Map<string, Rule> = policy.combinables;
@@ -84,10 +93,11 @@ export class AccessController {
             else {
               for (let [, rule] of policy.combinables) {
                 // if rule has not target it should be always applied inside the policy scope
-                let matches = !rule.target || this.targetMatches(rule.target, requestTarget);
+                this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
+                let matches = !rule.target || this.targetMatches(rule.target, request, 'isAllowed', true);
 
                 if (matches) {
-                  this.logger.verbose(`Checking rule ${rule.name}...`);
+                  this.logger.verbose(`Checking rule ${rule.name}`);
                   if (matches && rule.target) {
                     matches = checkHierarchicalScope(rule.target, request, this.urns);
                   }
@@ -161,13 +171,23 @@ export class AccessController {
     let policySets: PolicySetRQ[] = [];
     for (let [, value] of this.policySets) {
       let pSet: PolicySetRQ;
-      if (_.isEmpty(value.target) || this.targetMatches(value.target, request.target)) {
+      if (_.isEmpty(value.target) || this.targetMatches(value.target, request)) {
         pSet = _.merge({}, { combining_algorithm: value.combiningAlgorithm }, _.pick(value, ['id', 'target', 'effect']));
         pSet.policies = [];
 
+        let exactMatch = false;
+        for (let [, policy] of value.combinables) {
+          if (this.targetMatches(policy.target, request)) {
+            exactMatch = true;
+            break;
+          }
+        }
+
         for (let [, policy] of value.combinables) {
           let policyRQ: PolicyRQ;
-          if (_.isEmpty(policy.target) || this.targetMatches(policy.target, request.target)) {
+          if (_.isEmpty(policy.target)
+            || (exactMatch && this.targetMatches(policy.target, request))
+            || (!exactMatch && this.targetMatches(policy.target, request, 'whatIsAllowed', true))) {
             policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect']));
             policyRQ.rules = [];
 
@@ -175,7 +195,7 @@ export class AccessController {
 
             for (let [, rule] of policy.combinables) {
               let ruleRQ: RuleRQ;
-              if (_.isEmpty(rule.target) || this.targetMatches(rule.target, request.target, 'whatIsAllowed')) {
+              if (_.isEmpty(rule.target) || this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
                 ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition']));
                 policyRQ.rules.push(ruleRQ);
               }
@@ -198,11 +218,13 @@ export class AccessController {
  * @param targetA
  * @param targetB
  */
-  private targetMatches(ruleTarget: Target, requestTarget: Target, operation: AccessControlOperation = 'isAllowed'): boolean {
-    const subjectMatches = (operation == 'whatIsAllowed' && _.isEmpty(requestTarget.subject))
-      || this.attributesMatch(ruleTarget.subject, requestTarget.subject);
+  private targetMatches(ruleTarget: Target, request: Request,
+    operation: AccessControlOperation = 'isAllowed', regexMatch?: boolean): boolean {
+    const requestTarget = request.target;
+    const subMatches = (operation == 'whatIsAllowed' && _.isEmpty(requestTarget.subject))
+      || this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request);
 
-    const match = subjectMatches && this.attributesMatch(ruleTarget.action, requestTarget.action);
+    const match = subMatches && this.attributesMatch(ruleTarget.action, requestTarget.action);
     if (!match) {
       return false;
     }
@@ -218,15 +240,36 @@ export class AccessController {
               if (reqAttribute.id == urn && reqAttribute.value == attribute.value) {
                 found = true;
                 break;
-              } else if (reqAttribute.id == urn) {
-                // check for regex pattern
+              } else if (regexMatch && reqAttribute.id == urn) {
+                // rule entity
                 const value = attribute.value;
                 let pattern = value.substring(value.lastIndexOf(':') + 1);
-                let regexValue = pattern.split('.')[0];
-                const reExp = new RegExp(regexValue);
-                if (reqAttribute.value.match(reExp)) {
-                  found = true;
-                  break;
+                let nsEntityArray = pattern.split('.');
+                // firstElement could be either entity or namespace
+                let nsOrEntity = nsEntityArray[0];
+                let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
+                let reqNS, ruleNS;
+                if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
+                  // rule name space is present
+                  ruleNS = nsOrEntity.toUpperCase();
+                }
+                // request entity
+                let reqValue = reqAttribute.value;
+                let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
+                let reqNSEntityArray = reqPattern.split('.');
+                // firstElement could be either entity or namespace
+                let reqNSOrEntity = reqNSEntityArray[0];
+                let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
+                if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
+                  // request name space is present
+                  reqNS = reqNSOrEntity.toUpperCase();
+                }
+
+                if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
+                  const reExp = new RegExp(entityRegexValue);
+                  if (reqAttribute.value.match(reExp)) {
+                    return true;
+                  }
                 }
               }
             }
@@ -239,18 +282,19 @@ export class AccessController {
         return true;
       case 'isAllowed':
       default:
-        return this.attributesMatch(ruleTarget.resources, requestTarget.resources);
+        return this.attributesMatch(ruleTarget.resources, requestTarget.resources, regexMatch);
     }
   }
 
   /**
- * Check if the attributes of a subject, action or resources from a rule, policy
- * or policy set match the attributes from a request.
- *
- * @param ruleAttributes
- * @param requestAttributes
- */
-  private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[]): boolean {
+   * Check if the attributes of a action or resources from a rule, policy
+   * or policy set match the attributes from a request.
+   *
+   * @param ruleAttributes
+   * @param requestAttributes
+   */
+  private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[],
+    regexMatch?: boolean): boolean {
 
     for (let attribute of ruleAttributes) {
       const id = attribute.id;
@@ -259,12 +303,36 @@ export class AccessController {
         // return requestAttribute.id == id && requestAttribute.value == value;
         if (requestAttribute.id == id && requestAttribute.value == value) {
           return true;
-        } else if (requestAttribute.id == id) {
+        } else if (regexMatch && requestAttribute.id == id) {
+          // rule entity
           let pattern = value.substring(value.lastIndexOf(':') + 1);
-          let regexValue = pattern.split('.')[0];
-          const reExp = new RegExp(regexValue);
-          if (requestAttribute.value.match(reExp)) {
-            return true;
+          let nsEntityArray = pattern.split('.');
+          // firstElement could be either entity or namespace
+          let nsOrEntity = nsEntityArray[0];
+          let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
+          let reqNS, ruleNS;
+          if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
+            // rule name space is present
+            ruleNS = nsOrEntity.toUpperCase();
+          }
+
+          // request entity
+          let reqValue = requestAttribute.value;
+          let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
+          let reqNSEntityArray = reqPattern.split('.');
+          // firstElement could be either entity or namespace
+          let reqNSOrEntity = reqNSEntityArray[0];
+          let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
+          if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
+            // request name space is present
+            reqNS = reqNSOrEntity.toUpperCase();
+          }
+
+          if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
+            const reExp = new RegExp(entityRegexValue);
+            if (requestAttribute.value.match(reExp)) {
+              return true;
+            }
           }
         } else {
           return false;
@@ -277,6 +345,122 @@ export class AccessController {
     }
 
     return true;
+  }
+
+  /**
+   * Check if the attributes of subject from a rule, policy
+   * or policy set match the attributes from a request.
+   *
+   * @param ruleAttributes
+   * @param requestSubAttributes
+   */
+  private checkSubjectMatches(ruleSubAttributes: Attribute[],
+    requestSubAttributes: Attribute[], request: Request): boolean {
+    // 1) Check if the rule subject entity exists, if so then check
+    // request->target->subject->orgInst or roleScopeInst matches with
+    // context->subject->role_associations->roleScopeInst or hierarchical_scope
+    // 2) if 1 is true then subject match is considered
+    // 3) If rule subject entity does not exist (as for master data resources)
+    // then check context->subject->role_associations->role against
+    // Rule->subject->role
+    const scopingEntity = this.urns.get('roleScopingEntity');
+    const scopingInstance = this.urns.get('roleScopingInstance');
+    const roleURN = this.urns.get('role');
+    let matches = false;
+    let scopingEntExists = false;
+    let ruleRole;
+    if (ruleSubAttributes && ruleSubAttributes.length === 0) {
+      matches = true;
+      return matches;
+    }
+    for (let ruleSubAttribute of ruleSubAttributes) {
+      if (ruleSubAttribute.id === scopingEntity) {
+        // match the scoping entity value
+        scopingEntExists = true;
+        for (let requestSubAttribute of requestSubAttributes) {
+          if (requestSubAttribute.value === ruleSubAttribute.value) {
+            matches = true;
+            break;
+          }
+        }
+      } else if (ruleSubAttribute.id === roleURN) {
+        ruleRole = ruleSubAttribute.value;
+      }
+    }
+    if (scopingEntExists && matches) {
+      matches = false;
+      // check the target scoping instance is present in
+      // the context subject roleassociations and then update matches to true
+      const context = request.context;
+      if (context && context.subject && context.subject.role_associations) {
+        for (let requestSubAttribute of requestSubAttributes) {
+          if (requestSubAttribute.id === scopingInstance) {
+            const targetScopingInstance = requestSubAttribute.value;
+            // check in role_associations
+            const userRoleAssocs = context.subject.role_associations;
+            for (let role of userRoleAssocs) {
+              const roleID = role.role;
+              const attributes = role.attributes;
+              for (let attribute of attributes) {
+                if (attribute.id === scopingInstance &&
+                  attribute.value === targetScopingInstance) {
+                  if (!ruleRole || (ruleRole && ruleRole === roleID)) {
+                    matches = true;
+                    return matches;
+                  }
+                }
+              }
+            }
+            if (!matches) {
+              // check for HR scope
+              const hrScopes = context.subject.hierarchical_scope;
+              for (let hrScope of hrScopes) {
+                if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
+                  const userRoleAssocs = context.subject.role_associations;
+                  for (let role of userRoleAssocs) {
+                    const roleID = role.role;
+                    if (!ruleRole || (ruleRole && ruleRole === roleID)) {
+                      matches = true;
+                      return matches;
+                    }
+                  }
+
+                }
+              }
+            }
+          }
+        }
+      }
+    } else if (!scopingEntExists && request.context.subject) {
+      // scoping entity does not exist - check for point 3.
+      const userRoleAssocs = request.context.subject.role_associations;
+      for (let ruleSubAttribute of ruleSubAttributes) {
+        if (ruleSubAttribute.id === roleURN) {
+          for (let userRoleAssoc of userRoleAssocs) {
+            if (userRoleAssoc.role === ruleSubAttribute.value) {
+              matches = true;
+              return matches;
+            }
+          }
+        }
+      }
+      return false;
+    }
+    return matches;
+  }
+
+  private checkTargetInstanceExists(hrScope: HierarchicalScope,
+    targetScopingInstance: string): boolean {
+    if (hrScope.id === targetScopingInstance) {
+      return true;
+    } else {
+      if (hrScope.children) {
+        for (let child of hrScope.children) {
+          return this.checkTargetInstanceExists(child, targetScopingInstance);
+        }
+      }
+      return false;
+    }
   }
 
   /**

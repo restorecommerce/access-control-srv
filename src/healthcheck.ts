@@ -1,6 +1,6 @@
 import * as sconfig from '@restorecommerce/service-config';
-import {Logger} from '@restorecommerce/logger';
-import {grpcClient} from '@restorecommerce/grpc-client';
+import { Logger } from '@restorecommerce/logger';
+import { grpcClient } from '@restorecommerce/grpc-client';
 
 const cfg = sconfig(process.cwd());
 const logger = new Logger(cfg.get('logger'));
@@ -11,7 +11,7 @@ grpcConfig['service'] = grpcConfig['services'][cfg.get('serviceNames:cis')] || '
 grpcConfig['protos'] = ['io/restorecommerce/commandinterface.proto'];
 grpcConfig['timeout'] = 3000;
 
-logger.silly("Connecting to: " + 'grpc://' + grpcConfig['addr']);
+logger.silly('Connecting to: ' + 'grpc://' + grpcConfig['addr']);
 
 const client = new grpcClient(grpcConfig, logger);
 const command = client.makeEndpoint('command', 'grpc://' + grpcConfig['addr']);
@@ -21,10 +21,10 @@ const requests: Promise<any>[] = [];
 Object.keys(grpcConfig['services']).forEach((service) => {
   requests.push(new Promise<any>(async (resolve, reject) => {
     try {
-      const value = new Buffer(JSON.stringify({service})).toString('base64');
-      const fullPayload = {name: 'health_check', payload: {type_url: 'payload', value}};
+      const value = new Buffer(JSON.stringify({ service })).toString('base64');
+      const fullPayload = { name: 'health_check', payload: { type_url: 'payload', value } };
 
-      logger.silly("Executing: " + JSON.stringify(fullPayload));
+      logger.silly('Executing: ' + JSON.stringify(fullPayload));
 
       const response = await command(fullPayload);
 

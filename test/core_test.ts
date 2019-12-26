@@ -2,7 +2,7 @@ import * as mocha from 'mocha';
 import * as nock from 'nock';
 import * as should from 'should';
 
-import * as core from '../core';
+import * as core from '../lib/core';
 import * as testUtils from './utils';
 
 import * as srvConfig from '@restorecommerce/service-config';

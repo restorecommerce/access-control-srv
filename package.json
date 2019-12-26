@@ -2,7 +2,7 @@
   "name": "@restorecommerce/access-control-srv",
   "version": "0.0.1",
   "description": "Access Control Service",
-  "main": "start.js",
+  "main": "lib/start.js",
   "author": "n-fuse GmbH",
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
   ],
   "dependencies": {
     "@restorecommerce/chassis-srv": "github:restorecommerce/chassis-srv",
-    "@restorecommerce/cluster-service": "github:restorecommerce/cluster-service",
+    "@restorecommerce/cluster-service": "^0.1.4",
     "@restorecommerce/grpc-client": "0.0.4",
     "@restorecommerce/kafka-client": "^0.1.7",
     "@restorecommerce/logger": "^0.1.12",
@@ -38,8 +38,13 @@
     "@types/mocha": "^5.2.7",
     "@types/nock": "^11.1.0",
     "@types/node": "^12.12.14",
+    "@typescript-eslint/eslint-plugin": "^2.8.0",
+    "@typescript-eslint/eslint-plugin-tslint": "^2.8.0",
+    "@typescript-eslint/parser": "^2.8.0",
     "coveralls": "^3.0.9",
     "cross-env": "^6.0.3",
+    "eslint": "^6.7.0",
+    "eslint-plugin-prefer-arrow-functions": "^3.0.1",
     "mocha": "^6.2.2",
     "nock": "^11.7.0",
     "nodemon": "^2.0.1",
@@ -47,25 +52,25 @@
     "nyc": "^14.1.1",
     "rimraf": "^3.0.0",
     "should": "^13.2.3",
-    "ts-node": "^8.5.2",
+    "ts-node": "^8.5.3",
     "tslint": "^5.20.1",
     "typescript": "^3.7.2"
   },
   "scripts": {
-    "start": "node start.js",
-    "dev": "cross-env NODE_ENV=development nodemon --watch './*.ts' --exec 'ts-node' start.ts --trace-warnings",
+    "start": "node lib/start.js",
+    "dev": "cross-env NODE_ENV=development nodemon --watch './src/**/*.ts' --exec 'ts-node' src/start.ts",
     "pretest": "npm run build && npm run tsctests && npm run lint",
     "test": "cross-env NODE_ENV=test nyc npm run mocha",
-    "lint": "cross-env NODE_ENV=development tslint core/**/*.ts *.ts test/core_test.ts test/microservice_test.ts",
+    "lint": "eslint src --ext .ts",
     "mocha": "cross-env NODE_ENV=test mocha -R spec --timeout 60000 test/core_test.js test/microservice_test.js --stack-trace --exit",
     "mocha-debug": "mocha -R spec test/core_test.js test/microservice_test.js --inspect-brk",
     "test-core": "cross-env NODE_ENV=test npm run lint && npm run mocha-core",
     "coveralls": "cross-env NODE_ENV=test; nyc --reporter text --reporter lcov npm test",
     "tsctests": "tsc -d -p tsconfig.test.json",
     "build:tsc": "tsc -d",
-    "build:clean": "rimraf *.js core/**/*.js",
+    "build:clean": "rimraf lib",
     "build": "npm-run-all lint build:clean build:tsc",
-    "healthcheck": "node healthcheck.js"
+    "healthcheck": "node lib/healthcheck.js"
   },
   "engines": {
     "node": ">= 9.2.0"
