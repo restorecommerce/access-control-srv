@@ -22,7 +22,7 @@ export function buildRequest(opts: RequestOpts): core.Request {
       value: opts.subjectRole ? opts.subjectRole : 'SimpleUser'
     },
     {
-      id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
+      id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
       value: opts.subjectID
     }
   ]);

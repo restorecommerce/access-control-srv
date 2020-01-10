@@ -51,7 +51,7 @@ policy_sets:
             descripton: A rule targeting 'modify' permission to a certain attribute of an organization by the User 'Alice'
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
@@ -94,6 +94,6 @@ policy_sets:
         combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
         target:
           subject:
-            - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+            - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
               value: Anna
         effect: PERMIT

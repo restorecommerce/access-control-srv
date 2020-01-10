@@ -14,7 +14,7 @@ policy_sets:
             description: A rule targeting Alice's 'read' permission to the resource 'organization'
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
@@ -28,7 +28,7 @@ policy_sets:
             description: A rule targeting Bob's 'read' permission to the resource 'organization'
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Bob
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
@@ -42,7 +42,7 @@ policy_sets:
             description: A rule targeting Alice's 'modify' permission to the resource 'organization'
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
@@ -61,7 +61,7 @@ policy_sets:
             description: A rule targeting John's 'read' permission to the resource 'organization'
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: John
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
@@ -75,7 +75,7 @@ policy_sets:
             description: A rule targeting John's overall permission
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: John
             effect: PERMIT
       - id: 'P3'
@@ -88,7 +88,7 @@ policy_sets:
             description: A rule targeting Anna's 'read' permission to the resource 'user'
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Anna
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
@@ -102,7 +102,7 @@ policy_sets:
             description: A rule targeting Anna's overall permission
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Anna
             effect: PERMIT
       - id: 'P4'
@@ -115,7 +115,7 @@ policy_sets:
             description: A rule targeting Alice's 'read' permission to the resource 'address'
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
@@ -129,7 +129,7 @@ policy_sets:
             description: Another rule targeting Alice's 'read' permission to the resource 'address'
             target:
               subject:
-                - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+                - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity

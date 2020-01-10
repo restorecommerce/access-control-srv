@@ -67,7 +67,7 @@ export class AccessController {
         let exactMatch = false;
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
-          if (this.targetMatches(policy.target, request)) {
+          if (!!policy.target && this.targetMatches(policy.target, request)) {
             exactMatch = true;
             break;
           }
@@ -177,7 +177,7 @@ export class AccessController {
 
         let exactMatch = false;
         for (let [, policy] of value.combinables) {
-          if (this.targetMatches(policy.target, request)) {
+          if (!!policy.target && this.targetMatches(policy.target, request)) {
             exactMatch = true;
             break;
           }
@@ -431,18 +431,24 @@ export class AccessController {
           }
         }
       }
-    } else if (!scopingEntExists && request.context.subject) {
+    } else if (!scopingEntExists) {
       // scoping entity does not exist - check for point 3.
-      const userRoleAssocs = request.context.subject.role_associations;
-      for (let ruleSubAttribute of ruleSubAttributes) {
-        if (ruleSubAttribute.id === roleURN) {
-          for (let userRoleAssoc of userRoleAssocs) {
-            if (userRoleAssoc.role === ruleSubAttribute.value) {
-              matches = true;
-              return matches;
+      if (request.context && request.context.subject) {
+        const userRoleAssocs = request.context.subject.role_associations;
+        for (let ruleSubAttribute of ruleSubAttributes) {
+          if (ruleSubAttribute.id === roleURN) {
+            for (let userRoleAssoc of userRoleAssocs) {
+              if (userRoleAssoc.role === ruleSubAttribute.value) {
+                matches = true;
+                return matches;
+              }
             }
           }
         }
+      }
+      // must be a rule subject targetted to specific user
+      if (!matches && this.attributesMatch(ruleSubAttributes, requestSubAttributes)) {
+        return true;
       }
       return false;
     }
