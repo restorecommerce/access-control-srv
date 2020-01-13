@@ -462,10 +462,11 @@ export class AccessController {
     } else {
       if (hrScope.children) {
         for (let child of hrScope.children) {
-          return this.checkTargetInstanceExists(child, targetScopingInstance);
+          if (this.checkTargetInstanceExists(child, targetScopingInstance)) {
+            return true;
+          }
         }
       }
-      return false;
     }
   }
 
