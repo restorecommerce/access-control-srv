@@ -12,3 +12,7 @@ coverage
 .DS_Store
 test/*.js
 test/*.d.ts
+config
+id_rsa
+id_rsa.pub
+known_hosts
