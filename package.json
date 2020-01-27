@@ -8,6 +8,7 @@
     "type": "git",
     "url": "https://gitlab.n-fuse.co/restorecommerce/access-control-srv.git"
   },
+  "license": "MIT",
   "keywords": [
     "restore",
     "commerce",
