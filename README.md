@@ -1,8 +1,7 @@
 # access-control-srv
 
-<img src="http://img.shields.io/npm/v/%40restorecommerce%2Faccess%2Dcontrol%2Dsrv.svg?style=flat-square" alt="">[![Build Status][build]](https://travis-ci.org/restorecommerce/access-control-srv?branch=master)[![Dependencies][depend]](https://david-dm.org/restorecommerce/access-control-srv)[![Coverage Status][cover]](https://coveralls.io/github/restorecommerce/access-control-srv?branch=master)
+[![Build Status][build]](https://travis-ci.org/restorecommerce/access-control-srv?branch=master)[![Dependencies][depend]](https://david-dm.org/restorecommerce/access-control-srv)[![Coverage Status][cover]](https://coveralls.io/github/restorecommerce/access-control-srv?branch=master)
 
-[version]: http://img.shields.io/npm/v/access-control-srv.svg?style=flat-square
 [build]: http://img.shields.io/travis/restorecommerce/access-control-srv/master.svg?style=flat-square
 [depend]: https://img.shields.io/david/restorecommerce/access-control-srv.svg?style=flat-square
 [cover]: http://img.shields.io/coveralls/restorecommerce/access-control-srv/master.svg?style=flat-square
@@ -198,10 +197,19 @@ List of events emitted to Kafka by this microservice for below topics:
 
 | Topic Name | Event Name | Description |
 | ----------- | ------------ | ------------- |
-| `io.restorecommerce.command` | `restoreResponse` | system restore response |
-|                              | `resetResponse` | system reset response |
-|                              | `healthCheckResponse` | system health check response |
-|                              | `versionResponse` | system version response |
+| `io.restorecommerce.command`              | `restoreResponse` | system restore response |
+|                                           | `resetResponse` | system reset response |
+|                                           | `healthCheckResponse` | system health check response |
+|                                           | `versionResponse` | system version response |
+| `io.restorecommerce.policy_sets.resource` | `policy_setCreated` | emitted when policy_set is created |
+|                                           | `policy_setModified` | emitted when policy_set is modified |
+|                                           | `policy_setDeleted` | emitted when policy_set is deleted |
+| `io.restorecommerce.policies.resource`    | `policyCreated` | emitted when policy is created |
+|                                           | `policyModified` | emitted when policy is modified |
+|                                           | `policyDeleted` | emitted when policy is deleted |
+| `io.restorecommerce.rules.resource`       | `ruleCreated` | emitted when rule is created |
+|                                           | `ruleModified` | emitted when rule is modified |
+|                                           | `ruleDeleted` | emitted when rule is deleted |
 
 ## Chassis Service
 
@@ -212,6 +220,19 @@ This service uses [chassis-srv](http://github.com/restorecommerce/chassis-srv), 
 provides endpoints for retrieving the system status and resetting/restoring the system in case of failure. These endpoints can be called via gRPC or Kafka events (through the `io.restorecommerce.command` topic).
 - database access, which is abstracted by the [resource-base-interface](https://github.com/restorecommerce/resource-base-interface)
 - stores the offset values for Kafka topics at regular intervals to [Redis](https://redis.io/).
+
+## Development
+
+### Tests
+
+See [tests](test/). To execute the tests set of _backing services_ are needed.
+Refer to [System](https://github.com/restorecommerce/system) repository to start the backing-services before running the tests.
+
+- To run tests
+
+```sh
+npm run test
+```
 
 ## Running as Docker Container
 

@@ -132,8 +132,8 @@
     "kafka": {
       "provider": "kafka",
       "groupId": "access-control-srv",
-      "clientId": "room-service-management-srv",
-      "connectionString": "localhost:2181",
+      "clientId": "access-control-srv",
+      "kafkaHost": "localhost:29092",
       "healthCheckCommand": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
