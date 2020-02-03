@@ -202,17 +202,19 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
               const entities = scopedRoles.get(subTreeRole);
               let eligibleOrgScopes = [];
               getAllValues(node, eligibleOrgScopes);
-              for (let [entity, instances] of entities) {
-                if (_.find(instances, (i) => {
-                  if (eligibleOrgScopes.indexOf(i) > -1) {
-                    return true;
+              if (entities) {
+                for (let [entity, instances] of entities) {
+                  if (_.find(instances, (i) => {
+                    if (eligibleOrgScopes.indexOf(i) > -1) {
+                      return true;
+                    }
+                  })) {
+                    entities.delete(entity);
+                    break;
                   }
-                })) {
-                  entities.delete(entity);
-                  break;
                 }
               }
-              if (entities.size == 0) {
+              if (entities && entities.size == 0) {
                 scopedRoles.delete(subTreeRole);
                 if (scopedRoles.size == 0) {
                   check = true;
