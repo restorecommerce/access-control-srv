@@ -10,8 +10,10 @@ coverage
 .env
 .vscode/*
 .DS_Store
-test/*.js
-test/*.d.ts
+*.js
+*.d.ts
+!.eslintrc.js
+!setupTopics.js
 config
 id_rsa
 id_rsa.pub
