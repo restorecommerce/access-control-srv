@@ -8,12 +8,18 @@
         "isAllowed": {
           "transport": [
             "grpc"
-          ]
+          ],
+          "bufferFields": {
+            "Request": "context"
+          }
         },
         "whatIsAllowed": {
           "transport": [
             "grpc"
-          ]
+          ],
+          "bufferFields": {
+            "Request": "context"
+          }
         }
       },
       "io-restorecommerce-policy-srv": {
