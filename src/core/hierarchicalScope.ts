@@ -176,7 +176,7 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
 
   let check = scopedRoles.size == 0;
   if (!check) {
-    const hierarchicalScopes = context.subject.hierarchical_scope;
+    const hierarchicalScopes = context.subject.hierarchical_scopes;
     for (let hierarchicalScope of hierarchicalScopes) {
       let subTreeRole = null;
       let level = -1;
