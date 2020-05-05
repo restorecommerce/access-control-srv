@@ -413,7 +413,7 @@ export class AccessController {
             }
             if (!matches) {
               // check for HR scope
-              const hrScopes = context.subject.hierarchical_scope;
+              const hrScopes = context.subject.hierarchical_scopes;
               for (let hrScope of hrScopes) {
                 if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
                   const userRoleAssocs = context.subject.role_associations;
