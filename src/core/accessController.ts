@@ -363,18 +363,22 @@ export class AccessController {
     // 3) If rule subject entity does not exist (as for master data resources)
     // then check context->subject->role_associations->role against
     // Rule->subject->role
-    const scopingEntity = this.urns.get('roleScopingEntity');
-    const scopingInstance = this.urns.get('roleScopingInstance');
+    const scopingEntityURN = this.urns.get('roleScopingEntity');
+    const scopingInstanceURN = this.urns.get('roleScopingInstance');
+    const hierarchicalRoleScopingURN = this.urns.get('hierarchicalRoleScoping');
     const roleURN = this.urns.get('role');
     let matches = false;
     let scopingEntExists = false;
     let ruleRole;
+    // default if hierarchicalRoleScopingURN is not configured then consider
+    // to match the HR scopes
+    let hierarchicalRoleScoping = 'true';
     if (ruleSubAttributes && ruleSubAttributes.length === 0) {
       matches = true;
       return matches;
     }
     for (let ruleSubAttribute of ruleSubAttributes) {
-      if (ruleSubAttribute.id === scopingEntity) {
+      if (ruleSubAttribute.id === scopingEntityURN) {
         // match the scoping entity value
         scopingEntExists = true;
         for (let requestSubAttribute of requestSubAttributes) {
@@ -385,6 +389,8 @@ export class AccessController {
         }
       } else if (ruleSubAttribute.id === roleURN) {
         ruleRole = ruleSubAttribute.value;
+      } else if (ruleSubAttribute.id === hierarchicalRoleScopingURN) {
+        hierarchicalRoleScoping = ruleSubAttribute.value;
       }
     }
     if (scopingEntExists && matches) {
@@ -394,7 +400,7 @@ export class AccessController {
       const context = request.context;
       if (context && context.subject && context.subject.role_associations) {
         for (let requestSubAttribute of requestSubAttributes) {
-          if (requestSubAttribute.id === scopingInstance) {
+          if (requestSubAttribute.id === scopingInstanceURN) {
             const targetScopingInstance = requestSubAttribute.value;
             // check in role_associations
             const userRoleAssocs = context.subject.role_associations;
@@ -402,7 +408,7 @@ export class AccessController {
               const roleID = role.role;
               const attributes = role.attributes;
               for (let attribute of attributes) {
-                if (attribute.id === scopingInstance &&
+                if (attribute.id === scopingInstanceURN &&
                   attribute.value === targetScopingInstance) {
                   if (!ruleRole || (ruleRole && ruleRole === roleID)) {
                     matches = true;
@@ -411,7 +417,7 @@ export class AccessController {
                 }
               }
             }
-            if (!matches) {
+            if (!matches && hierarchicalRoleScoping && hierarchicalRoleScoping === 'true') {
               // check for HR scope
               const hrScopes = context.subject.hierarchical_scope;
               for (let hrScope of hrScopes) {

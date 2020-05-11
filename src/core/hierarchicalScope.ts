@@ -22,9 +22,9 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
   let role: string;
   const totalScopingEntities: string[] = [];
   const ruleSubject = ruleTarget.subject || [];
+  let hierarchicalRoleScopeCheck = 'true';
   // retrieving all role scoping entities from the rule's subject
   for (let attribute of ruleSubject) {
-    // TODO: make URNs configurable
     if (attribute.id == urns.get('role')) {
       role = attribute.value;
       if (!scopedRoles.has(role)) {
@@ -39,6 +39,9 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
       scopingEntities.set(scopingEntity, []);
       scopedRoles.set(role, scopingEntities);
       role = null;
+    }
+    if (attribute.id === urns.get('hierarchicalRoleScoping')) {
+      hierarchicalRoleScopeCheck = attribute.value;
     }
   }
 
@@ -175,7 +178,7 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
   }
 
   let check = scopedRoles.size == 0;
-  if (!check) {
+  if (!check && hierarchicalRoleScopeCheck && hierarchicalRoleScopeCheck === 'true') {
     const hierarchicalScopes = context.subject.hierarchical_scope;
     for (let hierarchicalScope of hierarchicalScopes) {
       let subTreeRole = null;

@@ -124,6 +124,7 @@ as demanding such evaluation  would require a replication of this functionality 
 - `urn:restorecommerce:acs:names:role`                        Role as in RBAC
 - `urn:restorecommerce:acs:names:roleScopingEntity`           Scopes a role by a given type
 - `urn:restorecommerce:acs:names:roleScopeInstance`           Specify an actual instance of a scoping entity by its ID
+- `urn:restorecommerce:acs:names:hierarchicalRoleScoping`     Specify if hierarchical role scope matching is done (if the property is not configured by default HR scoping is done)
 - `urn:restorecommerce:acs:names:ownerIndicatoryEntity`       Specify the entity which indicates the owner of a resource
 - `urn:restorecommerce:acs:names:ownerInstance`               Specify an actual instance of an owner entity
 - `urn:restorecommerce:acs:names:model:entity`                An entity (type)
@@ -156,7 +157,7 @@ As the entity might be modeled to have a hierarchical relationship via a `parent
 # Resource based and involving hierarchical Scope Evaluation
 
 A user whose ID is 'Alice' has the role 'admin' within the scoping entity `Organization` with ID 'OrgA'.
-This user aims to 'read' a resource of type `Device`. The device is owned by an `Organization` with ID 'OrgA'.
+This user aims to 'read' a resource of type `Device`. The device is owned by an `Organization` with ID 'OrgB'.
 
 Request:
 
@@ -169,7 +170,7 @@ request:
            - id: urn:restorecommerce:acs:names:roleScopingEntity
              value: urn:restorecommerce:acs:model:organization.Organization
            - id: urn:restorecommerce:acs:names:roleScopeInstance
-             value: OrgA
+             value: OrgB
         resources:
            - id: urn:restorecommerce:acs:names:model:entity
              value: urn:restorecommerce:acs:model:device.Device
@@ -238,6 +239,8 @@ policy_sets:
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
                   value: urn:restorecommerce:acs:model:organization.Organization
+                - id: urn:restorecommerce:acs:names:hierarchicalRoleScoping
+                  value: 'true'
           effect: PERMIT
 ```
 
@@ -247,7 +250,7 @@ Since the device is owned by `OrgB`, it is considered to be under the subject's 
 
 There is one policy with one rule, which permits access by `Organization`-scoped users with role `admin` to resources of entity `Device`.
 Since the request's target matches all attributes from this rule a `PERMIT` effect is returned,
-which according to the policy's combining algorithm means access should be granted to the resource.
+which according to the policy's combining algorithm means access should be granted to the resource. If the value of `urn:restorecommerce:acs:names:hierarchicalRoleScoping` was set to 'false' in the Rule above then the subject would be denied access to resource since `Device` resource is owned by `OrgB` and the hierarchical scope matching would be skipped.
 
 ## Just Operation based
 
