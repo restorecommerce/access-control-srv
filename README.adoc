@@ -233,7 +233,7 @@ For detailed fields of protobuf messages `io.restorecommerce.resourcebase.ReadRe
 == Events
 
 [#emitted-events]
-== Emitted
+=== Emitted
 
 List of events emitted by this microservice for below topics:
 
@@ -256,7 +256,7 @@ List of events emitted by this microservice for below topics:
 |==========================================================================================================================================
 
 [#subscribed-events]
-== Subscribed
+=== Subscribed
 
 This microservice subscribes to the following events by topic:
 
