@@ -1,0 +1,270 @@
+= Access Control Service
+
+https://travis-ci.org/restorecommerce/access-control-srv?branch=master[image:http://img.shields.io/travis/restorecommerce/access-control-srv/master.svg?style=flat-square[Build Status]]
+https://david-dm.org/restorecommerce/access-control-srv[image:https://img.shields.io/david/restorecommerce/access-control-srv.svg?style=flat-square[Dependencies]]
+https://coveralls.io/github/restorecommerce/access-control-srv?branch=master[image:http://img.shields.io/coveralls/restorecommerce/access-control-srv/master.svg?style=flat-square[Coverage Status]]
+
+A microservice for access control.
+
+[#features]
+== Features
+
+* https://en.wikipedia.org/wiki/Attribute-based_access_control[Attribute-based access control]
+inspired by https://en.wikipedia.org/wiki/XACML[XACML].
+* Implementing the PAP (partially), PDP, PRP.
+* Supports arbitrary policies based on arbitrary attributes such as scoped roles as supported
+by the https://github.com/restorecommerce/identity-srv[Identity Service].
+* Control access to distributed resources centrally using link:restorecommerce_ABAC.md[Rule, Policy and PolicySet].
+* Authorization policies can be updated at run time and affect all clients immediately.
+* link:restorecommerce_ABAC.md[A detailed description] describes how ABAC is implemented and URN references
+for `subject`, `resources` and `action` attributes.
+
+[#configuration]
+== Configuration
+
+A GraphQL adapter has been integrated into the service for executing context queries
+https://github.com/restorecommerce/protos/blob/master/io/restorecommerce/rule.proto#L18[io.restorecommerce.rule.ContextQuery]
+to obtain required information to make the access decision.
+This GraphQL endpoint can be configured using `adapter.graphql.url` property in the link:cfg/config.json[configuration].
+
+[#API]
+== API
+
+This microservice exposes the following gRPC endpoints:
+
+[#api_rule]
+=== Rule
+
+A Rule resource.
+
+`io.restorecommerce.rule.Rule`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| id |string |required |Rule ID
+| name | string | optional | Rule name
+| description | string | optional | Rule description
+| target | `io.restorecommerce.access_control.Target` | optional | Rule target
+| context_query | `io.restorecommerce.rule.ContextQuery` | optional | GraphQL query which can be performed to obtain required info for request
+| condition | string | optional | Custom Javascript code to check if rule is applicable
+| effect | `io.restorecommerce.access_control.Effect` | required | Rule effect; possible values are `PERMIT` and `DENY`
+|==============================================================================================================================================
+
+`io.restorecommerce.access_control.Target`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| subject | [ ]`io.restorecommerce.access_control.Property` | required | Entity requesting access
+| resources | [ ]`io.restorecommerce.access_control.Property` | required | Resources to be accessed
+| action | [ ]`io.restorecommerce.access_control.Property` | required | Action to be performed on resources
+|==============================================================================================================================================
+
+`io.restorecommerce.access_control.Property`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| id | string | required | Attribute ID
+| value | string | required | Attribute value
+|==============================================================================================================================================
+
+`io.restorecommerce.rule.ContextQuery`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| query | string | required | Query to retrieve external resources
+| filters | [ ]`io.restorecommerce.rule.Filter` | optional | List of argument keys to be passed from `Request#context` to `query`
+|==============================================================================================================================================
+
+`io.restorecommerce.rule.Filter`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| field | string | optional | field to query
+| operation | string | optional | operation
+| value | string | optional | value
+|==============================================================================================================================================
+
+[#api_policy]
+=== Policy
+
+A Policy resource consisting of set of Rules.
+
+`io.restorecommerce.policy.Policy`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| id | string | required | Policy ID
+| name | string | optional | Policy name
+| description | string | optional | Policy description
+| target | `io.restorecommerce.access_control.Target` | optional | Policy target
+| rules | [ ] `io.restorecommerce.rule.Rule` | optional | List of rules binded to a policy
+| combining_algorithm | string | optional | Combining algorithm to be applied to the rules set
+|==============================================================================================================================================
+
+[#api_policy_set]
+=== PolicySet
+
+A PolicySet resource consisting of set of Policies.
+
+`io.restorecommerce.policy_set.PolicySet`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| id | string | required | Policy ID
+| name | string | optional | Policy name
+| description | string | optional | Policy description
+| target | `io.restorecommerce.access_control.Target` | optional | Policy target
+| policies | [ ] `io.restorecommerce.policy.Policy` | required | List of policies binded to a policy set
+| combining_algorithm | string | optional | Combining algorithm to be applied to the policy set
+|==============================================================================================================================================
+
+[#api_is_allowed]
+=== IsAllowed
+
+This operation is used when the target resource is known and it decides the outcome of an access control request.
+The policy or policy set is found to apply to a given request, its rules are evaluated to determine the access decision
+and response. Requests are performed providing `io.restorecommerce.access_control.Request` protobuf message as input
+and responses are a `io.restorecommerce.access_control.Response` message.
+
+`io.restorecommerce.access_control.Request`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| target | `io.restorecommerce.access_control.Target` | required | Request target
+| context | `google.protobuf.Any` | required | Context variables for access control decisions based on custom scripts
+|==============================================================================================================================================
+
+`io.restorecommerce.access_control.Response`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| decision | `io.restorecommerce.access_control.Decision` | required | Access decision; possible values are `PERMIT`, `DENY` and `INDETERMINATE`
+| obligation | string | optional | Obligation attached to decision
+|==============================================================================================================================================
+
+[#api_what_is_allowed]
+=== WhatIsAllowed
+
+This operation is used when there is not a specific target resource for a request. It returns a reverse query containing
+only the policies and rules applicable to a given request. They can then be used on the client side to infer permissions.
+Requests are performed providing `io.restorecommerce.access_control.Request` protobuf message as input and responses are
+a `io.restorecommerce.access_control.ReverseQuery` message.
+
+`io.restorecommerce.access_control.Request`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| target | `io.restorecommerce.access_control.Target` | required | Request target
+| context | `google.protobuf.Any` | required | Context variables for access control decisions based on custom scripts
+|==============================================================================================================================================
+
+`io.restorecommerce.access_control.ReverseQuery`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| policy_sets | `io.restorecommerce.policy_set.PolicySetRQ` | required | List of applicable policy sets
+|==============================================================================================================================================
+
+`io.restorecommerce.policy_set.PolicySetRQ`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| id | string | required | Policy Set ID
+| target | `io.restorecommerce.access_control.Target` | optional | Policy set target
+| combining_algorithm | string | optional | Combining algorithm
+| effect | `io.restorecommerce.access_control.Effect` | optional | A policy target's effect (only applicable if there are no rules)
+| policies | `io.restorecommerce.policy.PolicyRQ` | optional | List of policies bound to a policy set
+|==============================================================================================================================================
+
+`io.restorecommerce.policy.PolicyRQ`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| id | string | required | Policy ID
+| target | `io.restorecommerce.access_control.Target` | optional | Policy target
+| combining_algorithm | string | optional | Combining algorithm
+| effect | `io.restorecommerce.access_control.Effect` | optional | A policy's effect (only applicable if there are no rules)
+| has_rules | bool | required | Flag to infer if effect should be considered or not
+| rules | `io.restorecommerce.rule.RuleRQ` | optional | List of policies bound to a policy set
+|==============================================================================================================================================
+
+`io.restorecommerce.rule.RuleRQ`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| id | string | required | Policy Set ID
+| target | `io.restorecommerce.access_control.Target` | optional | Policy set target
+| effect | `io.restorecommerce.access_control.Effect` | optional | A policy's effect (only applicable if there are no rules)
+|==============================================================================================================================================
+
+[#api_access_crud]
+==== CRUD Operations
+
+The microservice exposes the below CRUD operations for creating or modifying Rule, Policy and PolicySet resources.
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Method Name | Request Type | Response Type | Description
+| Create | [ ]`io.restorecommerce.<resource>.<resourceName>` | [ ]`io.restorecommerce.<resource>.<resourceName>` | List of \<resourceName> be created
+| Read | `io.restorecommerce.resourcebase.ReadRequest` | [ ]`io.restorecommerce.<resource>.<resourceName>` | List of \<resourceName>
+| Update | [ ]`io.restorecommerce.<resource>.<resourceName>` | [ ]`io.restorecommerce.<resource>.<resourceName>` | List of \<resourceName> to be updated
+| Upsert | [ ]`io.restorecommerce.<resource>.<resourceName>` | [ ]`io.restorecommerce.<resource>.<resourceName>` | List of \<resourceName> to be created or updated
+| Delete | `io.restorecommerce.resourcebase.DeleteRequest` | `google.protobuf.Empty` | List of resource IDs to be deleted
+|==============================================================================================================================================
+
+For detailed fields of protobuf messages `io.restorecommerce.resourcebase.ReadRequest` and
+`io.restorecommerce.resourcebase.DeleteRequest` refer https://github.com/restorecommerce/resource-base-interface/[resource-base-interface].
+
+[#events]
+== Events
+
+[#emitted-events]
+=== Emitted
+
+List of events emitted by this microservice for below topics:
+
+[width="100%",cols="31%,33%,36%",options="header",]
+|==========================================================================================================================================
+| Topic Name | Event Name | Description
+| `io.restorecommerce.command`              | `restoreResponse` | system restore response
+|                                           | `resetResponse` | system reset response
+|                                           | `healthCheckResponse` | system health check response
+|                                           | `versionResponse` | system version response
+| `io.restorecommerce.policy_sets.resource` | `policy_setCreated` | emitted when policy_set is created
+|                                           | `policy_setModified` | emitted when policy_set is modified
+|                                           | `policy_setDeleted` | emitted when policy_set is deleted
+| `io.restorecommerce.policies.resource`    | `policyCreated` | emitted when policy is created
+|                                           | `policyModified` | emitted when policy is modified
+|                                           | `policyDeleted` | emitted when policy is deleted
+| `io.restorecommerce.rules.resource`       | `ruleCreated` | emitted when rule is created
+|                                           | `ruleModified` | emitted when rule is modified
+|                                           | `ruleDeleted` | emitted when rule is deleted
+|==========================================================================================================================================
+
+[#subscribed-events]
+=== Subscribed
+
+This microservice subscribes to the following events by topic:
+
+[width="100%",cols="31%,33%,36%",options="header",]
+|==========================================================================================================================================
+| Topic Name | Event Name | Description
+| `io.restorecommerce.command` | `restoreCommand` | used for system restore
+|                              | `resetCommand` | used for system reset
+|                              | `healthCheckCommand` | to get system health check
+|                              | `versionCommand` | to get system version
+|==========================================================================================================================================
