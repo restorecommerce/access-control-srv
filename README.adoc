@@ -33,7 +33,7 @@ This GraphQL endpoint can be configured using `adapter.graphql.url` property in 
 This microservice exposes the following gRPC endpoints:
 
 [#api_rule]
-=== Rule
+=== `Rule`
 
 A Rule resource.
 
@@ -90,7 +90,7 @@ A Rule resource.
 |==============================================================================================================================================
 
 [#api_policy]
-=== Policy
+=== `Policy`
 
 A Policy resource consisting of set of Rules.
 
@@ -108,7 +108,7 @@ A Policy resource consisting of set of Rules.
 |==============================================================================================================================================
 
 [#api_policy_set]
-=== PolicySet
+=== `PolicySet`
 
 A PolicySet resource consisting of set of Policies.
 
@@ -126,7 +126,7 @@ A PolicySet resource consisting of set of Policies.
 |==============================================================================================================================================
 
 [#api_is_allowed]
-=== IsAllowed
+=== `IsAllowed`
 
 This operation is used when the target resource is known and it decides the outcome of an access control request.
 The policy or policy set is found to apply to a given request, its rules are evaluated to determine the access decision
@@ -152,7 +152,7 @@ and responses are a `io.restorecommerce.access_control.Response` message.
 |==============================================================================================================================================
 
 [#api_what_is_allowed]
-=== WhatIsAllowed
+=== `WhatIsAllowed`
 
 This operation is used when there is not a specific target resource for a request. It returns a reverse query containing
 only the policies and rules applicable to a given request. They can then be used on the client side to infer permissions.
