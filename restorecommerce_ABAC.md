@@ -135,6 +135,7 @@ as demanding such evaluation  would require a replication of this functionality 
 - `urn:restorecommerce:acs:names:action:create`               Create access
 - `urn:restorecommerce:acs:names:action:delete`               Delete access
 - `urn:restorecommerce:acs:names:action:execute`              Execute access
+- `urn:restorecommerce:acs:names:action:drop`                 Drop access
 
 ### XACML
 
