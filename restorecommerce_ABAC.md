@@ -14,7 +14,7 @@ A Policy consisting of rules.
 ```yml
 - name
 - description
-- combiningAlgorithm [urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides | urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides | ]
+- combiningAlgorithm [urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides | urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides]
 (- target)
 - rule                    Reference to 1..n rules
 - effect [permit, deny]
@@ -43,7 +43,7 @@ Atomic element of the ABAC system.
   - resource
     - attribute
       - id                ex: urn:restorecommerce:acs:names:model:entity
-      - value             ex: urn:restorecommerce:acs:model:devices.Device
+      - value             ex: urn:restorecommerce:model:devices.Device
   - action
     - attribute
       - id
@@ -140,7 +140,7 @@ as demanding such evaluation  would require a replication of this functionality 
 ### XACML
 
 - `urn:oasis:names:tc:xacml:1.0:resource:resource-id`         A resource ID which can uniquely identify an instance of a given entity type
-- `ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id`       An ID of a subject
+- ex: `urn:oasis:names:tc:xacml:1.0:subject:subject-id`       An ID of a subject
 - `urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm`     Diverse rule combining algorithms
 - `urn:oasis:names:tc:xacml:1.0:action:action-id`             Denotes an action ID that in-turn defines an action performed on the given resource
 
