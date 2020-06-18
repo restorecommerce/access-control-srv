@@ -43,7 +43,7 @@ Atomic element of the ABAC system.
   - resource
     - attribute
       - id                ex: urn:restorecommerce:acs:names:model:entity
-      - value             ex: urn:restorecommerce:model:devices.Device
+      - value             ex: urn:restorecommerce:model:device.Device
   - action
     - attribute
       - id
@@ -83,18 +83,24 @@ as demanding such evaluation  would require a replication of this functionality 
 ```yml
 - subject
   - attribute
-    - id         ex: urn:restorecommerce:acs:names:model:entity
-    - value      ex: User
+    # To identify subject by its ID
     - id         ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
-    - value      ex: alice
+    - value      ex: <subject identifier>
+
+    # To identify role scoping entity
+    - id         ex: urn:restorecommerce:acs:names:roleScopingEntity
+    - value      ex: urn:restorecommerce:model:organization.Organization
+           
+    # To identify role scoping instance
+    - id         ex: urn:restorecommerce:acs:names:roleScopeInstance
+      value:     ex: <organization identifier>
 - resource
   - attribute
     # To identify a domain model type
     - id         ex: urn:restorecommerce:acs:names:model:entity
-    - value      ex: urn:restorecommerce:acs:model:user.User
+    - value      ex: urn:restorecommerce:model:user.User
 
-    # To identify a single resource by its 
-    ue ID
+    # To identify a single resource by its ID
     - id         ex: urn:oasis:names:tc:xacml:1.0:resource:resource-id
     - value      ex: <some unique ID>
 
@@ -170,12 +176,12 @@ request:
            - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
              value: Alice
            - id: urn:restorecommerce:acs:names:roleScopingEntity
-             value: urn:restorecommerce:acs:model:organization.Organization
+             value: urn:restorecommerce:model:organization.Organization
            - id: urn:restorecommerce:acs:names:roleScopeInstance
              value: OrgB
         resources:
            - id: urn:restorecommerce:acs:names:model:entity
-             value: urn:restorecommerce:acs:model:device.Device
+             value: urn:restorecommerce:model:device.Device
            - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
              value: deviceX
         action:
@@ -189,7 +195,7 @@ request:
                 - role: admin
                   attributes: # a list of attributes associated with the role
                    - id: urn:restorecommerce:acs:names:roleScopingEntity
-                     value: urn:restorecommerce:acs:model:organization.Organization
+                     value: urn:restorecommerce:model:organization.Organization
                    - id: urn:restorecommerce:acs:names:roleScopeInstance
                      value: OrgA
             hierarchical_scope: # sub-tree of the scoping entity
@@ -206,11 +212,11 @@ request:
                modified_by: RandomUser
                owner:
                  - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-                   value: urn:restorecommerce:acs:model:organization.Organization
+                   value: urn:restorecommerce:model:organization.Organization
                  - id: urn:restorecommerce:acs:names:ownerInstance
                    value: OrgB
                  - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-                   value: urn:restorecommerce:acs:model:user.User
+                   value: urn:restorecommerce:model:user.User
                  - id: urn:restorecommerce:acs:names:ownerInstance
                    value: RandomUser
 ```
@@ -232,7 +238,7 @@ policy_sets:
           target:
             resources:
                 - id: urn:restorecommerce:acs:names:model:entity
-                  value: urn:restorecommerce:acs:model:device.Device
+                  value: urn:restorecommerce:model:device.Device
             action:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
@@ -240,7 +246,7 @@ policy_sets:
                 - id: urn:restorecommerce:acs:names:role
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
-                  value: urn:restorecommerce:acs:model:organization.Organization
+                  value: urn:restorecommerce:model:organization.Organization
                 - id: urn:restorecommerce:acs:names:hierarchicalRoleScoping
                   value: 'true'
           effect: PERMIT
@@ -274,7 +280,7 @@ Policies:
                 - id: urn:restorecommerce:acs:names:role
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
-                  value: urn:restorecommerce:acs:model:organization.Organization
+                  value: urn:restorecommerce:model:organization.Organization
           effect: PERMIT
 ```
 
