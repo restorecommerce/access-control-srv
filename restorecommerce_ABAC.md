@@ -93,9 +93,10 @@ as demanding such evaluation  would require a replication of this functionality 
     - id         ex: urn:restorecommerce:acs:names:model:entity
     - value      ex: urn:restorecommerce:acs:model:user.User
 
-    # To identify a single resource by its unique ID
+    # To identify a single resource by its 
+    ue ID
     - id         ex: urn:oasis:names:tc:xacml:1.0:resource:resource-id
-    - value      ex: <some uniq>
+    - value      ex: <some unique ID>
 
     # To identify a property of the selected resource(s)
     - id         ex: urn:restorecommerce:acs:names:model:property
