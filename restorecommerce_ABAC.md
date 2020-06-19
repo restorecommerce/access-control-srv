@@ -121,6 +121,12 @@ as demanding such evaluation  would require a replication of this functionality 
 - obligation              TBD
 ```
 
+### `PolicySetList`
+
+```yml
+- policy_sets List of applicable policy sets
+```
+
 ## URN Reference
 
 ### Restorecommerce defined
@@ -162,63 +168,64 @@ As the entity might be modeled to have a hierarchical relationship via a `parent
 
 # Examples
 
-# Resource based and involving hierarchical Scope Evaluation
+## `isAllowed` - Resource based and involving hierarchical Scope Evaluation
 
-A user whose ID is 'Alice' has the role 'admin' within the scoping entity `Organization` with ID 'OrgA'.
+When a target resource is known and to decide the outcome of an access control request `isAllowed` operation is invoked.
+A Subject with ID as 'Alice' and having the role 'admin' within the scoping entity `Organization` with ID 'OrgA'.
 This user aims to 'read' a resource of type `Device`. The device is owned by an `Organization` with ID 'OrgB'.
 
 Request:
 
 ```yml
 request:
-    target:
-        subject:
-           - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
-             value: Alice
-           - id: urn:restorecommerce:acs:names:roleScopingEntity
-             value: urn:restorecommerce:model:organization.Organization
-           - id: urn:restorecommerce:acs:names:roleScopeInstance
-             value: OrgB
-        resources:
-           - id: urn:restorecommerce:acs:names:model:entity
-             value: urn:restorecommerce:model:device.Device
-           - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
-             value: deviceX
-        action:
-           - id: urn:oasis:names:tc:xacml:1.0:action:action-id
-             value: urn:restorecommerce:acs:names:action:read
+  target:
+    subject:
+      - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
+        value: Alice
+      - id: urn:restorecommerce:acs:names:roleScopingEntity
+        value: urn:restorecommerce:model:organization.Organization
+      - id: urn:restorecommerce:acs:names:roleScopeInstance
+        value: OrgB
+    resources:
+      - id: urn:restorecommerce:acs:names:model:entity
+        value: urn:restorecommerce:model:device.Device
+      - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+        value: deviceX
+    action:
+      - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+        value: urn:restorecommerce:acs:names:action:read
     context:
-        subject:
-            id: Alice
-            name: Alice
-            role_associations:
-                - role: admin
-                  attributes: # a list of attributes associated with the role
-                   - id: urn:restorecommerce:acs:names:roleScopingEntity
-                     value: urn:restorecommerce:model:organization.Organization
-                   - id: urn:restorecommerce:acs:names:roleScopeInstance
-                     value: OrgA
-            hierarchical_scope: # sub-tree of the scoping entity
-              - id: orgA
-                children:
-                  - id: orgB
-        resources:
-            - id: deviceX
-              name: Device X
-              description: A simple device
-              meta:
-               created: <timestamp>
-               modified: <timestamp>
-               modified_by: RandomUser
-               owner:
-                 - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-                   value: urn:restorecommerce:model:organization.Organization
-                 - id: urn:restorecommerce:acs:names:ownerInstance
-                   value: OrgB
-                 - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-                   value: urn:restorecommerce:model:user.User
-                 - id: urn:restorecommerce:acs:names:ownerInstance
-                   value: RandomUser
+      subject:
+        id: Alice
+        name: Alice
+        role_associations:
+          - role: admin
+          attributes: # a list of attributes associated with the role
+            - id: urn:restorecommerce:acs:names:roleScopingEntity
+              value: urn:restorecommerce:model:organization.Organization
+            - id: urn:restorecommerce:acs:names:roleScopeInstance
+              value: OrgA
+        hierarchical_scope: # sub-tree of the scoping entity
+          - id: orgA
+            children:
+              - id: orgB
+      resources:
+        - id: deviceX
+          name: Device X
+          description: A simple device
+          meta:
+          created: <timestamp>
+          modified: <timestamp>
+          modified_by: RandomUser
+          owner:
+            - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+              value: urn:restorecommerce:model:organization.Organization
+            - id: urn:restorecommerce:acs:names:ownerInstance
+              value: OrgB
+            - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+              value: urn:restorecommerce:model:user.User
+            - id: urn:restorecommerce:acs:names:ownerInstance
+              value: RandomUser
 ```
 
 Policies:
@@ -260,7 +267,115 @@ There is one policy with one rule, which permits access by `Organization`-scoped
 Since the request's target matches all attributes from this rule a `PERMIT` effect is returned,
 which according to the policy's combining algorithm means access should be granted to the resource. If the value of `urn:restorecommerce:acs:names:hierarchicalRoleScoping` was set to 'false' in the Rule above then the subject would be denied access to resource since `Device` resource is owned by `OrgB` and the hierarchical scope matching would be skipped.
 
-## Just Operation based
+## `whatIsAllowed` - No Specific Resource or Specific Action is defined
+
+The operation `whatIsAllowed` is used when there is not a specific target resource for a request, for example, when Subject aims to see as much resources as possible.
+This example illustrates permissable actions on two resoruce entities `address` and `country` for Subject `Alice` who has the role `admin` within the scoping entity
+`Organization` with ID 'OrgA'.
+
+```yml
+request:
+    target:
+      subject:
+        - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
+          value: Alice
+        - id: urn:restorecommerce:acs:names:roleScopingEntity
+          value: urn:restorecommerce:model:organization.Organization
+        - id: urn:restorecommerce:acs:names:roleScopeInstance
+          value: OrgA
+      resources:
+        - id: urn:restorecommerce:acs:names:model:entity
+          value: urn:restorecommerce:model:address.Address
+        - id: urn:restorecommerce:acs:names:model:entity
+          value: urn:restorecommerce:model:country.Country
+      action:
+        - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+          value: urn:restorecommerce:acs:names:action:create
+        - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+          value: urn:restorecommerce:acs:names:action:read
+        - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+          value: urn:restorecommerce:acs:names:action:modify
+        - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+          value: urn:restorecommerce:acs:names:action:delete
+    context:
+      subject:
+        id: Alice
+        name: Alice
+        role_associations:
+          - role: admin
+            attributes: # a list of attributes associated with the role
+              - id: urn:restorecommerce:acs:names:roleScopingEntity
+                value: urn:restorecommerce:model:organization.Organization
+              - id: urn:restorecommerce:acs:names:roleScopeInstance
+                value: OrgA
+        hierarchical_scope: # sub-tree of the scoping entity
+          - id: orgA
+            children:
+              - id: orgB
+      resources:
+        - id: urn:restorecommerce:acs:names:model:entity
+          value: urn:restorecommerce:model:address.Address
+        - id: urn:restorecommerce:acs:names:model:entity
+          value: urn:restorecommerce:model:country.Country
+```
+
+There are two policy sets, `Address` policy containing `PERMIT` rules for `create` and `read` action.
+`Conuntry` policy containing `PERMIT` rules for `modify` and `delete` action.
+Response containing list of applicable rules for above request.
+
+PolicySetList:
+
+```yml
+policy_sets:
+ - name: PolicySet A
+   description: General policy set.
+   combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+   policies:
+    - name: Address Policy
+      description: A policy which contains address-related rules
+      combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+      rules:
+        - name: Rule A
+          description: A rule targeting a `create` and `read` by `Organization`-scoped users on Address
+          target:
+            resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:model:address.Address
+            action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:create
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: admin
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:model:organization.Organization
+          effect: PERMIT
+    - name: Country Policy
+      description: A policy which contains country-related rules
+      combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+      rules:
+        - name: Rule A
+          description: A rule targeting a `modify` and `delete` by `Organization`-scoped users on Country
+          target:
+            resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:model:country.Country
+            action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:delete
+            subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: admin
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:model:organization.Organization
+          effect: PERMIT
+```
+
+## Operation based
 
 Policies:
 
