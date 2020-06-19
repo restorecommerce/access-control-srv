@@ -124,7 +124,7 @@ as demanding such evaluation  would require a replication of this functionality 
 ### `PolicySetList`
 
 ```yml
-- policy_sets List of applicable policy sets containing only the applicable policies
+- policy_sets List of applicable policy sets containing only the applicable policies and rules
 ```
 
 ## URN Reference
