@@ -46,8 +46,8 @@ Atomic element of the ABAC system.
       - value             ex: urn:restorecommerce:model:device.Device
   - action
     - attribute
-      - id
-      - value
+      - id                ex: urn:oasis:names:tc:xacml:1.0:action:action-id
+      - value             ex: urn:restorecommerce:acs:names:action:create
 - condition               JavaScript Code, ex: subject.roles.includes('admin')
 - effect [permit, deny]
 ```
@@ -270,7 +270,7 @@ which according to the policy's combining algorithm means access should be grant
 ## `whatIsAllowed` - No Specific Resource or Specific Action is defined
 
 The operation `whatIsAllowed` is used when there is not a specific target resource for a request, for example, when Subject aims to see as much resources as possible.
-This example illustrates permissable actions on two resoruce entities `address` and `country` for Subject `Alice` who has the role `admin` within the scoping entity
+This example illustrates permissable actions on two resoruce entities `Address` and `Country` for Subject `Alice` who has the role `admin` within the scoping entity
 `Organization` with ID 'OrgA'.
 
 ```yml
