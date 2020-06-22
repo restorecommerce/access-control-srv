@@ -312,11 +312,6 @@ request:
           - id: orgA
             children:
               - id: orgB
-      resources:
-        - id: urn:restorecommerce:acs:names:model:entity
-          value: urn:restorecommerce:model:address.Address
-        - id: urn:restorecommerce:acs:names:model:entity
-          value: urn:restorecommerce:model:country.Country
 ```
 
 There are two policy sets, `Address` policy containing `PERMIT` rules for `create` and `read` action.
