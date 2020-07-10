@@ -82,35 +82,32 @@ as demanding such evaluation  would require a replication of this functionality 
 
 ```yml
 - subject
-  - attribute
-    # To identify subject by its ID
-    - id         ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
-    - value      ex: <subject identifier>
+  # To identify subject by its ID
+  - id         ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
+  - value      ex: <subject identifier>
 
-    # To identify role scoping entity
-    - id         ex: urn:restorecommerce:acs:names:roleScopingEntity
-    - value      ex: urn:restorecommerce:model:organization.Organization
-           
-    # To identify role scoping instance
-    - id         ex: urn:restorecommerce:acs:names:roleScopeInstance
-      value:     ex: <organization identifier>
+  # To identify role scoping entity
+  - id         ex: urn:restorecommerce:acs:names:roleScopingEntity
+  - value      ex: urn:restorecommerce:model:organization.Organization
+
+  # To identify role scoping instance
+  - id         ex: urn:restorecommerce:acs:names:roleScopeInstance
+    value:     ex: <organization identifier>
 - resource
-  - attribute
-    # To identify a domain model type
-    - id         ex: urn:restorecommerce:acs:names:model:entity
-    - value      ex: urn:restorecommerce:model:user.User
+  # To identify a domain model type
+  - id         ex: urn:restorecommerce:acs:names:model:entity
+  - value      ex: urn:restorecommerce:model:user.User
 
-    # To identify a single resource by its ID
-    - id         ex: urn:oasis:names:tc:xacml:1.0:resource:resource-id
-    - value      ex: <some unique ID>
+  # To identify a single resource by its ID
+  - id         ex: urn:oasis:names:tc:xacml:1.0:resource:resource-id
+  - value      ex: <some unique ID>
 
-    # To identify a property of the selected resource(s)
-    - id         ex: urn:restorecommerce:acs:names:model:property
-    - value      ex: urn:xingular:model:User#password
+  # To identify a property of the selected resource(s)
+  - id         ex: urn:restorecommerce:acs:names:model:property
+  - value      ex: urn:xingular:model:User#password
 - action
-  - attribute
-    - id         ex: urn:oasis:names:tc:xacml:1.0:action:action-id
-    - value      ex: urn:restorecommerce:acs:names:action:modify
+  - id         ex: urn:oasis:names:tc:xacml:1.0:action:action-id
+  - value      ex: urn:restorecommerce:acs:names:action:modify
 - context
 ```
 
@@ -408,6 +405,8 @@ Policies:
 ## Further potential Attributes describing a Request (Environment)
 
 - `geoLocation`
+- `dateTimeFron` / `dateTimeTo`
 - `connection`
   - `remoteIpv4Address`
-  - `callRate`
+  - `remoteIpv6Address`
+- `callRate`

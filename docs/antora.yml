@@ -1,0 +1,5 @@
+name: access-control-srv
+title: Access Control Service
+version: master
+nav:
+  - modules/ROOT/nav.adoc
