@@ -255,6 +255,7 @@
       "urns": {
         "roleScopingEntity": "urn:restorecommerce:acs:names:roleScopingEntity",
         "roleScopingInstance": "urn:restorecommerce:acs:names:roleScopingInstance",
+        "hierarchicalRoleScoping": "urn:restorecommerce:acs:names:hierarchicalRoleScoping",
         "ownerEntity": "urn:restorecommerce:acs:names:ownerIndicatoryEntity",
         "ownerInstance": "urn:restorecommerce:acs:names:ownerInstance",
         "resourceID": "urn:oasis:names:tc:xacml:1.0:resource:resource-id",

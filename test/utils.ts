@@ -35,7 +35,7 @@ export function buildRequest(opts: RequestOpts): core.Request {
       },
       {
         id: 'urn:restorecommerce:acs:names:roleScopingInstance',
-        value: opts.roleScopingInstance
+        value: opts.targetScopingInstance ? opts.targetScopingInstance : opts.roleScopingInstance
       }
     ]);
   }
@@ -106,7 +106,17 @@ export function buildRequest(opts: RequestOpts): core.Request {
             id: 'SuperOrg1',
             children: [
               {
-                id: 'Org1'
+                id: 'Org1',
+                children: [
+                  {
+                    id: 'Org2',
+                    children: [
+                      {
+                        id: 'Org3'
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -162,6 +172,7 @@ export interface RequestOpts {
   subjectRole?: string;
   roleScopingEntity?: string;
   roleScopingInstance?: string;
+  targetScopingInstance?: string;
   actionType?: string;
   resourceID?: string;
   resourceProperty?: string;

@@ -336,7 +336,6 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
       });
-
       await requestAndValidate(ac, request, core.Decision.PERMIT);
     });
     it('should DENY a modify by a SimpleUser', async () => {
@@ -382,6 +381,40 @@ describe('Testing access control core', () => {
         ownerInstance: 'Org1'
       });
 
+      await requestAndValidate(ac, request, core.Decision.DENY);
+    });
+  });
+  describe('testing rules with HR scopes disabled', () => {
+    before(() => {
+      prepare('./test/fixtures/hierarchicalScopes_disabled.yml');
+    });
+    it('should PERMIT a read by a SimpleUser for root Org Scope', async () => {
+      request = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceID: 'Location 1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      await requestAndValidate(ac, request, core.Decision.PERMIT);
+    });
+    it('should DENY a read by a SimpleUser if HR scoping match is disabled', async () => {
+      request = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        targetScopingInstance: 'Org2', // Org2 is targetScope and HR scoping is disabled
+        roleScopingInstance: 'Org1',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceID: 'Location 1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org2'
+      });
       await requestAndValidate(ac, request, core.Decision.DENY);
     });
   });
