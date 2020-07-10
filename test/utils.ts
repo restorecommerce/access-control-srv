@@ -101,7 +101,7 @@ export function buildRequest(opts: RequestOpts): core.Request {
             ]
           }
         ] : [],
-        hierarchical_scope: opts.roleScopingInstance && opts.roleScopingEntity ? [
+        hierarchical_scopes: opts.roleScopingInstance && opts.roleScopingEntity ? [
           {
             id: 'SuperOrg1',
             children: [
