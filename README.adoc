@@ -14,9 +14,9 @@ inspired by https://en.wikipedia.org/wiki/XACML[XACML].
 * Implementing the PAP (partially), PDP, PRP.
 * Supports arbitrary policies based on arbitrary attributes such as scoped roles as supported
 by the https://github.com/restorecommerce/identity-srv[Identity Service].
-* Control access to distributed resources centrally using link:restorecommerce_ABAC.md[Rule, Policy and PolicySet].
+* Control access to distributed resources centrally using link:./docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[Rule, Policy and PolicySet].
 * Authorization policies can be updated at run time and affect all clients immediately.
-* link:restorecommerce_ABAC.md[A detailed description] describes how ABAC is implemented and URN references
+* link:./docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[A detailed description] describes how ABAC is implemented and URN references
 for `subject`, `resources` and `action` attributes.
 
 [#configuration]
