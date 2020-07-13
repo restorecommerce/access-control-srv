@@ -212,7 +212,7 @@ a `io.restorecommerce.access_control.ReverseQuery` message.
 |==============================================================================================================================================
 
 [#api_access_crud]
-==== CRUD Operations
+=== CRUD Operations
 
 The microservice exposes the below CRUD operations for creating or modifying Rule, Policy and PolicySet resources.
 
