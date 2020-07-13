@@ -14,18 +14,21 @@ inspired by https://en.wikipedia.org/wiki/XACML[XACML].
 * Implementing the PAP (partially), PDP, PRP.
 * Supports arbitrary policies based on arbitrary attributes such as scoped roles as supported
 by the https://github.com/restorecommerce/identity-srv[Identity Service].
-* Control access to distributed resources centrally using link:restorecommerce_ABAC.adoc[Rule, Policy and PolicySet].
+* Control access to distributed resources centrally using
+link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[Rule, Policy and PolicySet].
 * Authorization policies can be updated at run time and affect all clients immediately.
-* link:restorecommerce_ABAC.adoc[A detailed description] describes how ABAC is implemented and URN references
+* link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[A detailed description]
+on how ABAC is implemented and URN references
 for `subject`, `resources` and `action` attributes.
 
 [#configuration]
 == Configuration
 
 A GraphQL adapter has been integrated into the service for executing context queries
-https://github.com/restorecommerce/protos/blob/master/io/restorecommerce/rule.proto#L18[io.restorecommerce.rule.ContextQuery]
+link:https://github.com/restorecommerce/protos/blob/master/io/restorecommerce/rule.proto#L18[io.restorecommerce.rule.ContextQuery]
 to obtain required information to make the access decision.
-This GraphQL endpoint can be configured using `adapter.graphql.url` property in the link:cfg/config.json[configuration].
+This GraphQL endpoint can be configured using `adapter.graphql.url` property in the
+link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L283[configuration].
 
 [#API]
 == API
@@ -103,7 +106,7 @@ A Policy resource consisting of set of Rules.
 | name | string | optional | Policy name
 | description | string | optional | Policy description
 | target | `io.restorecommerce.access_control.Target` | optional | Policy target
-| rules | [ ] `io.restorecommerce.rule.Rule` | optional | List of rules binded to a policy
+| rules | [ ] `io.restorecommerce.rule.Rule` | optional | List of rules bounded to a policy
 | combining_algorithm | string | optional | Combining algorithm to be applied to the rules set
 |==============================================================================================================================================
 
