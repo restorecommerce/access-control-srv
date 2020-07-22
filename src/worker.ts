@@ -3,8 +3,10 @@ import * as chassis from '@restorecommerce/chassis-srv';
 import { Events } from '@restorecommerce/kafka-client';
 import { AccessControlService, AccessControlCommandInterface } from './accessControlService';
 import { ResourceManager } from './resourceManager';
+import { RedisClient, createClient } from 'redis';
 
 import * as core from './core';
+import { initAuthZ, ACSAuthZ } from '@restorecommerce/acs-client';
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {
@@ -46,6 +48,8 @@ export class Worker {
   events: Events;
   commandInterface: chassis.ICommandInterface;
   accessController: core.AccessController;
+  redisClient: RedisClient;
+  authZ: ACSAuthZ;
   async start(cfg?: any, logger?: any): Promise<any> {
     this.cfg = cfg || await chassis.config.get();
     this.logger = logger || new chassis.Logger(this.cfg.get('logger'));
@@ -80,7 +84,15 @@ export class Worker {
 
     // resources
     const db = await chassis.database.get(this.cfg.get('database:main'), this.logger);
-    const resourceManager = new ResourceManager(this.cfg, this.logger, events, db, this.accessController);
+    // init Redis Client for subject index
+    const redisConfig = this.cfg.get('redis');
+    redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
+    this.redisClient = createClient(redisConfig);
+    // init AuthZ
+    let authZ = await initAuthZ(this.cfg) as ACSAuthZ;
+    this.authZ = authZ;
+    const resourceManager = new ResourceManager(this.cfg, this.logger, events, db,
+      this.accessController, this.redisClient, this.authZ);
 
     await server.bind('io-restorecommerce-policy-set-srv', resourceManager.getResourceService('policy_set'));
     // policy resource
@@ -91,7 +103,7 @@ export class Worker {
     const accessControlService = new AccessControlService(this.cfg, this.logger, resourceManager, this.accessController);
     await server.bind('io-restorecommerce-access-control-srv', accessControlService);
     // command interface
-    this.commandInterface = new AccessControlCommandInterface(server, this.cfg.get(), this.logger, events, accessControlService);
+    this.commandInterface = new AccessControlCommandInterface(server, this.cfg, this.logger, events, accessControlService);
     await server.bind('io-restorecommerce-access-control-ci', this.commandInterface);
 
     this.events = events;

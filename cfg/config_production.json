@@ -8,6 +8,9 @@
       "source": "access-control-srv"
     }
   },
+  "redis": {
+    "host": "redis"
+  },
   "server": {
     "transports": [
       {

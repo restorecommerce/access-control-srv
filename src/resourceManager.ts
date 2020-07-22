@@ -3,6 +3,9 @@ import { ResourcesAPIBase, ServiceBase, toStruct } from '@restorecommerce/resour
 import { Topic, Events } from '@restorecommerce/kafka-client';
 
 import * as core from './core';
+import { getSubjectFromRedis, createMetadata, AccessResponse, checkAccessRequest, ReadPolicyResponse } from './core/utils';
+import { AuthZAction, PermissionDenied, Decision, ACSAuthZ } from '@restorecommerce/acs-client';
+import { RedisClient } from 'redis';
 
 export interface IAccessControlResourceService<T> {
   load(): Promise<Map<string, T>>;
@@ -51,8 +54,15 @@ let policySetService: PolicySetService,
 * Rule resource service.
 */
 export class RuleService extends ServiceBase implements IAccessControlResourceService<core.Rule> {
-  constructor(logger: any, policyTopic: Topic, db: any) {
+  cfg: any;
+  redisClient: RedisClient;
+  authZ: ACSAuthZ;
+  constructor(logger: any, policyTopic: Topic, db: any, cfg: any,
+    redisClient: RedisClient, authZ: ACSAuthZ) {
     super('rule', policyTopic, logger, new ResourcesAPIBase(db, 'rules'), true);
+    this.cfg = cfg;
+    this.redisClient = redisClient;
+    this.authZ = authZ;
   }
 
   /**
@@ -64,7 +74,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 
   async getRules(ruleIDs?: string[]): Promise<Map<string, core.Rule>> {
     const filter = ruleIDs ? makeFilter(ruleIDs) : {};
-    const result = await this.read({
+    const result = await super.read({
       request: {
         filter
       }
@@ -80,8 +90,37 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     return rules;
   }
 
+  async readRulesMetaData(id?: string): Promise<any> {
+    let result = await super.read({
+      request: {
+        filter: toStruct({
+          id: {
+            $eq: id
+          }
+        })
+      }
+    });
+    return result;
+  }
+
   async create(call: any, context: any): Promise<any> {
-    const result = await super.create(call, context);
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readRulesMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.CREATE,
+        'rule', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.create({ request: items }, context);
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result && result.items) {
@@ -99,9 +138,97 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     return result;
   }
 
-  async delete(call: any, context: any): Promise<any> {
-    await super.delete(call, context);
+  async read(call: any, context: any): Promise<any> {
+    const readRequest = call.request;
+    let subject = await getSubjectFromRedis(call, this);
+    let acsResponse: ReadPolicyResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, readRequest, AuthZAction.READ,
+        'rule', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv:', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.read({ request: readRequest });
+    return result;
+  }
 
+  async update(call: any, context: any): Promise<any> {
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readRulesMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
+        'rule', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.update(call, context);
+    return result;
+  }
+
+  async upsert(call: any, context: any): Promise<any> {
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readRulesMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
+        'rule', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.upsert(call, context);
+    return result;
+  }
+
+  async delete(call: any, context: any): Promise<any> {
+    let resources = [];
+    let subject = await getSubjectFromRedis(call, this);
+    let ruleIDs = call.request.ids;
+    if (ruleIDs) {
+      if (_.isArray(ruleIDs)) {
+        for (let id of ruleIDs) {
+          resources.push({ id });
+        }
+      } else {
+        resources = [{ id: ruleIDs }];
+      }
+      Object.assign(resources, { id: ruleIDs });
+      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readRulesMetaData());
+    }
+    if (call.request.collection) {
+      Object.assign(resources, { collection: call.request.collection });
+    }
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, resources, AuthZAction.DELETE,
+        'rule', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv:', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    await super.delete(call, context);
     if (call.request.ids) {
       for (let id of call.request.ids) {
         for (let [, policySet] of _accessController.policySets) {
@@ -112,7 +239,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
           }
         }
       }
-    } else if (call.request.collection && call.request.collection == 'rule') {
+    } else if (call.request.collection && call.request.collection === true) {
       for (let [, policySet] of _accessController.policySets) {
         for (let [, policy] of policySet.combinables) {
           policy.combinables = new Map();
@@ -128,9 +255,16 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
  */
 export class PolicyService extends ServiceBase implements IAccessControlResourceService<core.Policy> {
   ruleService: RuleService;
-  constructor(logger: any, db: any, policyTopic: Topic, rulesTopic: Topic) {
+  cfg: any;
+  redisClient: RedisClient;
+  authZ: ACSAuthZ;
+  constructor(logger: any, db: any, policyTopic: Topic, rulesTopic: Topic, cfg: any,
+    redisClient: RedisClient, authZ: ACSAuthZ) {
     super('policy', policyTopic, logger, new ResourcesAPIBase(db, 'policies'), true);
-    this.ruleService = new RuleService(this.logger, rulesTopic, db);
+    this.ruleService = new RuleService(this.logger, rulesTopic, db, cfg, redisClient, authZ);
+    this.cfg = cfg;
+    this.redisClient = redisClient;
+    this.authZ = authZ;
   }
 
   /**
@@ -141,6 +275,22 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   }
 
   async create(call: any, context: any): Promise<any> {
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readPoliciesMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.CREATE,
+        'policy', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
     const result = await super.create(call, context);
     const policySets = _.cloneDeep(_accessController.policySets);
 
@@ -167,6 +317,79 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       }
     }
 
+    return result;
+  }
+
+  async readPoliciesMetaData(id?: string): Promise<any> {
+    let result = await super.read({
+      request: {
+        filter: toStruct({
+          id: {
+            $eq: id
+          }
+        })
+      }
+    });
+    return result;
+  }
+
+  async read(call: any, context: any): Promise<any> {
+    const readRequest = call.request;
+    let subject = await getSubjectFromRedis(call, this);
+    let acsResponse: ReadPolicyResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, readRequest, AuthZAction.READ,
+        'policy', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv:', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.read({ request: readRequest });
+    return result;
+  }
+
+  async update(call: any, context: any): Promise<any> {
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readPoliciesMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
+        'policy', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.update(call, context);
+    return result;
+  }
+
+  async upsert(call: any, context: any): Promise<any> {
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readPoliciesMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
+        'policy', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.upsert(call, context);
     return result;
   }
 
@@ -202,6 +425,35 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   }
 
   async delete(call: any, context: any): Promise<any> {
+    let resources = [];
+    let subject = await getSubjectFromRedis(call, this);
+    let policyIDs = call.request.ids;
+    if (policyIDs) {
+      if (_.isArray(policyIDs)) {
+        for (let id of policyIDs) {
+          resources.push({ id });
+        }
+      } else {
+        resources = [{ id: policyIDs }];
+      }
+      Object.assign(resources, { id: policyIDs });
+      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readPoliciesMetaData());
+    }
+    if (call.request.collection) {
+      Object.assign(resources, { collection: call.request.collection });
+    }
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, resources, AuthZAction.DELETE,
+        'policy', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv:', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
     await super.delete(call, context);
 
     if (call.request.ids) {
@@ -212,7 +464,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
           }
         }
       }
-    } else if (call.request.collection && call.request.collection == 'policy') {
+    } else if (call.request.collection && call.request.collection === true) {
       for (let [, policySet] of _accessController.policySets) {
         policySet.combinables = new Map();
         _accessController.updatePolicySet(policySet);
@@ -222,15 +474,35 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
 }
 
 export class PolicySetService extends ServiceBase implements IAccessControlResourceService<core.PolicySet> {
-  constructor(logger: any, db: any, policySetTopic: Topic) {
+  cfg: any;
+  redisClient: RedisClient;
+  authZ: ACSAuthZ;
+  constructor(logger: any, db: any, policySetTopic: Topic, cfg: any,
+    redisClient: RedisClient, authZ: ACSAuthZ) {
     super('policy_set', policySetTopic, logger, new ResourcesAPIBase(db, 'policy_sets'), true);
+    this.cfg = cfg;
+    this.redisClient = redisClient;
+    this.authZ = authZ;
+  }
+
+  async readPolicySetsMetaData(id?: string): Promise<any> {
+    let result = await super.read({
+      request: {
+        filter: toStruct({
+          id: {
+            $eq: id
+          }
+        })
+      }
+    });
+    return result;
   }
 
   /**
    * Load policy sets and map them to policies.
    */
   async load(): Promise<Map<string, core.PolicySet>> {
-    const data = await this.read({
+    const data = await super.read({
       request: {}
     }, {});
 
@@ -264,6 +536,22 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
   }
 
   async create(call: any, context: any): Promise<any> {
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readPolicySetsMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.CREATE,
+        'policy_set', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
     const result = await super.create(call, context);
 
     if (result && result.items) {
@@ -289,6 +577,22 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
   }
 
   async update(call: any, context: any): Promise<any> {
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readPolicySetsMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
+        'policy_set', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
     const result = await super.update(call, context);
 
     // update in memory policies if no exception was thrown
@@ -332,6 +636,35 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
   }
 
   async delete(call: any, context: any): Promise<any> {
+    let resources = [];
+    let subject = await getSubjectFromRedis(call, this);
+    let policySetIDs = call.request.ids;
+    if (policySetIDs) {
+      if (_.isArray(policySetIDs)) {
+        for (let id of policySetIDs) {
+          resources.push({ id });
+        }
+      } else {
+        resources = [{ id: policySetIDs }];
+      }
+      Object.assign(resources, { id: policySetIDs });
+      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readPolicySetsMetaData());
+    }
+    if (call.request.collection) {
+      Object.assign(resources, { collection: call.request.collection });
+    }
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, resources, AuthZAction.DELETE,
+        'policy_set', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv:', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
     await super.delete(call, context);
 
     if (call.request.ids) {
@@ -342,19 +675,59 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       _accessController.clearPolicies();
     }
   }
+
+  async read(call: any, context: any): Promise<any> {
+    const readRequest = call.request;
+    let subject = await getSubjectFromRedis(call, this);
+    let acsResponse: ReadPolicyResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, readRequest, AuthZAction.READ,
+        'policy', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv:', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.read({ request: readRequest });
+    return result;
+  }
+
+  async upsert(call: any, context: any): Promise<any> {
+    let subject = await getSubjectFromRedis(call, this);
+    // update meta data for owner information
+    let items = call.request.items;
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readPolicySetsMetaData());
+
+    let acsResponse: AccessResponse;
+    try {
+      acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
+        'policy', this);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv', err);
+      throw err;
+    }
+    if (acsResponse.decision != Decision.PERMIT) {
+      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+    }
+    const result = await super.upsert(call, context);
+    return result;
+  }
 }
 
 export class ResourceManager {
-  constructor(cfg: any, logger: any, events: Events, db: any, accessController: core.AccessController) {
+  constructor(cfg: any, logger: any, events: Events, db: any,
+    accessController: core.AccessController, redisClient: RedisClient, authZ: ACSAuthZ) {
 
     const kafkaCfg = cfg.get('events:kafka');
     const rulesTopic = events.topic(kafkaCfg.topics['rule.resource'].topic);
     const policyTopic = events.topic(kafkaCfg.topics['policy.resource'].topic);
     const policySetTopic = events.topic(kafkaCfg.topics['policy_set.resource'].topic);
 
-    policySetService = new PolicySetService(logger, db, policySetTopic);
-    policyService = new PolicyService(logger, db, policyTopic, rulesTopic);
-    ruleService = new RuleService(logger, rulesTopic, db);
+    policySetService = new PolicySetService(logger, db, policySetTopic, cfg, redisClient, authZ);
+    policyService = new PolicyService(logger, db, policyTopic, rulesTopic, cfg, redisClient, authZ);
+    ruleService = new RuleService(logger, rulesTopic, db, cfg, redisClient, authZ);
 
     _accessController = accessController;
   }

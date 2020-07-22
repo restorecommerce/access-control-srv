@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { AccessController } from './accessController';
 import * as interfaces from './interfaces';
+import { RedisClient } from 'redis';
+import { Subject, AuthZAction, Decision, accessRequest, PolicySetRQ } from '@restorecommerce/acs-client';
 
 export const formatTarget = (target: any): interfaces.Target => {
   if (!target) {
@@ -106,3 +108,183 @@ export const loadPoliciesFromDoc = async (accessController: AccessController, fi
     });
   });
 };
+
+export interface Response {
+  payload: any;
+  count: number;
+  status?: {
+    code: number;
+    message: string;
+  };
+}
+
+export interface AccessResponse {
+  decision: Decision;
+  response?: Response;
+}
+
+export interface FilterType {
+  field?: string;
+  operation?: 'lt' | 'lte' | 'gt' | 'gte' | 'eq' | 'in' | 'isEmpty' | 'iLike';
+  value?: string;
+  type?: 'string' | 'boolean' | 'number' | 'date' | 'array';
+}
+
+export interface ReadPolicyResponse extends AccessResponse {
+  policySet?: PolicySetRQ;
+  filter?: FilterType[];
+  custom_query_args?: {
+    custom_queries: any;
+    custom_arguments: any;
+  };
+}
+
+/**
+ * Perform an access request using inputs from a GQL request
+ *
+ * @param subject Subject information
+ * @param resources resources
+ * @param action The action to perform
+ * @param entity The entity type to check access against
+ */
+/* eslint-disable prefer-arrow-functions/prefer-arrow-functions */
+export async function checkAccessRequest(subject: Subject, resources: any, action: AuthZAction,
+  entity: string, service: any, resourceNameSpace?: string): Promise<AccessResponse | ReadPolicyResponse> {
+  let authZ = service.authZ;
+  let data = _.cloneDeep(resources);
+  if (!_.isArray(resources) && action != AuthZAction.READ) {
+    data = [resources];
+  } else if (action === AuthZAction.READ) {
+    data.args = resources;
+    data.entity = entity;
+  }
+
+  let result: Decision | PolicySetRQ;
+  try {
+    result = await accessRequest(subject, data, action, authZ, entity, resourceNameSpace);
+  } catch (err) {
+    return {
+      decision: Decision.DENY,
+      response: {
+        payload: undefined,
+        count: 0,
+        status: {
+          code: err.code || 500,
+          message: err.details,
+        }
+      }
+    };
+  }
+  if (typeof result === 'string') {
+    return {
+      decision: result
+    };
+  }
+  let custom_queries = data.args.custom_queries;
+  let custom_arguments = data.args.custom_arguments;
+  return {
+    decision: Decision.PERMIT,
+    policySet: result,
+    filter: data.args.filter,
+    custom_query_args: { custom_queries, custom_arguments }
+  };
+}
+
+export const getSubjectFromRedis = async (call: any, redisClient: RedisClient) => {
+  let subject = call.request.subject;
+  if (!subject) {
+    subject = {};
+  }
+  let api_key = call.request.api_key;
+  if (subject && subject.id && _.isEmpty(subject.hierarchical_scopes)) {
+    let redisKey = `cache:${subject.id}:subject`;
+    // update ctx with HR scope from redis
+    subject = await new Promise((resolve, reject) => {
+      redisClient.get(redisKey, async (err, response) => {
+        if (!err && response) {
+          // update user HR scope and role_associations from redis
+          const redisResp = JSON.parse(response);
+          subject.role_associations = redisResp.role_associations;
+          subject.hierarchical_scopes = redisResp.hierarchical_scopes;
+          resolve(subject);
+        }
+        // when not set in redis
+        if (err || (!err && !response)) {
+          resolve(subject);
+          return subject;
+        }
+      });
+    });
+  } else if (api_key) {
+    subject = { api_key };
+  }
+  return subject;
+};
+
+/**
+ * reads meta data from DB and updates owner information in resource if action is UPDATE / DELETE
+ * @param reaources list of resources
+ * @param entity entity name
+ * @param action resource action
+ */
+export async function createMetadata(resources: any,
+  action: string, subject: Subject, service: any, cb: any): Promise<any> {
+  let orgOwnerAttributes = [];
+  if (resources && !_.isArray(resources)) {
+    resources = [resources];
+  }
+  const urns = this.cfg.get('authorization:urns');
+  if (subject && subject.scope && (action === AuthZAction.CREATE || action === AuthZAction.MODIFY)) {
+    // add user and subject scope as default owner
+    orgOwnerAttributes.push(
+      {
+        id: urns.ownerIndicatoryEntity,
+        value: urns.organization
+      },
+      {
+        id: urns.ownerInstance,
+        value: subject.scope
+      });
+  }
+
+  if (resources) {
+    for (let resource of resources) {
+      if (!resource.meta) {
+        resource.meta = {};
+      }
+      if (action === AuthZAction.MODIFY || action === AuthZAction.DELETE) {
+        let result = service.cb(resource.id);
+        // update owner info
+        if (result.items.length === 1) {
+          let item = result.items[0];
+          resource.meta.owner = item.meta.owner;
+        } else if (result.items.length === 0 && !resource.meta.owner) {
+          let ownerAttributes = _.cloneDeep(orgOwnerAttributes);
+          ownerAttributes.push(
+            {
+              id: urns.ownerIndicatoryEntity,
+              value: urns.user
+            },
+            {
+              id: urns.ownerInstance,
+              value: resource.id
+            });
+          resource.meta.owner = ownerAttributes;
+        }
+      } else if (action === AuthZAction.CREATE && !resource.meta.owner) {
+        let ownerAttributes = _.cloneDeep(orgOwnerAttributes);
+        ownerAttributes.push(
+          {
+            id: urns.ownerIndicatoryEntity,
+            value: urns.user
+          },
+          {
+            id: urns.ownerInstance,
+            value: resource.id
+          });
+        resource.meta.owner = ownerAttributes;
+      }
+    }
+  }
+  return resources;
+}
