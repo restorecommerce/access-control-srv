@@ -11,6 +11,7 @@ import { Client } from '@restorecommerce/grpc-client';
 
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
+import { updateConfig } from '@restorecommerce/acs-client';
 
 let cfg: any;
 let logger;
@@ -21,10 +22,14 @@ let accessControlService: any;
 let rules, policies, policySets;
 
 describe('testing microservice', () => {
-  describe('testing resource ownership', () => {
+  describe('testing resource ownership with ACS disabled', () => {
     before(async () => {
       await setupService();
       await load('./test/fixtures/conditions.yml');
+      // disable authorization
+      cfg.set('authorization:enabled', false);
+      cfg.set('authorization:enforce', false);
+      updateConfig(cfg);
     });
     after(async () => {
       await client.end();

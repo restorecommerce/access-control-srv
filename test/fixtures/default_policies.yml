@@ -1,0 +1,78 @@
+policy_sets:
+    - id: 'PS1'
+      name: 'Policy set for CRUD Rule, Policy and PolicySets'
+      description: 'Policy set for CRUD Rule, Policy and PolicySets'
+      combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+      policies:
+        - id: 'rule_policy'
+          name: 'Policy for Rule resource'
+          description: 'Allows access by admin for CRUD access to `Rule` resource'
+          target:
+            resources:
+              - id: urn:restorecommerce:acs:names:model:entity
+                value: urn:restorecommerce:acs:model:rule.Rule
+          combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+          rules:
+            - id: 'R1'
+              name: Rule R1
+              description: A rule targeting admin to CRUD for rule resource
+              target:
+                subject:
+                  - id: urn:restorecommerce:acs:names:role
+                    value: admin-r-id
+                resources:
+                  - id: urn:restorecommerce:acs:names:model:entity
+                    value: urn:restorecommerce:acs:model:rule.Rule
+              effect: PERMIT
+            - id: 'fallback_rule_id_1'
+              name: Fallback rule
+              description: Fallback rule
+              effect: DENY
+        - id: 'policy_policy'
+          name: 'Policy for Policy resource'
+          description: 'Allows access by admin for CRUD access to `Policy` resource'
+          target:
+            resources:
+              - id: urn:restorecommerce:acs:names:model:entity
+                value: urn:restorecommerce:acs:model:policy.Policy
+          combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+          rules:
+            - id: 'R2'
+              name: Rule R2
+              description: A rule targeting admin to CRUD for policy resource
+              target:
+                subject:
+                  - id: urn:restorecommerce:acs:names:role
+                    value: admin-r-id
+                resources:
+                  - id: urn:restorecommerce:acs:names:model:entity
+                    value: urn:restorecommerce:acs:model:policy.Policy
+              effect: PERMIT
+            - id: 'fallback_rule_id_2'
+              name: Fallback rule
+              description: Fallback rule
+              effect: DENY
+        - id: 'policy_set_policy'
+          name: 'Policy for PolicySet resource'
+          description: 'Allows access by admin for CRUD access to `policy_set` resource'
+          target:
+            resources:
+              - id: urn:restorecommerce:acs:names:model:entity
+                value: urn:restorecommerce:acs:model:policy_set.PolicySet
+          combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+          rules:
+            - id: 'R3'
+              name: Rule R3
+              description: A rule targeting admin to CRUD for policy resource
+              target:
+                subject:
+                  - id: urn:restorecommerce:acs:names:role
+                    value: admin-r-id
+                resources:
+                  - id: urn:restorecommerce:acs:names:model:entity
+                    value: urn:restorecommerce:acs:model:policy_set.PolicySet
+              effect: PERMIT
+            - id: 'fallback_rule_id_3'
+              name: Fallback rule
+              description: Fallback rule
+              effect: DENY
