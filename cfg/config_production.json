@@ -11,6 +11,11 @@
   "redis": {
     "host": "redis"
   },
+  "authorization": {
+    "cache": {
+      "host": "redis"
+    }
+  },
   "server": {
     "transports": [
       {

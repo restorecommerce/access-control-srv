@@ -2,6 +2,189 @@
   "protosPathPrefix": "io/restorecommerce/",
   "protosServicePrefix": "io.restorecommerce.",
   "protosRoot": "node_modules/@restorecommerce/protos/",
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "offsetStoreInterval": 1000,
+    "db-indexes": {
+      "db-offsetStore": 0,
+      "db-subject": 4
+    }
+  },
+  "authorization": {
+    "service": "acs-srv",
+    "enabled": false,
+    "enforce": true,
+    "urns": {
+      "entity": "urn:restorecommerce:acs:names:model:entity",
+      "user": "urn:restorecommerce:acs:model:user.User",
+      "model": "urn:restorecommerce:acs:model",
+      "role": "urn:restorecommerce:acs:names:role",
+      "roleScopingEntity": "urn:restorecommerce:acs:names:roleScopingEntity",
+      "roleScopingInstance": "urn:restorecommerce:acs:names:roleScopingInstance",
+      "unauthenticated_user": "urn:restorecommerce:acs:names:unauthenticated-user",
+      "property": "urn:restorecommerce:acs:names:model:property",
+      "ownerIndicatoryEntity": "urn:restorecommerce:acs:names:ownerIndicatoryEntity",
+      "ownerInstance": "urn:restorecommerce:acs:names:ownerInstance",
+      "orgScope": "urn:restorecommerce:acs:model:organization.Organization",
+      "subjectID": "urn:oasis:names:tc:xacml:1.0:subject:subject-id",
+      "resourceID": "urn:oasis:names:tc:xacml:1.0:resource:resource-id",
+      "actionID": "urn:oasis:names:tc:xacml:1.0:action:action-id",
+      "action": "urn:restorecommerce:acs:names:action",
+      "operation": "urn:restorecommerce:acs:names:operation",
+      "execute": "urn:restorecommerce:acs:names:action:execute",
+      "permitOverrides": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides",
+      "denyOverrides": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides",
+      "create": "urn:restorecommerce:acs:names:action:create",
+      "read": "urn:restorecommerce:acs:names:action:read",
+      "modify": "urn:restorecommerce:acs:names:action:modify",
+      "delete": "urn:restorecommerce:acs:names:action:delete",
+      "organization": "urn:restorecommerce:acs:model:organization.Organization"
+    },
+    "cache": {
+      "host": "localhost",
+      "port": 6379,
+      "db-index": 5,
+      "ttl": 3600,
+      "prefix": "acs:"
+    }
+  },
+  "client": {
+    "acs-srv": {
+      "transports": {
+        "grpc": {
+          "service": "io.restorecommerce.access_control.Service",
+          "protos": [
+            "io/restorecommerce/access_control.proto"
+          ],
+          "protoRoot": "node_modules/@restorecommerce/protos/",
+          "timeout": 3000
+        }
+      },
+      "loadbalancer": {
+        "name": "roundRobin"
+      },
+      "publisher": {
+        "name": "static",
+        "instances": [
+          "grpc://localhost:50061"
+        ]
+      },
+      "endpoints": {
+        "isAllowed": {},
+        "whatIsAllowed": {}
+      }
+    },
+    "policy_set": {
+      "transports": {
+        "grpc": {
+          "service": "io.restorecommerce.policy_set.Service",
+          "timeout": 3000,
+          "protos": [
+            "io/restorecommerce/policy_set.proto"
+          ],
+          "protoRoot": "node_modules/@restorecommerce/protos/"
+        }
+      },
+      "loadbalancer": {
+        "name": "roundRobin"
+      },
+      "publisher": {
+        "name": "static",
+        "instances": [
+          "grpc://localhost:50061"
+        ]
+      },
+      "endpoints": {
+        "read": {},
+        "create": {},
+        "update": {},
+        "upsert": {},
+        "delete": {}
+      }
+    },
+    "policy": {
+      "transports": {
+        "grpc": {
+          "service": "io.restorecommerce.policy.Service",
+          "timeout": 3000,
+          "protos": [
+            "io/restorecommerce/policy.proto"
+          ],
+          "protoRoot": "node_modules/@restorecommerce/protos/"
+        }
+      },
+      "loadbalancer": {
+        "name": "roundRobin"
+      },
+      "publisher": {
+        "name": "static",
+        "instances": [
+          "grpc://localhost:50061"
+        ]
+      },
+      "endpoints": {
+        "read": {},
+        "create": {},
+        "update": {},
+        "upsert": {},
+        "delete": {}
+      }
+    },
+    "rule": {
+      "transports": {
+        "grpc": {
+          "service": "io.restorecommerce.rule.Service",
+          "timeout": 3000,
+          "protos": [
+            "io/restorecommerce/rule.proto"
+          ],
+          "protoRoot": "node_modules/@restorecommerce/protos/"
+        }
+      },
+      "loadbalancer": {
+        "name": "roundRobin"
+      },
+      "publisher": {
+        "name": "static",
+        "instances": [
+          "grpc://localhost:50061"
+        ]
+      },
+      "endpoints": {
+        "read": {},
+        "create": {},
+        "update": {},
+        "upsert": {},
+        "delete": {}
+      }
+    },
+    "acs": {
+      "transports": {
+        "grpc": {
+          "service": "io.restorecommerce.access_control.Service",
+          "timeout": 3000,
+          "protos": [
+            "io/restorecommerce/access_control.proto"
+          ],
+          "protoRoot": "node_modules/@restorecommerce/protos/"
+        }
+      },
+      "loadbalancer": {
+        "name": "roundRobin"
+      },
+      "publisher": {
+        "name": "static",
+        "instances": [
+          "grpc://localhost:50061"
+        ]
+      },
+      "endpoints": {
+        "isAllowed": {},
+        "whatIsAllowed": {}
+      }
+    }
+  },
   "server": {
     "services": {
       "io-restorecommerce-access-control-srv": {
@@ -247,6 +430,44 @@
       "options": {
         "headers": {}
       }
+    }
+  },
+  "errors": {
+    "INVALID_CREDENTIALS": {
+      "code": "401",
+      "message": "Invalid credentials"
+    },
+    "USER_NOT_LOGGED_IN": {
+      "code": "401",
+      "message": "Invalid authentication context, please log in first"
+    },
+    "ACTION_NOT_ALLOWED": {
+      "code": "403",
+      "message": "Action not allowed on this resource"
+    }
+  },
+  "logger": {
+    "console": {
+      "handleExceptions": false,
+      "level": "crit",
+      "colorize": true,
+      "prettyPrint": true
+    }
+  },
+  "database": {
+    "main": {
+      "provider": "arango",
+      "host": "localhost",
+      "port": 8529,
+      "database": "access-control-srv-test",
+      "autoCreate": true,
+      "retries": 6,
+      "delay": 30000,
+      "collections": [
+        "policy",
+        "rule",
+        "policy_set"
+      ]
     }
   }
 }

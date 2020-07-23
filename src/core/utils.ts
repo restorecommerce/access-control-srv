@@ -170,7 +170,7 @@ export async function checkAccessRequest(subject: Subject, resources: any, actio
         count: 0,
         status: {
           code: err.code || 500,
-          message: err.details,
+          message: err.details || err.message,
         }
       }
     };
@@ -233,7 +233,7 @@ export async function createMetadata(resources: any,
   if (resources && !_.isArray(resources)) {
     resources = [resources];
   }
-  const urns = this.cfg.get('authorization:urns');
+  const urns = service.cfg.get('authorization:urns');
   if (subject && subject.scope && (action === AuthZAction.CREATE || action === AuthZAction.MODIFY)) {
     // add user and subject scope as default owner
     orgOwnerAttributes.push(
@@ -253,7 +253,7 @@ export async function createMetadata(resources: any,
         resource.meta = {};
       }
       if (action === AuthZAction.MODIFY || action === AuthZAction.DELETE) {
-        let result = service.cb(resource.id);
+        let result = await service.readMetaData(resource.id);
         // update owner info
         if (result.items.length === 1) {
           let item = result.items[0];

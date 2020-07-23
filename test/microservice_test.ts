@@ -117,6 +117,7 @@ describe('testing microservice', () => {
         updatedPS.policies[0].should.equal('policyA');
         updatedPS.policies[1].should.equal('policyB');
       });
+      // TODO ADD READ tests
       // update operations are not stable due to
       // Protocol Buffers' default value behaviour, which overrides DB values
       // it('should update in-memory policy info upon update', async () => {

@@ -9,6 +9,7 @@ import { RedisClient } from 'redis';
 
 export interface IAccessControlResourceService<T> {
   load(): Promise<Map<string, T>>;
+  readMetaData(id?: string): Promise<any>;
 }
 
 const marshallResource = (resource: any, resourceName: string): any => {
@@ -90,7 +91,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     return rules;
   }
 
-  async readRulesMetaData(id?: string): Promise<any> {
+  async readMetaData(id?: string): Promise<any> {
     let result = await super.read({
       request: {
         filter: toStruct({
@@ -107,7 +108,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readRulesMetaData());
+    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
@@ -120,7 +121,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     if (acsResponse.decision != Decision.PERMIT) {
       throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
     }
-    const result = await super.create({ request: items }, context);
+    const result = await super.create(call, context);
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result && result.items) {
@@ -160,7 +161,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readRulesMetaData());
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
@@ -181,7 +182,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readRulesMetaData());
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
@@ -211,7 +212,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
         resources = [{ id: ruleIDs }];
       }
       Object.assign(resources, { id: ruleIDs });
-      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readRulesMetaData());
+      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
       Object.assign(resources, { collection: call.request.collection });
@@ -278,7 +279,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readPoliciesMetaData());
+    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
@@ -320,7 +321,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     return result;
   }
 
-  async readPoliciesMetaData(id?: string): Promise<any> {
+  async readMetaData(id?: string): Promise<any> {
     let result = await super.read({
       request: {
         filter: toStruct({
@@ -355,7 +356,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readPoliciesMetaData());
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
@@ -376,7 +377,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readPoliciesMetaData());
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
@@ -437,7 +438,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         resources = [{ id: policyIDs }];
       }
       Object.assign(resources, { id: policyIDs });
-      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readPoliciesMetaData());
+      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
       Object.assign(resources, { collection: call.request.collection });
@@ -485,7 +486,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     this.authZ = authZ;
   }
 
-  async readPolicySetsMetaData(id?: string): Promise<any> {
+  async readMetaData(id?: string): Promise<any> {
     let result = await super.read({
       request: {
         filter: toStruct({
@@ -539,7 +540,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readPolicySetsMetaData());
+    items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
@@ -580,7 +581,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readPolicySetsMetaData());
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
@@ -648,7 +649,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         resources = [{ id: policySetIDs }];
       }
       Object.assign(resources, { id: policySetIDs });
-      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readPolicySetsMetaData());
+      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
       Object.assign(resources, { collection: call.request.collection });
@@ -698,7 +699,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let subject = await getSubjectFromRedis(call, this);
     // update meta data for owner information
     let items = call.request.items;
-    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readPolicySetsMetaData());
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
     let acsResponse: AccessResponse;
     try {
