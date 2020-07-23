@@ -98,6 +98,21 @@ async function load(policiesFile: string): Promise<void> {
   accessControlService = await client.connect();
 }
 
+async function truncate(): Promise<void> {
+  await policySetService.delete({
+    collection: true,
+    subject
+  });
+  await policyService.delete({
+    collection: true,
+    subject
+  });
+  await ruleService.delete({
+    collection: true,
+    subject
+  });
+}
+
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS Enabled', () => {
     before(async () => {
@@ -105,6 +120,7 @@ describe('testing microservice', () => {
       await load('./test/fixtures/default_policies.yml');
     });
     after(async () => {
+      await truncate();
       await client.end();
       await worker.stop();
     });
@@ -240,6 +256,8 @@ describe('testing microservice', () => {
           ids: testRule[0].id,
           subject
         });
+        should.exist(result.data);
+        result.data.should.be.empty();
       });
     });
   });

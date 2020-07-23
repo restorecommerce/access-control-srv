@@ -215,7 +215,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
-      Object.assign(resources, { collection: call.request.collection });
+      resources = [{collection: call.request.collection}];
     }
 
     let acsResponse: AccessResponse;
@@ -441,7 +441,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
-      Object.assign(resources, { collection: call.request.collection });
+      resources = [{collection: call.request.collection}];
     }
 
     let acsResponse: AccessResponse;
@@ -652,7 +652,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
-      Object.assign(resources, { collection: call.request.collection });
+      resources = [{collection: call.request.collection}];
     }
 
     let acsResponse: AccessResponse;
