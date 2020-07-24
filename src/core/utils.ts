@@ -190,7 +190,7 @@ export async function checkAccessRequest(subject: Subject, resources: any, actio
   };
 }
 
-export const getSubjectFromRedis = async (call: any, redisClient: RedisClient) => {
+export const getSubjectFromRedis = async (call: any, service: any) => {
   let subject = call.request.subject;
   if (!subject) {
     subject = {};
@@ -200,7 +200,7 @@ export const getSubjectFromRedis = async (call: any, redisClient: RedisClient) =
     let redisKey = `cache:${subject.id}:subject`;
     // update ctx with HR scope from redis
     subject = await new Promise((resolve, reject) => {
-      redisClient.get(redisKey, async (err, response) => {
+      service.redisClient.get(redisKey, async (err, response) => {
         if (!err && response) {
           // update user HR scope and role_associations from redis
           const redisResp = JSON.parse(response);
