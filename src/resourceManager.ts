@@ -203,7 +203,9 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let resources = [];
     let subject = await getSubjectFromRedis(call, this);
     let ruleIDs = call.request.ids;
+    let action;
     if (ruleIDs) {
+      action = AuthZAction.DELETE;
       if (_.isArray(ruleIDs)) {
         for (let id of ruleIDs) {
           resources.push({ id });
@@ -212,15 +214,16 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
         resources = [{ id: ruleIDs }];
       }
       Object.assign(resources, { id: ruleIDs });
-      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
+      await createMetadata(resources, action, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
+      action = AuthZAction.DROP;
       resources = [{collection: call.request.collection}];
     }
 
     let acsResponse: AccessResponse;
     try {
-      acsResponse = await checkAccessRequest(subject, resources, AuthZAction.DELETE,
+      acsResponse = await checkAccessRequest(subject, resources, action,
         'rule', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
@@ -429,7 +432,9 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let resources = [];
     let subject = await getSubjectFromRedis(call, this);
     let policyIDs = call.request.ids;
+    let action;
     if (policyIDs) {
+      action = AuthZAction.DELETE;
       if (_.isArray(policyIDs)) {
         for (let id of policyIDs) {
           resources.push({ id });
@@ -438,15 +443,16 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         resources = [{ id: policyIDs }];
       }
       Object.assign(resources, { id: policyIDs });
-      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
+      await createMetadata(resources, action, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
+      action = AuthZAction.DROP;
       resources = [{collection: call.request.collection}];
     }
 
     let acsResponse: AccessResponse;
     try {
-      acsResponse = await checkAccessRequest(subject, resources, AuthZAction.DELETE,
+      acsResponse = await checkAccessRequest(subject, resources, action,
         'policy', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
@@ -640,7 +646,9 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let resources = [];
     let subject = await getSubjectFromRedis(call, this);
     let policySetIDs = call.request.ids;
+    let action;
     if (policySetIDs) {
+      action = AuthZAction.DELETE;
       if (_.isArray(policySetIDs)) {
         for (let id of policySetIDs) {
           resources.push({ id });
@@ -649,15 +657,16 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         resources = [{ id: policySetIDs }];
       }
       Object.assign(resources, { id: policySetIDs });
-      await createMetadata(resources, AuthZAction.DELETE, subject, this, this.readMetaData());
+      await createMetadata(resources, action, subject, this, this.readMetaData());
     }
     if (call.request.collection) {
+      action = AuthZAction.DROP;
       resources = [{collection: call.request.collection}];
     }
 
     let acsResponse: AccessResponse;
     try {
-      acsResponse = await checkAccessRequest(subject, resources, AuthZAction.DELETE,
+      acsResponse = await checkAccessRequest(subject, resources, action,
         'policy_set', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
