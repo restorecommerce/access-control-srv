@@ -6,7 +6,7 @@ import { ResourceManager } from './resourceManager';
 import { RedisClient, createClient } from 'redis';
 
 import * as core from './core';
-import { initAuthZ, ACSAuthZ } from '@restorecommerce/acs-client';
+import { initAuthZ, ACSAuthZ, initializeCache } from '@restorecommerce/acs-client';
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {
@@ -88,6 +88,8 @@ export class Worker {
     const redisConfig = this.cfg.get('redis');
     redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
     this.redisClient = createClient(redisConfig);
+    // init ACS cache
+    initializeCache();
     // init AuthZ
     let authZ = await initAuthZ(this.cfg) as ACSAuthZ;
     this.authZ = authZ;
