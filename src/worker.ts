@@ -105,7 +105,8 @@ export class Worker {
     const accessControlService = new AccessControlService(this.cfg, this.logger, resourceManager, this.accessController);
     await server.bind('io-restorecommerce-access-control-srv', accessControlService);
     // command interface
-    this.commandInterface = new AccessControlCommandInterface(server, this.cfg, this.logger, events, accessControlService);
+    this.commandInterface = new AccessControlCommandInterface(server, this.cfg,
+      this.logger, events, accessControlService, this.redisClient);
     await server.bind('io-restorecommerce-access-control-ci', this.commandInterface);
 
     this.events = events;
