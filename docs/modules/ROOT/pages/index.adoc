@@ -4,7 +4,8 @@ https://travis-ci.org/restorecommerce/access-control-srv?branch=master[image:htt
 https://david-dm.org/restorecommerce/access-control-srv[image:https://img.shields.io/david/restorecommerce/access-control-srv.svg?style=flat-square[Dependencies]]
 https://coveralls.io/github/restorecommerce/access-control-srv?branch=master[image:http://img.shields.io/coveralls/restorecommerce/access-control-srv/master.svg?style=flat-square[Coverage Status]]
 
-A microservice for access control.
+A microservice for access control part of
+the link:https://github.com/restorecommerce[Restorecommerce].
 
 [#features]
 == Features
@@ -14,18 +15,21 @@ inspired by https://en.wikipedia.org/wiki/XACML[XACML].
 * Implementing the PAP (partially), PDP, PRP.
 * Supports arbitrary policies based on arbitrary attributes such as scoped roles as supported
 by the https://github.com/restorecommerce/identity-srv[Identity Service].
-* Control access to distributed resources centrally using link:restorecommerce_ABAC.md[Rule, Policy and PolicySet].
+* Control access to distributed resources centrally using
+link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[Rule, Policy and PolicySet].
 * Authorization policies can be updated at run time and affect all clients immediately.
-* link:restorecommerce_ABAC.md[A detailed description] describes how ABAC is implemented and URN references
+* link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[A detailed description]
+on how ABAC is implemented and URN references
 for `subject`, `resources` and `action` attributes.
 
 [#configuration]
 == Configuration
 
 A GraphQL adapter has been integrated into the service for executing context queries
-https://github.com/restorecommerce/protos/blob/master/io/restorecommerce/rule.proto#L18[io.restorecommerce.rule.ContextQuery]
+link:https://github.com/restorecommerce/protos/blob/master/io/restorecommerce/rule.proto#L18[io.restorecommerce.rule.ContextQuery]
 to obtain required information to make the access decision.
-This GraphQL endpoint can be configured using `adapter.graphql.url` property in the link:cfg/config.json[configuration].
+This GraphQL endpoint can be configured using `adapter.graphql.url` property in the
+link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L283[configuration].
 
 [#API]
 == API
@@ -103,7 +107,7 @@ A Policy resource consisting of set of Rules.
 | name | string | optional | Policy name
 | description | string | optional | Policy description
 | target | `io.restorecommerce.access_control.Target` | optional | Policy target
-| rules | [ ] `io.restorecommerce.rule.Rule` | optional | List of rules binded to a policy
+| rules | [ ] `io.restorecommerce.rule.Rule` | optional | List of rules bounded to a policy
 | combining_algorithm | string | optional | Combining algorithm to be applied to the rules set
 |==============================================================================================================================================
 
@@ -212,7 +216,7 @@ a `io.restorecommerce.access_control.ReverseQuery` message.
 |==============================================================================================================================================
 
 [#api_access_crud]
-==== CRUD Operations
+=== CRUD Operations
 
 The microservice exposes the below CRUD operations for creating or modifying Rule, Policy and PolicySet resources.
 
@@ -255,10 +259,10 @@ List of events emitted by this microservice for below topics:
 |                                           | `ruleDeleted` | emitted when rule is deleted
 |==========================================================================================================================================
 
-[#subscribed-events]
-=== Subscribed
+[#consumed-events]
+=== Consumed
 
-This microservice subscribes to the following events by topic:
+This microservice consumes messages for the following events by topic:
 
 [width="100%",cols="31%,33%,36%",options="header",]
 |==========================================================================================================================================

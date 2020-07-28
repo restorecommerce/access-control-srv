@@ -2,6 +2,7 @@ node_modules
 npm-debug.log
 lib
 coverage
+
 .nyc_output
 .project
 .settings
@@ -10,6 +11,8 @@ coverage
 .env
 .vscode/*
 .DS_Store
+.idea
+
 *.js
 *.d.ts
 !.eslintrc.js
