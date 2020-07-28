@@ -99,6 +99,10 @@ async function load(policiesFile: string): Promise<void> {
 }
 
 async function truncate(): Promise<void> {
+  // disable authorization
+  cfg.set('authorization:enabled', false);
+  cfg.set('authorization:enforce', false);
+  updateConfig(cfg);
   await policySetService.delete({
     collection: true,
     subject
