@@ -17,14 +17,14 @@
     "service"
   ],
   "dependencies": {
-    "@restorecommerce/acs-client": "^0.2.0",
+    "@restorecommerce/acs-client": "^0.2.3",
     "@restorecommerce/chassis-srv": "^0.1.3",
     "@restorecommerce/cluster-service": "^0.1.4",
-    "@restorecommerce/grpc-client": "0.0.6",
+    "@restorecommerce/grpc-client": "0.0.7",
     "@restorecommerce/kafka-client": "^0.1.11",
     "@restorecommerce/logger": "^0.2.1",
     "@restorecommerce/protos": "https://github.com/restorecommerce/protos#protos-acs",
-    "@restorecommerce/resource-base-interface": "0.0.4",
+    "@restorecommerce/resource-base-interface": "0.0.5",
     "@restorecommerce/service-config": "^0.2.0",
     "apollo-boost": "^0.4.9",
     "cross-fetch": "^3.0.5",
@@ -54,9 +54,9 @@
     "nyc": "^15.1.0",
     "rimraf": "^3.0.2",
     "should": "^13.2.3",
-    "ts-node": "^8.10.2",
+    "ts-node": "^9.0.0",
     "tslint": "^6.1.2",
-    "typescript": "^3.9.7"
+    "typescript": "^4.0.2"
   },
   "scripts": {
     "start": "npm run createtopics && node lib/start.js",
