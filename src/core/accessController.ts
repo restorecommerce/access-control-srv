@@ -9,13 +9,19 @@ import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
 import { checkHierarchicalScope } from './hierarchicalScope';
 import { Logger } from '@restorecommerce/chassis-srv';
+import { RedisClient } from 'redis';
+import { Topic } from '@restorecommerce/kafka-client';
 
 export class AccessController {
   policySets: Map<string, PolicySet>;
   combiningAlgorithms: Map<string, any>;
   urns: Map<string, string>;
   resourceAdapter: ResourceAdapter;
-  constructor(private logger: Logger, opts: AccessControlConfiguration) {
+  redisClient: RedisClient;
+  userTopic: Topic;
+  waiting: any[];
+  constructor(private logger: Logger, opts: AccessControlConfiguration,
+    redisClient: RedisClient, userTopic: Topic) {
     this.policySets = new Map<string, PolicySet>();
     this.combiningAlgorithms = new Map<string, any>();
 
@@ -38,6 +44,9 @@ export class AccessController {
     for (let urn in opts.urns || {}) {
       this.urns.set(urn, opts.urns[urn]);
     }
+    this.redisClient = redisClient;
+    this.userTopic = userTopic;
+    this.waiting = [];
   }
 
   clearPolicies(): void {
@@ -62,12 +71,12 @@ export class AccessController {
       const policySet: PolicySet = value;
       let policyEffects: Effect[] = [];
 
-      if ((!!policySet.target && this.targetMatches(policySet.target, request))
+      if ((!!policySet.target && await this.targetMatches(policySet.target, request))
         || !policySet.target) {
         let exactMatch = false;
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
-          if (!!policy.target && this.targetMatches(policy.target, request)) {
+          if (!!policy.target && await this.targetMatches(policy.target, request)) {
             exactMatch = true;
             break;
           }
@@ -77,9 +86,9 @@ export class AccessController {
           const policy: Policy = policyValue;
 
           const ruleEffects: Effect[] = [];
-          if ((!!policy.target && exactMatch && this.targetMatches(policy.target, request))
+          if ((!!policy.target && exactMatch && await this.targetMatches(policy.target, request))
             // regex match
-            || (!!policy.target && !exactMatch && this.targetMatches(policy.target, request, 'isAllowed', true))
+            || (!!policy.target && !exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', true))
             || !policy.target) {
 
             const rules: Map<string, Rule> = policy.combinables;
@@ -94,7 +103,7 @@ export class AccessController {
               for (let [, rule] of policy.combinables) {
                 // if rule has not target it should be always applied inside the policy scope
                 this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
-                let matches = !rule.target || this.targetMatches(rule.target, request, 'isAllowed', true);
+                let matches = !rule.target || await this.targetMatches(rule.target, request, 'isAllowed', true);
 
                 if (matches) {
                   this.logger.verbose(`Checking rule ${rule.name}`);
@@ -221,8 +230,11 @@ export class AccessController {
   private targetMatches(ruleTarget: Target, request: Request,
     operation: AccessControlOperation = 'isAllowed', regexMatch?: boolean): boolean {
     const requestTarget = request.target;
+    const subMatch = this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request).then((subMatch) => {
+      return subMatch;
+    });
     const subMatches = (operation == 'whatIsAllowed' && _.isEmpty(requestTarget.subject))
-      || this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request);
+      || subMatch;
 
     const match = subMatches && this.attributesMatch(ruleTarget.action, requestTarget.action);
     if (!match) {
@@ -347,6 +359,27 @@ export class AccessController {
     return true;
   }
 
+  private async getSubject(key: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.redisClient.get(key, async (err, reply) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (reply) {
+          this.logger.debug('Found key in cache: ' + key);
+          resolve(JSON.parse(reply));
+          return;
+        }
+        if (!err && !reply) {
+          this.logger.info('Key does not exist', { key });
+          resolve();
+        }
+      });
+    });
+  }
+
   /**
    * Check if the attributes of subject from a rule, policy
    * or policy set match the attributes from a request.
@@ -354,8 +387,8 @@ export class AccessController {
    * @param ruleAttributes
    * @param requestSubAttributes
    */
-  private checkSubjectMatches(ruleSubAttributes: Attribute[],
-    requestSubAttributes: Attribute[], request: Request): boolean {
+  private async checkSubjectMatches(ruleSubAttributes: Attribute[],
+    requestSubAttributes: Attribute[], request: Request): Promise<boolean> {
     // 1) Check if the rule subject entity exists, if so then check
     // request->target->subject->orgInst or roleScopeInst matches with
     // context->subject->role_associations->roleScopeInst or hierarchical_scope
@@ -393,6 +426,42 @@ export class AccessController {
         hierarchicalRoleScoping = ruleSubAttribute.value;
       }
     }
+
+    const context = request.context;
+    // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
+    if (context && context.subject && context.subject.id &&
+      !context.subject.hierarchical_scopes) {
+      const subjectID = context.subject.id;
+      const redisKey = `cache:${subjectID}:subject`;
+      let subject: any;
+      try {
+        subject = await this.getSubject(redisKey);
+      } catch (err) {
+        this.logger.info('Subject not persisted in redis');
+      }
+      if (!subject || !subject.hierarchical_scopes) {
+        const date = new Date().toISOString();
+        const subDate = subjectID + ':' + date;
+        await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate });
+        this.waiting[subDate] = [];
+        try {
+          await new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(async () => {
+              reject({ message: 'hr scope read timed out', subDate });
+            }, 5000);
+            this.waiting[subDate].push({ resolve, reject, timeoutId });
+          });
+        } catch (err) {
+          // unhandled promise rejection for timeout
+          this.logger.error(`Error creating Hierarchical scope for subject ${subDate}`);
+        }
+        subject = await this.getSubject(redisKey);
+        context.subject = subject;
+      } else {
+        context.subject = subject;
+      }
+    }
+
     if (scopingEntExists && matches) {
       matches = false;
       // check the target scoping instance is present in

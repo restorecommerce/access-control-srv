@@ -128,6 +128,7 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
     return false; // no entity found
   }
 
+  // TODO read from redis cache or make ACS request here similar to done in accessController.ts
   const roleAssociations = context.subject.role_associations;
   if (_.isEmpty(roleAssociations)) {
     return false; // impossible to evaluate context

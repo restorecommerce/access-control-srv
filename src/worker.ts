@@ -77,17 +77,21 @@ export class Worker {
       'ruleModified',
       'ruleDeleted',
     ];
+    const hierarchicalScopesResponse = 'hierarchicalScopesResponse';
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
 
-    this.accessController = new core.AccessController(this.logger, this.cfg.get('policies:options'));
-
-    // resources
-    const db = await chassis.database.get(this.cfg.get('database:main'), this.logger);
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');
     redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
     this.redisClient = createClient(redisConfig);
+
+    const userTopic = events.topic(kafkaConfig.topics['user'].topic);
+    this.accessController = new core.AccessController(this.logger,
+      this.cfg.get('policies:options'), this.redisClient, userTopic);
+
+    // resources
+    const db = await chassis.database.get(this.cfg.get('database:main'), this.logger);
     // init ACS cache
     initializeCache();
     // init AuthZ
@@ -122,6 +126,17 @@ export class Worker {
       context: any, config: any, eventName: string): Promise<any> => {
       if (acsEvents.indexOf(eventName) > -1) {
         await accessControlService.loadPolicies();
+      } else if (eventName === hierarchicalScopesResponse) {
+        // Add subject_id to waiting list
+        const subDate = msg.subject_id;
+        if (this.accessController.waiting[subDate]) {
+          // clear timeout and resolve
+          this.accessController.waiting[subDate].forEach(waiter => {
+            clearTimeout(waiter.timeoutId);
+            return waiter.resolve(true);
+          });
+          delete this.accessController.waiting[subDate];
+        }
       } else {
         await that.commandInterface.command(msg, context);
       }
