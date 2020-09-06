@@ -108,7 +108,7 @@ export class AccessController {
                 if (matches) {
                   this.logger.verbose(`Checking rule ${rule.name}`);
                   if (matches && rule.target) {
-                    matches = checkHierarchicalScope(rule.target, request, this.urns);
+                    matches = await checkHierarchicalScope(rule.target, request, this.urns, this);
                   }
 
                   try {
@@ -387,6 +387,40 @@ export class AccessController {
     });
   }
 
+  async  createHRScope(context) {
+    const subjectID = context.subject.id;
+    const tokenName = context.subject.token_name;
+    const redisKey = `cache:${subjectID}:subject`;
+    let subject: any;
+    try {
+      subject = await this.getSubject(redisKey);
+    } catch (err) {
+      this.logger.info('Subject not persisted in redis');
+    }
+    if (!subject || !subject.hierarchical_scopes) {
+      const date = new Date().toISOString();
+      const subDate = subjectID + ':' + date;
+      await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate, token_name: tokenName });
+      this.waiting[subDate] = [];
+      try {
+        await new Promise((resolve, reject) => {
+          const timeoutId = setTimeout(async () => {
+            reject({ message: 'hr scope read timed out', subDate });
+          }, 120000);
+          this.waiting[subDate].push({ resolve, reject, timeoutId });
+        });
+      } catch (err) {
+        // unhandled promise rejection for timeout
+        this.logger.error(`Error creating Hierarchical scope for subject ${subDate}`);
+      }
+      subject = await this.getSubject(redisKey);
+      context.subject = subject;
+    } else {
+      context.subject = subject;
+    }
+    return context;
+  }
+
   /**
    * Check if the attributes of subject from a rule, policy
    * or policy set match the attributes from a request.
@@ -434,40 +468,11 @@ export class AccessController {
       }
     }
 
-    const context = request.context;
+    let context = request.context;
     // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
     if (context && context.subject && context.subject.id &&
       !context.subject.hierarchical_scopes) {
-      const subjectID = context.subject.id;
-      const tokenName = context.subject.token_name;
-      const redisKey = `cache:${subjectID}:subject`;
-      let subject: any;
-      try {
-        subject = await this.getSubject(redisKey);
-      } catch (err) {
-        this.logger.info('Subject not persisted in redis');
-      }
-      if (!subject || !subject.hierarchical_scopes) {
-        const date = new Date().toISOString();
-        const subDate = subjectID + ':' + date;
-        await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate, token_name: tokenName });
-        this.waiting[subDate] = [];
-        try {
-          await new Promise((resolve, reject) => {
-            const timeoutId = setTimeout(async () => {
-              reject({ message: 'hr scope read timed out', subDate });
-            }, 120000);
-            this.waiting[subDate].push({ resolve, reject, timeoutId });
-          });
-        } catch (err) {
-          // unhandled promise rejection for timeout
-          this.logger.error(`Error creating Hierarchical scope for subject ${subDate}`);
-        }
-        subject = await this.getSubject(redisKey);
-        context.subject = subject;
-      } else {
-        context.subject = subject;
-      }
+      context = await this.createHRScope(context);
     }
 
     if (scopingEntExists && matches) {

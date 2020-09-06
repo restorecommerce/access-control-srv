@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import * as traverse from 'traverse';
 
-import { Target, Request, Attribute } from '.';
+import { Target, Request, Attribute, AccessController } from '.';
 import { Resource } from './interfaces';
 
 const getAllValues = (obj: any, pushedValues: any): any => {
@@ -17,7 +17,8 @@ const getAllValues = (obj: any, pushedValues: any): any => {
   }
 };
 
-export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urns: Map<string, string>): boolean => {
+export const checkHierarchicalScope = async (ruleTarget: Target,
+  request: Request, urns: Map<string, string>, accessController: AccessController): Promise<boolean> => {
   const scopedRoles = new Map<string, Map<string, string[]>>(); // <role, <scopingEntity, scopingInstances[]>>
   let role: string;
   const totalScopingEntities: string[] = [];
@@ -49,7 +50,7 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
     return true; // no scoping entities specified in rule, request ignored
   }
 
-  const context = request.context;
+  let context = request.context;
   if (_.isEmpty(context)) {
     return false; // no context was provided, evaluation fails
   }
@@ -128,7 +129,12 @@ export const checkHierarchicalScope = (ruleTarget: Target, request: Request, urn
     return false; // no entity found
   }
 
-  // TODO read from redis cache or make ACS request here similar to done in accessController.ts
+  // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
+  if (context && context.subject && context.subject.id &&
+    !context.subject.hierarchical_scopes) {
+    context = await accessController.createHRScope(context);
+  }
+
   const roleAssociations = context.subject.role_associations;
   if (_.isEmpty(roleAssociations)) {
     return false; // impossible to evaluate context
