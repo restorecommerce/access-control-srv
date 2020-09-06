@@ -75,7 +75,7 @@ export class AccessControlService {
       context: request.context ? this.unmarshallContext(request.context) : {}
     };
     return {
-      policy_sets: this.accessController.whatIsAllowed(acsRequest)
+      policy_sets: await this.accessController.whatIsAllowed(acsRequest)
     };
   }
 

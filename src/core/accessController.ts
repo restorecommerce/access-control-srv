@@ -176,17 +176,17 @@ export class AccessController {
     };
   }
 
-  whatIsAllowed(request: Request): PolicySetRQ[] {
+  async whatIsAllowed(request: Request): Promise<PolicySetRQ[]> {
     let policySets: PolicySetRQ[] = [];
     for (let [, value] of this.policySets) {
       let pSet: PolicySetRQ;
-      if (_.isEmpty(value.target) || this.targetMatches(value.target, request)) {
+      if (_.isEmpty(value.target) || await this.targetMatches(value.target, request)) {
         pSet = _.merge({}, { combining_algorithm: value.combiningAlgorithm }, _.pick(value, ['id', 'target', 'effect']));
         pSet.policies = [];
 
         let exactMatch = false;
         for (let [, policy] of value.combinables) {
-          if (!!policy.target && this.targetMatches(policy.target, request)) {
+          if (!!policy.target && await this.targetMatches(policy.target, request)) {
             exactMatch = true;
             break;
           }
@@ -195,8 +195,8 @@ export class AccessController {
         for (let [, policy] of value.combinables) {
           let policyRQ: PolicyRQ;
           if (_.isEmpty(policy.target)
-            || (exactMatch && this.targetMatches(policy.target, request))
-            || (!exactMatch && this.targetMatches(policy.target, request, 'whatIsAllowed', true))) {
+            || (exactMatch && await this.targetMatches(policy.target, request))
+            || (!exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', true))) {
             policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect']));
             policyRQ.rules = [];
 
@@ -204,7 +204,7 @@ export class AccessController {
 
             for (let [, rule] of policy.combinables) {
               let ruleRQ: RuleRQ;
-              if (_.isEmpty(rule.target) || this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
+              if (_.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
                 ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition']));
                 policyRQ.rules.push(ruleRQ);
               }
@@ -227,12 +227,10 @@ export class AccessController {
  * @param targetA
  * @param targetB
  */
-  private targetMatches(ruleTarget: Target, request: Request,
-    operation: AccessControlOperation = 'isAllowed', regexMatch?: boolean): boolean {
+  private async targetMatches(ruleTarget: Target, request: Request,
+    operation: AccessControlOperation = 'isAllowed', regexMatch?: boolean): Promise<boolean> {
     const requestTarget = request.target;
-    const subMatch = this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request).then((subMatch) => {
-      return subMatch;
-    });
+    const subMatch = await this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request);
     const subMatches = (operation == 'whatIsAllowed' && _.isEmpty(requestTarget.subject))
       || subMatch;
 
@@ -359,7 +357,7 @@ export class AccessController {
     return true;
   }
 
-  private async getSubject(key: string): Promise<any> {
+  async getSubject(key: string): Promise<any> {
     return new Promise((resolve, reject) => {
       this.redisClient.get(key, async (err, reply) => {
         if (err) {
@@ -377,6 +375,15 @@ export class AccessController {
           resolve();
         }
       });
+    });
+  }
+
+  async setSubject(key: string, value: any): Promise<any> {
+    new Promise((resolve, reject) => {
+      this.redisClient.set(key, value);
+      resolve();
+    }).catch((err) => {
+      this.logger.error('Error updating Subject cache:', err);
     });
   }
 
@@ -432,6 +439,7 @@ export class AccessController {
     if (context && context.subject && context.subject.id &&
       !context.subject.hierarchical_scopes) {
       const subjectID = context.subject.id;
+      const tokenName = context.subject.token_name;
       const redisKey = `cache:${subjectID}:subject`;
       let subject: any;
       try {
@@ -442,13 +450,13 @@ export class AccessController {
       if (!subject || !subject.hierarchical_scopes) {
         const date = new Date().toISOString();
         const subDate = subjectID + ':' + date;
-        await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate });
+        await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate, token_name: tokenName });
         this.waiting[subDate] = [];
         try {
           await new Promise((resolve, reject) => {
             const timeoutId = setTimeout(async () => {
               reject({ message: 'hr scope read timed out', subDate });
-            }, 5000);
+            }, 120000);
             this.waiting[subDate].push({ resolve, reject, timeoutId });
           });
         } catch (err) {

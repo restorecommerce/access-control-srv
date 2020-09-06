@@ -129,6 +129,22 @@ export class Worker {
       } else if (eventName === hierarchicalScopesResponse) {
         // Add subject_id to waiting list
         const subDate = msg.subject_id;
+        const hierarchical_scopes = msg.hierarchical_scopes;
+        if (!_.isEmpty(hierarchical_scopes)) {
+          // store HR scopes to cache with subjectID
+          const subDate = msg.subject_id;
+          const subID = subDate.split(':')[0];
+          const redisKey = `cache:${subID}:subject`;
+          let subject: any;
+          try {
+            subject = await this.accessController.getSubject(redisKey);
+            Object.assign(subject, { hierarchical_scopes });
+            await this.accessController.setSubject(redisKey, JSON.stringify(subject));
+            this.logger.info(`HR scope updated successfully for Subject ${subID}`);
+          } catch (err) {
+            this.logger.info('Subject not persisted in redis');
+          }
+        }
         if (this.accessController.waiting[subDate]) {
           // clear timeout and resolve
           this.accessController.waiting[subDate].forEach(waiter => {

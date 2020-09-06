@@ -64,6 +64,7 @@ export interface ContextSubject {
   id: string;
   role_associations: RoleAssociations[];
   hierarchical_scopes?: HierarchicalScope[];
+  token_name?: string;
 }
 
 export interface RoleAssociations {
