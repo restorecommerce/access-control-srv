@@ -1,3 +1,7 @@
+### 0.1.3 (September 9th, 2020)
+
+- changes to create HR scope and storing it in redis
+
 ### 0.1.2 (Auguest 27th, 2020)
 
 - healthcheck fix, updated dependencies
