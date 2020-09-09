@@ -389,8 +389,11 @@ export class AccessController {
 
   async  createHRScope(context) {
     const subjectID = context.subject.id;
+    let redisKey = `cache:${subjectID}:subject`;
     const tokenName = context.subject.token_name;
-    const redisKey = `cache:${subjectID}:subject`;
+    if (tokenName) {
+      redisKey = `cache:${subjectID + ':' + tokenName}:subject`;
+    }
     let subject: any;
     try {
       subject = await this.getSubject(redisKey);
@@ -471,7 +474,7 @@ export class AccessController {
     let context = request.context;
     // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
     if (context && context.subject && context.subject.id &&
-      !context.subject.hierarchical_scopes) {
+      _.isEmpty(context.subject.hierarchical_scopes)) {
       context = await this.createHRScope(context);
     }
 

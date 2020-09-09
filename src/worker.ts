@@ -130,11 +130,15 @@ export class Worker {
         // Add subject_id to waiting list
         const subDate = msg.subject_id;
         const hierarchical_scopes = msg.hierarchical_scopes;
+        const token_name = msg.token_name;
         if (!_.isEmpty(hierarchical_scopes)) {
           // store HR scopes to cache with subjectID
           const subDate = msg.subject_id;
           const subID = subDate.split(':')[0];
-          const redisKey = `cache:${subID}:subject`;
+          let redisKey = `cache:${subID}:subject`;
+          if (token_name) {
+            redisKey = `cache:${subID + ':' + token_name}:subject`;
+          }
           let subject: any;
           try {
             subject = await this.accessController.getSubject(redisKey);
