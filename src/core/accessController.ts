@@ -382,8 +382,14 @@ export class AccessController {
 
   async setSubject(key: string, value: any): Promise<any> {
     new Promise((resolve, reject) => {
-      this.redisClient.set(key, value);
-      resolve();
+      this.redisClient.set(key, value, (err, res) => {
+        if (err) {
+          this.logger.error('Error writing to Subject cache:', err);
+          reject(err);
+          return;
+        }
+        resolve();
+      });
     }).catch((err) => {
       this.logger.error('Error updating Subject cache:', err);
     });
