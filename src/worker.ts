@@ -88,7 +88,7 @@ export class Worker {
 
     const userTopic = events.topic(kafkaConfig.topics['user'].topic);
     this.accessController = new core.AccessController(this.logger,
-      this.cfg.get('policies:options'), this.redisClient, userTopic);
+      this.cfg.get('policies:options'), this.redisClient, userTopic, this.cfg);
 
     // resources
     const db = await chassis.database.get(this.cfg.get('database:main'), this.logger);

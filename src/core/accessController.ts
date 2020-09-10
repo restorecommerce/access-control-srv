@@ -20,8 +20,9 @@ export class AccessController {
   redisClient: RedisClient;
   userTopic: Topic;
   waiting: any[];
+  cfg: any;
   constructor(private logger: Logger, opts: AccessControlConfiguration,
-    redisClient: RedisClient, userTopic: Topic) {
+    redisClient: RedisClient, userTopic: Topic, cfg: any) {
     this.policySets = new Map<string, PolicySet>();
     this.combiningAlgorithms = new Map<string, any>();
 
@@ -47,6 +48,7 @@ export class AccessController {
     this.redisClient = redisClient;
     this.userTopic = userTopic;
     this.waiting = [];
+    this.cfg = cfg;
   }
 
   clearPolicies(): void {
@@ -391,6 +393,10 @@ export class AccessController {
     const subjectID = context.subject.id;
     let redisKey = `cache:${subjectID}:subject`;
     const tokenName = context.subject.token_name;
+    let timeout = this.cfg.get('authorization:hrReqTimeout');
+    if (!timeout) {
+      timeout = 300000;
+    }
     if (tokenName) {
       redisKey = `cache:${subjectID + ':' + tokenName}:subject`;
     }
@@ -409,7 +415,7 @@ export class AccessController {
         await new Promise((resolve, reject) => {
           const timeoutId = setTimeout(async () => {
             reject({ message: 'hr scope read timed out', subDate });
-          }, 120000);
+          }, timeout);
           this.waiting[subDate].push({ resolve, reject, timeoutId });
         });
       } catch (err) {
