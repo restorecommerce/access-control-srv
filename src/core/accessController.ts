@@ -360,9 +360,8 @@ export class AccessController {
   }
 
   async getSubject(key: string): Promise<any> {
-    const dbSubjectIndex = this.cfg.get('redis:db-indexes:db-subject');
     return new Promise((resolve, reject) => {
-      this.redisClient.multi().select(dbSubjectIndex).get(key, async (err, reply) => {
+      this.redisClient.get(key, async (err, reply) => {
         if (err) {
           reject(err);
           return;
@@ -382,9 +381,8 @@ export class AccessController {
   }
 
   async setSubject(key: string, value: any): Promise<any> {
-    const dbSubjectIndex = this.cfg.get('redis:db-indexes:db-subject');
     new Promise((resolve, reject) => {
-      this.redisClient.multi().select(dbSubjectIndex).set(key, value, (err, res) => {
+      this.redisClient.set(key, value, (err, res) => {
         if (err) {
           this.logger.error('Error writing to Subject cache:', err);
           reject(err);
