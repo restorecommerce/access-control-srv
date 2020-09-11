@@ -141,21 +141,21 @@ export class Worker {
           }
           let subject: any;
           try {
-            subject = await this.accessController.getSubject(redisKey);
+            subject = await that.accessController.getSubject(redisKey);
             Object.assign(subject, { hierarchical_scopes });
-            await this.accessController.setSubject(redisKey, JSON.stringify(subject));
-            this.logger.info(`HR scope updated successfully for Subject ${subID}`);
+            await that.accessController.setSubject(redisKey, JSON.stringify(subject));
+            that.logger.info(`HR scope updated successfully for Subject ${subID}`);
           } catch (err) {
-            this.logger.info('Subject not persisted in redis for updating');
+            that.logger.info('Subject not persisted in redis for updating');
           }
         }
-        if (this.accessController.waiting[subDate]) {
+        if (that.accessController.waiting[subDate]) {
           // clear timeout and resolve
-          this.accessController.waiting[subDate].forEach(waiter => {
+          that.accessController.waiting[subDate].forEach(waiter => {
             clearTimeout(waiter.timeoutId);
             return waiter.resolve(true);
           });
-          delete this.accessController.waiting[subDate];
+          delete that.accessController.waiting[subDate];
         }
       } else {
         await that.commandInterface.command(msg, context);
