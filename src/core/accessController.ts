@@ -412,7 +412,7 @@ export class AccessController {
     } catch (err) {
       this.logger.info('Subject not persisted in redis');
     }
-    if (!subject || !subject.hierarchical_scopes) {
+    if (_.isEmpty(subject) || _.isEmpty(subject.hierarchical_scopes)) {
       const date = new Date().toISOString();
       const subDate = subjectID + ':' + date;
       await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate, token_name: tokenName });
