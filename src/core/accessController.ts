@@ -388,7 +388,15 @@ export class AccessController {
           reject(err);
           return;
         }
-        resolve();
+        if (res) {
+          this.logger.info(`Subject ${key} updated`);
+          resolve(value);
+          return;
+        }
+        if (!err && !res) {
+          this.logger.info('Key does not exist', { key });
+          resolve();
+        }
       });
     }).catch((err) => {
       this.logger.error('Error updating Subject cache:', err);
@@ -410,7 +418,7 @@ export class AccessController {
     try {
       subject = await this.getSubject(redisKey);
     } catch (err) {
-      this.logger.info('Subject not persisted in redis');
+      this.logger.info(`Subject ${redisKey} not persisted in redis in acs`);
     }
     if (_.isEmpty(subject) || _.isEmpty(subject.hierarchical_scopes)) {
       const date = new Date().toISOString();

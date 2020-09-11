@@ -146,7 +146,7 @@ export class Worker {
             await this.accessController.setSubject(redisKey, JSON.stringify(subject));
             this.logger.info(`HR scope updated successfully for Subject ${subID}`);
           } catch (err) {
-            this.logger.info('Subject not persisted in redis');
+            this.logger.info('Subject not persisted in redis for updating');
           }
         }
         if (this.accessController.waiting[subDate]) {
