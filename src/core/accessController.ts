@@ -9,7 +9,7 @@ import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
 import { checkHierarchicalScope } from './hierarchicalScope';
 import { Logger } from '@restorecommerce/chassis-srv';
-import { RedisClient } from 'redis';
+import { RedisClient, createClient } from 'redis';
 import { Topic } from '@restorecommerce/kafka-client';
 
 export class AccessController {
@@ -22,7 +22,7 @@ export class AccessController {
   waiting: any[];
   cfg: any;
   constructor(private logger: Logger, opts: AccessControlConfiguration,
-    redisClient: RedisClient, userTopic: Topic, cfg: any) {
+    userTopic: Topic, cfg: any) {
     this.policySets = new Map<string, PolicySet>();
     this.combiningAlgorithms = new Map<string, any>();
 
@@ -45,10 +45,12 @@ export class AccessController {
     for (let urn in opts.urns || {}) {
       this.urns.set(urn, opts.urns[urn]);
     }
-    this.redisClient = redisClient;
+    this.cfg = cfg;
+    const redisConfig = this.cfg.get('redis');
+    redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
+    this.redisClient = createClient(redisConfig);
     this.userTopic = userTopic;
     this.waiting = [];
-    this.cfg = cfg;
   }
 
   clearPolicies(): void {
