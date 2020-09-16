@@ -21,6 +21,7 @@ link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modu
 * link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[A detailed description]
 on how ABAC is implemented and URN references
 for `subject`, `resources` and `action` attributes.
+* Mechanism to calculate HieararchicalScopes for Subject using https://kafka.apache.org/[Kafka]
 
 [#configuration]
 == Configuration
@@ -143,7 +144,17 @@ and responses are a `io.restorecommerce.access_control.Response` message.
 |==============================================================================================================================================
 | Field | Type | Label | Description
 | target | `io.restorecommerce.access_control.Target` | required | Request target
-| context | `google.protobuf.Any` | required | Context variables for access control decisions based on custom scripts
+| context | `io.restorecommerce.access_control.Context` | required | Context variables for access control decisions based on custom scripts
+|==============================================================================================================================================
+
+`io.restorecommerce.access_control.Context`
+
+[width="100%",cols="20%,16%,20%,44%",options="header",]
+|==============================================================================================================================================
+| Field | Type | Label | Description
+| subject | `google.protobuf.Any` | required | Subject requesting access
+| resources | `google.protobuf.Any` | required | Resources to access
+| security | `google.protobuf.Any` | optional | security context
 |==============================================================================================================================================
 
 `io.restorecommerce.access_control.Response`
@@ -163,13 +174,17 @@ only the policies and rules applicable to a given request. They can then be used
 Requests are performed providing `io.restorecommerce.access_control.Request` protobuf message as input and responses are
 a `io.restorecommerce.access_control.ReverseQuery` message.
 
+NOTE: For `IsAllowed` and `WhatIsAllowed` operations if `context` contains only the subject identifier, then the service will emit a message
+to Kafka topic[cfg/config.json#L326] with event name `hierarchicalScopesRequest` and service resonsible for creating the HieararchicalScopes will consume this
+message and send back `hierarchicalScopesResponse` which is then saved to cfg/config.json#L11[subject] cache by this service. 
+
 `io.restorecommerce.access_control.Request`
 
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
 | target | `io.restorecommerce.access_control.Target` | required | Request target
-| context | `google.protobuf.Any` | required | Context variables for access control decisions based on custom scripts
+| context | `io.restorecommerce.access_control.Context` | required | Context variables for access control decisions based on custom scripts
 |==============================================================================================================================================
 
 `io.restorecommerce.access_control.ReverseQuery`
@@ -248,6 +263,9 @@ List of events emitted by this microservice for below topics:
 |                                           | `resetResponse` | system reset response
 |                                           | `healthCheckResponse` | system health check response
 |                                           | `versionResponse` | system version response
+|                                           | `configUpdateResponse` | configuration update response
+|                                           | `flushCacheResponse` | flush ACS Cache response
+|                                           | `setApiKeyResponse` | set API Key response
 | `io.restorecommerce.policy_sets.resource` | `policy_setCreated` | emitted when policy_set is created
 |                                           | `policy_setModified` | emitted when policy_set is modified
 |                                           | `policy_setDeleted` | emitted when policy_set is deleted
@@ -257,6 +275,7 @@ List of events emitted by this microservice for below topics:
 | `io.restorecommerce.rules.resource`       | `ruleCreated` | emitted when rule is created
 |                                           | `ruleModified` | emitted when rule is modified
 |                                           | `ruleDeleted` | emitted when rule is deleted
+| `io.restorecommerce.user`                 | `hierarchicalScopesRequest` | emitted when HierarchicalScope does not exist in subject `context`
 |==========================================================================================================================================
 
 [#consumed-events]
@@ -271,4 +290,8 @@ This microservice consumes messages for the following events by topic:
 |                              | `resetCommand` | used for system reset
 |                              | `healthCheckCommand` | to get system health check
 |                              | `versionCommand` | to get system version
+|                              | `flushCacheCommand` | used to flush ACS Cache
+|                              | `configUpdateCommand` | used to update configurations
+|                              | `setApiKeyCommand` | used to set API key
+| `io.restorecommerce.user`    | `hierarchicalScopesResponse` | emitted when HierarchicalScope response is received
 |==========================================================================================================================================
