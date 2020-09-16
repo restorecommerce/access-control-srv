@@ -7,6 +7,7 @@ import * as testUtils from './utils';
 
 import * as srvConfig from '@restorecommerce/service-config';
 import { Logger } from '@restorecommerce/logger';
+import { Events } from '@restorecommerce/kafka-client';
 
 const cfg = srvConfig(process.cwd() + '/test');
 const acConfig = require('./access_control.json');
@@ -17,13 +18,16 @@ let request: core.Request;
 
 describe('Testing access control core', () => {
   describe('Testing simple_policies.yml', () => {
-    before(() => {
-      prepare('./test/fixtures/simple_policies.yml');
+    before(async () => {
+      await prepare('./test/fixtures/simple_policies.yml');
     });
 
     it('should PERMIT based on rule A1', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'Alice, Inc.',
@@ -36,6 +40,9 @@ describe('Testing access control core', () => {
     it('should DENY based on rule A2', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Bob',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'Bob, Inc.',
@@ -48,6 +55,9 @@ describe('Testing access control core', () => {
     it('should DENY based on rule A3', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'Alice, Inc.',
@@ -60,6 +70,9 @@ describe('Testing access control core', () => {
     it('should return INDETERMINATE', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Bob',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'Bob, Inc.',
@@ -72,6 +85,9 @@ describe('Testing access control core', () => {
     it('should return INDETERMINATE', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Steve',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'Unknown',
@@ -84,6 +100,9 @@ describe('Testing access control core', () => {
     it('should return INDETERMINATE', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:unknown.UnknownResource',
         resourceProperty: 'urn:restorecommerce:acs:model:unknown.UnknownResource#property',
         resourceID: 'Unknown',
@@ -96,6 +115,9 @@ describe('Testing access control core', () => {
     it('should PERMIT based on combining algorithm from policy B', async () => {
       request = testUtils.buildRequest({
         subjectID: 'John',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'John GmbH',
@@ -108,6 +130,9 @@ describe('Testing access control core', () => {
     it('should DENY based on combining algorithm from policy C', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Anna',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:user.User',
         resourceProperty: 'urn:restorecommerce:acs:model:user.User#password',
         resourceID: 'Anna UG',
@@ -120,6 +145,9 @@ describe('Testing access control core', () => {
     it('should DENY based on combining algorithm from policy D', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:address.Address',
         resourceProperty: 'urn:restorecommerce:acs:model:address.Address#street',
         resourceID: 'Konigstrasse',
@@ -131,13 +159,16 @@ describe('Testing access control core', () => {
   });
 
   describe('Testing policies_with_targets.yml', () => {
-    before(() => {
-      prepare('./test/fixtures/policies_with_targets.yml');
+    before(async () => {
+      await prepare('./test/fixtures/policies_with_targets.yml');
     });
 
     it('should PERMIT based on rule A1', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Bob',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#sensible_attribute',
         resourceID: 'Bob GmbH',
@@ -150,6 +181,9 @@ describe('Testing access control core', () => {
     it('should DENY based on rule A2', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Bob',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#sensible_attribute',
         resourceID: 'Bob GmbH',
@@ -162,6 +196,9 @@ describe('Testing access control core', () => {
     it('should PERMIT based on policy A\'s combining algorithm', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#sensible_attribute',
         resourceID: 'Alice GmbH',
@@ -174,6 +211,9 @@ describe('Testing access control core', () => {
     it('should return INDETERMINATE based on policy A\'s target', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:user.User',
         resourceProperty: 'urn:restorecommerce:acs:model:user.User#password',
         resourceID: 'Alice',
@@ -186,6 +226,9 @@ describe('Testing access control core', () => {
     it('should PERMIT based on rule B1', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:address.Address',
         resourceProperty: 'urn:restorecommerce:acs:model:address.Address#street',
         resourceID: 'Konigstrasse',
@@ -198,6 +241,9 @@ describe('Testing access control core', () => {
     it('should PERMIT based on policy C', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Anna',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'Random',
@@ -209,12 +255,15 @@ describe('Testing access control core', () => {
   });
 
   describe('Testing policy_sets_with_targets.yml', () => {
-    before(() => {
-      prepare('./test/fixtures/policy_sets_with_targets.yml');
+    before(async () => {
+      await prepare('./test/fixtures/policy_sets_with_targets.yml');
     });
     it('should PERMIT based on rule AA3', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'Random',
@@ -227,6 +276,9 @@ describe('Testing access control core', () => {
     it('should return INDETERMINATE', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:user.User',
         resourceProperty: 'urn:restorecommerce:acs:model:user.User#name',
         resourceID: 'Bob',
@@ -239,6 +291,9 @@ describe('Testing access control core', () => {
     it('should DENY based on rule AA2', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Bob',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:organization.Organization',
         resourceProperty: 'urn:restorecommerce:acs:model:organization.Organization#name',
         resourceID: 'Random',
@@ -252,6 +307,8 @@ describe('Testing access control core', () => {
       request = testUtils.buildRequest({
         subjectID: 'External Bob',
         subjectRole: 'ExternalUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:user.User',
         resourceProperty: 'urn:restorecommerce:acs:model:user.User#name',
         resourceID: 'Bob',
@@ -265,6 +322,8 @@ describe('Testing access control core', () => {
       request = testUtils.buildRequest({
         subjectID: 'External Bob',
         subjectRole: 'ExternalUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:user.User',
         resourceProperty: 'urn:restorecommerce:acs:model:user.User#name',
         resourceID: 'Bob',
@@ -276,17 +335,20 @@ describe('Testing access control core', () => {
   });
 
   describe('testing rule with special JS condition', () => {
-    before(() => {
-      prepare('./test/fixtures/conditions.yml');
+    before(async () => {
+      await prepare('./test/fixtures/conditions.yml');
     });
 
     it('should DENY modify request due to special condition', async () => {
-      before(() => {
-        prepare('./test/fixtures/conditions.yml');
+      before(async () => {
+        await prepare('./test/fixtures/conditions.yml');
       });
 
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:user.User',
         resourceID: 'NotAlice',
         actionType: 'urn:restorecommerce:acs:names:action:modify'
@@ -298,6 +360,9 @@ describe('Testing access control core', () => {
     it('should PERMIT modify request due to special condition', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:user.User',
         resourceID: 'Alice',
         actionType: 'urn:restorecommerce:acs:names:action:modify'
@@ -309,6 +374,9 @@ describe('Testing access control core', () => {
     it('should DENY due to invalid context in request', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:user.User',
         resourceID: 'Alice',
         actionType: 'urn:restorecommerce:acs:names:action:modify'
@@ -319,8 +387,8 @@ describe('Testing access control core', () => {
     });
   });
   describe('testing roles with hierarchical scopes', () => {
-    before(() => {
-      prepare('./test/fixtures/roleScopes.yml');
+    before(async () => {
+      await prepare('./test/fixtures/roleScopes.yml');
     });
     it('should DENY if the context is invalid', async () => {
     });
@@ -385,8 +453,8 @@ describe('Testing access control core', () => {
     });
   });
   describe('testing rules with HR scopes disabled', () => {
-    before(() => {
-      prepare('./test/fixtures/hierarchicalScopes_disabled.yml');
+    before(async () => {
+      await prepare('./test/fixtures/hierarchicalScopes_disabled.yml');
     });
     it('should PERMIT a read by a SimpleUser for root Org Scope', async () => {
       request = testUtils.buildRequest({
@@ -419,8 +487,8 @@ describe('Testing access control core', () => {
     });
   });
   describe('testing rules with GraphQL queries', () => {
-    before(() => {
-      prepare('./test/fixtures/context_query.yml');
+    before(async () => {
+      await prepare('./test/fixtures/context_query.yml');
       ac.createResourceAdapter(cfg.get('adapter'));
     });
 
@@ -442,6 +510,9 @@ describe('Testing access control core', () => {
 
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:location.Location',
         resourceProperty: 'urn:restorecommerce:acs:model:location.Location#address',
         resourceID: 'Location 1',
@@ -471,6 +542,9 @@ describe('Testing access control core', () => {
 
       request = testUtils.buildRequest({
         subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
         resourceType: 'urn:restorecommerce:acs:model:location.Location',
         resourceProperty: 'urn:restorecommerce:acs:model:location.Location#address',
         resourceID: 'Location 1',
@@ -484,8 +558,12 @@ describe('Testing access control core', () => {
 });
 
 // Helper functions
-function prepare(filepath: string): void {
-  ac = new core.AccessController(logger, acConfig);
+async function prepare(filepath: string): Promise<void> {
+  const kafkaConfig = cfg.get('events:kafka');
+  const events = new Events(kafkaConfig, logger); // Kafka
+  await events.start();
+  const userTopic = events.topic(kafkaConfig.topics['user'].topic);
+  ac = new core.AccessController(logger, acConfig, userTopic, cfg);
   testUtils.populate(ac, filepath);
 }
 

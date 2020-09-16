@@ -373,6 +373,20 @@
         "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.commandinterface.CommandResponse"
       },
+      "hierarchicalScopesRequest": {
+        "protos": [
+          "io/restorecommerce/user.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.user.HierarchicalScopesRequest"
+      },
+      "hierarchicalScopesResponse": {
+        "protos": [
+          "io/restorecommerce/user.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.user.HierarchicalScopesResponse"
+      },
       "topics": {
         "policy.resource": {
           "topic": "io.restorecommerce.policies.resource"
@@ -390,6 +404,12 @@
             "versionCommand",
             "restoreCommand",
             "resetCommand"
+          ]
+        },
+        "user": {
+          "topic": "io.restorecommerce.user",
+          "events": [
+            "hierarchicalScopesResponse"
           ]
         }
       }

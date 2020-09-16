@@ -227,6 +227,9 @@ describe('testing microservice', () => {
       it('should PERMIT', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
+          subjectRole: 'SimpleUser',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'Org1',
           resourceType: 'urn:restorecommerce:acs:model:user.User',
           resourceProperty: 'urn:restorecommerce:acs:model:user.User#name',
           resourceID: 'Bob',
@@ -245,6 +248,9 @@ describe('testing microservice', () => {
       it('should throw DENY', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
+          subjectRole: 'SimpleUser',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'Org1',
           resourceType: 'urn:restorecommerce:acs:model:user.User',
           resourceProperty: 'urn:restorecommerce:acs:model:user.User#name',
           resourceID: 'Bob',
@@ -263,6 +269,9 @@ describe('testing microservice', () => {
       it('should throw DENY due to invalid context', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
+          subjectRole: 'SimpleUser',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'Org1',
           resourceType: 'urn:restorecommerce:acs:model:user.User',
           resourceProperty: 'urn:restorecommerce:acs:model:user.User#name',
           resourceID: 'Alice',
@@ -281,6 +290,9 @@ describe('testing microservice', () => {
       it('should throw INDETERMINATE', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
+          subjectRole: 'SimpleUser',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'Org1',
           resourceType: 'urn:restorecommerce:acs:model:unknown.Unknown',
           resourceProperty: 'urn:restorecommerce:acs:model:unknown.Unknown#random',
           resourceID: 'UnknownID',
@@ -347,6 +359,9 @@ describe('testing microservice', () => {
       it('should return return only fallback rule when targets don\'t match', async function (): Promise<void> {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
+          subjectRole: 'SimpleUser',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'Org1',
           resourceType: 'urn:restorecommerce:acs:model:user.User',
           resourceID: 'DoesNotExist',
           actionType: 'urn:restorecommerce:acs:names:action:read',
