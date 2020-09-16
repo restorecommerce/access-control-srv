@@ -175,8 +175,9 @@ Requests are performed providing `io.restorecommerce.access_control.Request` pro
 a `io.restorecommerce.access_control.ReverseQuery` message.
 
 NOTE: For `IsAllowed` and `WhatIsAllowed` operations if `context` contains only the subject identifier, then the service will emit a message
-to Kafka topic[cfg/config.json#L326] with event name `hierarchicalScopesRequest` and service resonsible for creating the HieararchicalScopes will consume this
-message and send back `hierarchicalScopesResponse` which is then saved to cfg/config.json#L11[subject] cache by this service. 
+to link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L326[Kafka-topic] with event name `hierarchicalScopesRequest`
+and service resonsible for creating the HieararchicalScopes will consume this message and send back `hierarchicalScopesResponse` which is then saved
+to redis link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L11[subject] cache by this service. 
 
 `io.restorecommerce.access_control.Request`
 
