@@ -130,21 +130,25 @@ export class Worker {
         // Add subject_id to waiting list
         const subDate = msg.subject_id;
         const hierarchical_scopes = msg.hierarchical_scopes;
-        const token_name = msg.token_name;
+        const token = msg.token;
         if (!_.isEmpty(hierarchical_scopes)) {
           // store HR scopes to cache with subjectID
           const subDate = msg.subject_id;
           const subID = subDate.split(':')[0];
           let redisKey = `cache:${subID}:subject`;
-          if (token_name) {
-            redisKey = `cache:${subID + ':' + token_name}:subject`;
-          }
           let subject: any;
+          let redisHRScopesKey = `cahce:${subID}:hrScopes`;
           try {
-            subject = await that.accessController.getSubject(redisKey);
-            Object.assign(subject, { hierarchical_scopes });
-            await that.accessController.setSubject(redisKey, JSON.stringify(subject));
-            that.logger.info(`HR scope updated successfully for Subject ${subID}`);
+            subject = await that.accessController.getRedisKey(redisKey);
+            if (subject && subject.tokens) {
+              for (let tokenInfo of subject.tokens) {
+                if (tokenInfo.token === token && token.scopes && token.scopes.length > 0) {
+                  redisHRScopesKey = `cahce:${subID}:${token}:hrScopes`;
+                }
+              }
+            }
+            await that.accessController.setRedisKey(redisHRScopesKey, JSON.stringify(hierarchical_scopes));
+            that.logger.info(`HR scope saved successfully for Subject ${subID}`);
           } catch (err) {
             that.logger.info('Subject not persisted in redis for updating');
           }

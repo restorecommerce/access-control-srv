@@ -361,7 +361,7 @@ export class AccessController {
     return true;
   }
 
-  async getSubject(key: string): Promise<any> {
+  async getRedisKey(key: string): Promise<any> {
     return new Promise((resolve, reject) => {
       this.redisClient.get(key, async (err, reply) => {
         if (err) {
@@ -382,7 +382,7 @@ export class AccessController {
     });
   }
 
-  async setSubject(key: string, value: any): Promise<any> {
+  async setRedisKey(key: string, value: any): Promise<any> {
     new Promise((resolve, reject) => {
       this.redisClient.set(key, value, (err, res) => {
         if (err) {
@@ -408,24 +408,34 @@ export class AccessController {
   async  createHRScope(context) {
     const subjectID = context.subject.id;
     let redisKey = `cache:${subjectID}:subject`;
-    const tokenName = context.subject.token_name;
+    const token = context.subject.token;
     let timeout = this.cfg.get('authorization:hrReqTimeout');
     if (!timeout) {
       timeout = 300000;
     }
-    if (tokenName) {
-      redisKey = `cache:${subjectID + ':' + tokenName}:subject`;
-    }
+    let redisHRScopesKey = `cache:${subjectID}:hrScopes`;
     let subject: any;
+    let hrScopes: any;
     try {
-      subject = await this.getSubject(redisKey);
+      subject = await this.getRedisKey(redisKey);
+      // check if given token and subject token has scopes from `subject`
+      // if it has scope then use hte other HR scope key if not use standard HR scope key
+      if (subject && subject.tokens) {
+        for (let tokenInfo of subject.tokens) {
+          if ((tokenInfo.token === token) && tokenInfo.scopes && tokenInfo.scopes.length > 0) {
+            redisHRScopesKey = `cache:${subjectID + ':' + token}:hrScopes`;
+          }
+        }
+      }
+      hrScopes = await this.getRedisKey(redisHRScopesKey);
     } catch (err) {
-      this.logger.info(`Subject ${redisKey} not persisted in redis in acs`);
+      this.logger.info(`Subject or HR Scope not persisted in redis in acs`);
     }
-    if (_.isEmpty(subject) || _.isEmpty(subject.hierarchical_scopes)) {
+
+    if (_.isEmpty(hrScopes)) {
       const date = new Date().toISOString();
       const subDate = subjectID + ':' + date;
-      await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate, token_name: tokenName });
+      await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate, token });
       this.waiting[subDate] = [];
       try {
         await new Promise((resolve, reject) => {
@@ -438,7 +448,8 @@ export class AccessController {
         // unhandled promise rejection for timeout
         this.logger.error(`Error creating Hierarchical scope for subject ${subDate}`);
       }
-      subject = await this.getSubject(redisKey);
+      const subjectHRScopes = await this.getRedisKey(redisHRScopesKey);
+      Object.assign(subject, {hierarchical_scopes: subjectHRScopes});
       context.subject = subject;
     } else {
       context.subject = subject;
