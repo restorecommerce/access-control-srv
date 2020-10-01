@@ -137,13 +137,13 @@ export class Worker {
           const subID = subDate.split(':')[0];
           let redisKey = `cache:${subID}:subject`;
           let subject: any;
-          let redisHRScopesKey = `cahce:${subID}:hrScopes`;
+          let redisHRScopesKey = `cache:${subID}:hrScopes`;
           try {
             subject = await that.accessController.getRedisKey(redisKey);
             if (subject && subject.tokens) {
               for (let tokenInfo of subject.tokens) {
                 if ((tokenInfo.token === token) && tokenInfo.scopes && tokenInfo.scopes.length > 0) {
-                  redisHRScopesKey = `cahce:${subID}:${token}:hrScopes`;
+                  redisHRScopesKey = `cache:${subID}:${token}:hrScopes`;
                 }
               }
             }
