@@ -142,7 +142,7 @@ export class Worker {
             subject = await that.accessController.getRedisKey(redisKey);
             if (subject && subject.tokens) {
               for (let tokenInfo of subject.tokens) {
-                if (tokenInfo.token === token && token.scopes && token.scopes.length > 0) {
+                if ((tokenInfo.token === token) && tokenInfo.scopes && tokenInfo.scopes.length > 0) {
                   redisHRScopesKey = `cahce:${subID}:${token}:hrScopes`;
                 }
               }
