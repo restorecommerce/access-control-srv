@@ -452,6 +452,7 @@ export class AccessController {
       Object.assign(subject, {hierarchical_scopes: subjectHRScopes});
       context.subject = subject;
     } else {
+      Object.assign(subject, {hierarchical_scopes: hrScopes});
       context.subject = subject;
     }
     return context;
