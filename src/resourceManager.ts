@@ -3,7 +3,7 @@ import { ResourcesAPIBase, ServiceBase, toStruct } from '@restorecommerce/resour
 import { Topic, Events } from '@restorecommerce/kafka-client';
 
 import * as core from './core';
-import { getSubjectFromRedis, createMetadata, AccessResponse, checkAccessRequest, ReadPolicyResponse } from './core/utils';
+import { getSubject, createMetadata, AccessResponse, checkAccessRequest, ReadPolicyResponse } from './core/utils';
 import { AuthZAction, PermissionDenied, Decision, ACSAuthZ } from '@restorecommerce/acs-client';
 import { RedisClient } from 'redis';
 
@@ -105,7 +105,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
   }
 
   async create(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
@@ -141,7 +141,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 
   async read(call: any, context: any): Promise<any> {
     const readRequest = call.request;
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     let acsResponse: ReadPolicyResponse;
     try {
       acsResponse = await checkAccessRequest(subject, readRequest, AuthZAction.READ,
@@ -158,7 +158,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
   }
 
   async update(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
@@ -179,7 +179,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
   }
 
   async upsert(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
@@ -201,7 +201,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 
   async delete(call: any, context: any): Promise<any> {
     let resources = [];
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     let ruleIDs = call.request.ids;
     let action;
     if (ruleIDs) {
@@ -279,7 +279,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   }
 
   async create(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
@@ -339,7 +339,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
 
   async read(call: any, context: any): Promise<any> {
     const readRequest = call.request;
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     let acsResponse: ReadPolicyResponse;
     try {
       acsResponse = await checkAccessRequest(subject, readRequest, AuthZAction.READ,
@@ -356,7 +356,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   }
 
   async update(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
@@ -377,7 +377,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   }
 
   async upsert(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
@@ -430,7 +430,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
 
   async delete(call: any, context: any): Promise<any> {
     let resources = [];
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     let policyIDs = call.request.ids;
     let action;
     if (policyIDs) {
@@ -543,7 +543,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
   }
 
   async create(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
@@ -584,7 +584,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
   }
 
   async update(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
@@ -644,7 +644,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 
   async delete(call: any, context: any): Promise<any> {
     let resources = [];
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     let policySetIDs = call.request.ids;
     let action;
     if (policySetIDs) {
@@ -688,7 +688,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 
   async read(call: any, context: any): Promise<any> {
     const readRequest = call.request;
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     let acsResponse: ReadPolicyResponse;
     try {
       acsResponse = await checkAccessRequest(subject, readRequest, AuthZAction.READ,
@@ -705,7 +705,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
   }
 
   async upsert(call: any, context: any): Promise<any> {
-    let subject = await getSubjectFromRedis(call, this);
+    let subject = await getSubject(call, this);
     // update meta data for owner information
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
