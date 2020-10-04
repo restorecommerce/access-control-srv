@@ -448,11 +448,15 @@ export class AccessController {
         // unhandled promise rejection for timeout
         this.logger.error(`Error creating Hierarchical scope for subject ${subDate}`);
       }
+      if (!subject) {
+        subject = await this.getRedisKey(redisKey);
+        redisHRScopesKey = `cache:${subjectID + ':' + token}:hrScopes`;
+      }
       const subjectHRScopes = await this.getRedisKey(redisHRScopesKey);
-      Object.assign(subject, {hierarchical_scopes: subjectHRScopes});
+      Object.assign(subject, { hierarchical_scopes: subjectHRScopes });
       context.subject = subject;
     } else {
-      Object.assign(subject, {hierarchical_scopes: hrScopes});
+      Object.assign(subject, { hierarchical_scopes: hrScopes });
       context.subject = subject;
     }
     return context;
@@ -509,6 +513,15 @@ export class AccessController {
     // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
     if (context && context.subject && context.subject.id &&
       _.isEmpty(context.subject.hierarchical_scopes)) {
+      let sub = (context as any).subject;
+      let token;
+      if (!sub.token && sub.token_name && !_.isEmpty(sub.tokens)) {
+        const tokenInfo = _.find(sub.tokens, { name: sub.token_name });
+        if (tokenInfo && tokenInfo.token) {
+          token = tokenInfo.token;
+          context.subject.token = token;
+        }
+      }
       context = await this.createHRScope(context);
     }
 
