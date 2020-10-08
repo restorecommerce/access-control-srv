@@ -451,6 +451,9 @@ export class AccessController {
       if (!subject) {
         subject = await this.getRedisKey(redisKey);
         redisHRScopesKey = `cache:${subjectID + ':' + token}:hrScopes`;
+        if (!subject) {
+          subject = { id: '', role_associations: [] };
+        }
       }
       const subjectHRScopes = await this.getRedisKey(redisHRScopesKey);
       Object.assign(subject, { hierarchical_scopes: subjectHRScopes });
