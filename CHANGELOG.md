@@ -1,3 +1,8 @@
+### 0.1.5 (October 9th, 2020)
+
+- up acs-client includes the fix for validation of token and subjectid
+- fix if subject does not exist in redis
+
 ### 0.1.4 (October 3rd, 2020)
 
 - changes to store HR scope to redis with different key based on token if scopes for token exist
