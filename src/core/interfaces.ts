@@ -4,6 +4,7 @@ export interface AccessControlObjectInterface {
   description?: string;
   target?: Target;
   effect?: Effect;
+  evaluation_cacheable?: boolean;
 }
 
 export interface Combinable extends AccessControlObjectInterface { }
@@ -11,6 +12,7 @@ export interface Rule extends Combinable {
   effect: Effect; // effect is never optional in rule
   contextQuery?: ContextQuery;
   condition?: any;
+  evaluation_cacheable?: boolean;
 }
 
 export interface Combiner<T extends Combinable> extends AccessControlObjectInterface {
@@ -18,7 +20,9 @@ export interface Combiner<T extends Combinable> extends AccessControlObjectInter
   combiningAlgorithm: string;
 }
 
-export interface Policy extends Combiner<Rule>, Combinable { }
+export interface Policy extends Combiner<Rule>, Combinable {
+  evaluation_cacheable?: boolean;
+}
 export interface PolicySet extends Combiner<Policy> { }
 
 export interface Attribute {
@@ -36,6 +40,11 @@ export interface Target {
 export interface ContextQuery {
   filters: GQLFilter[];
   query: string;
+}
+
+export interface EffectEvaluation {
+  effect: Effect;
+  evaluation_cacheable: boolean;
 }
 
 export enum Effect {
@@ -97,6 +106,7 @@ export interface ResourceOwnerAttributes {
 export interface Response {
   decision: Decision;
   obligation: string;
+  evaluation_cacheable?: boolean;
 }
 
 export interface CombiningAlgorithm {

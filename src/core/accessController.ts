@@ -3,7 +3,7 @@ import * as nodeEval from 'node-eval';
 import {
   Rule, Policy, PolicySet, Request, Response,
   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
-  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope
+  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation
 } from './interfaces';
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
@@ -70,10 +70,10 @@ export class AccessController {
       throw new errors.InvalidRequest('target');
     }
 
-    let effect: Effect;
+    let effect: EffectEvaluation;
     for (let [, value] of this.policySets) {
       const policySet: PolicySet = value;
-      let policyEffects: Effect[] = [];
+      let policyEffects: EffectEvaluation[] = [];
 
       if ((!!policySet.target && await this.targetMatches(policySet.target, request))
         || !policySet.target) {
@@ -89,7 +89,7 @@ export class AccessController {
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
 
-          const ruleEffects: Effect[] = [];
+          const ruleEffects: EffectEvaluation[] = [];
           if ((!!policy.target && exactMatch && await this.targetMatches(policy.target, request))
             // regex match
             || (!!policy.target && !exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', true))
@@ -100,11 +100,12 @@ export class AccessController {
             // only apply a policy effect if there are no rules
             // combine rules otherwise
             if (rules.size == 0 && !!policy.effect) {
-              policyEffects.push(policy.effect);
+              policyEffects.push({effect: policy.effect, evaluation_cacheable: policy.evaluation_cacheable});
             }
 
             else {
               for (let [, rule] of policy.combinables) {
+                let evaluation_cacheable = rule.evaluation_cacheable;
                 // if rule has not target it should be always applied inside the policy scope
                 this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
                 let matches = !rule.target || await this.targetMatches(rule.target, request, 'isAllowed', true);
@@ -125,7 +126,8 @@ export class AccessController {
                         if (_.isNil(context)) {
                           return {  // deny by default
                             decision: Decision.DENY,
-                            obligation: ''
+                            obligation: '',
+                            evaluation_cacheable
                           };
                         }
                       }
@@ -138,12 +140,13 @@ export class AccessController {
                     // this.logger.verbose(err.stack);
                     return {  // if an exception is caught deny by default
                       decision: Decision.DENY,
-                      obligation: ''
+                      obligation: '',
+                      evaluation_cacheable
                     };
                   }
 
                   if (matches) {
-                    ruleEffects.push(rule.effect);
+                    ruleEffects.push({ effect: rule.effect, evaluation_cacheable });
                   }
                 }
               }
@@ -165,18 +168,20 @@ export class AccessController {
       this.logger.silly('Access response is INDETERMINATE');
       return {
         decision: Decision.INDETERMINATE,
-        obligation: ''
+        obligation: '',
+        evaluation_cacheable: undefined
       };
     }
 
     let decision: Decision;
 
-    decision = Decision[effect] || Decision.INDETERMINATE;
+    decision = Decision[effect.effect] || Decision.INDETERMINATE;
 
     this.logger.silly('Access response is', decision);
     return {
       decision,
-      obligation: ''
+      obligation: '',
+      evaluation_cacheable: effect.evaluation_cacheable
     };
   }
 
@@ -201,7 +206,7 @@ export class AccessController {
           if (_.isEmpty(policy.target)
             || (exactMatch && await this.targetMatches(policy.target, request))
             || (!exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', true))) {
-            policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect']));
+            policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect', 'evaluation_cacheable']));
             policyRQ.rules = [];
 
             policyRQ.has_rules = (!!policy.combinables && policy.combinables.size > 0);
@@ -209,7 +214,7 @@ export class AccessController {
             for (let [, rule] of policy.combinables) {
               let ruleRQ: RuleRQ;
               if (_.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
-                ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition']));
+                ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
                 policyRQ.rules.push(ruleRQ);
               }
             }
@@ -621,7 +626,7 @@ export class AccessController {
    * @param combiningAlgorithm
    * @param effects
    */
-  private decide(combiningAlgorithm: string, effects: Effect[]): Effect {
+  private decide(combiningAlgorithm: string, effects: EffectEvaluation[]): EffectEvaluation {
     if (this.combiningAlgorithms.has(combiningAlgorithm)) {
       return this.combiningAlgorithms.get(combiningAlgorithm).apply(this, [effects]);
     }
@@ -640,16 +645,28 @@ export class AccessController {
   * Always DENY if DENY exists;
   * @param effects
   */
-  protected denyOverrides(effects: Effect[]): Effect {
-    return _.includes(effects, Effect.DENY) ? Effect.DENY : Effect.PERMIT;
+  protected denyOverrides(effects: EffectEvaluation[]): EffectEvaluation {
+    for (let effect of effects) {
+      const effectValue = _.includes(effect.effect, Effect.DENY) ? Effect.DENY : Effect.PERMIT;
+      return {
+        effect: effectValue,
+        evaluation_cacheable: effect.evaluation_cacheable
+      };
+    }
   }
 
   /**
    * Always PERMIT if PERMIT exists;
    * @param effects
    */
-  protected permitOverrides(effects: Effect[]): Effect {
-    return _.includes(effects, Effect.PERMIT) ? Effect.PERMIT : Effect.DENY;
+  protected permitOverrides(effects: EffectEvaluation[]): EffectEvaluation {
+    for (let effect of effects) {
+      const effectValue = _.includes(effect.effect, Effect.PERMIT) ? Effect.PERMIT : Effect.DENY;
+      return {
+        effect: effectValue,
+        evaluation_cacheable: effect.evaluation_cacheable
+      };
+    }
   }
 
   /**
@@ -657,7 +674,7 @@ export class AccessController {
    * Note that in a future implementation Effect may be extended to further values.
    * @param effects
    */
-  protected firstApplicable(effects: Effect[]): Effect {
+  protected firstApplicable(effects: EffectEvaluation[]): EffectEvaluation {
     return effects[0];
   }
 
