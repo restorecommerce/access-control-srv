@@ -13,7 +13,7 @@ export interface IAccessControlResourceService<T> {
 }
 
 const marshallResource = (resource: any, resourceName: string): any => {
-  let marshalled: any = _.pick(resource, ['id', 'name', 'description']);
+  let marshalled: any = _.pick(resource, ['id', 'name', 'description', 'evaluation_cacheable']);
   switch (resourceName) {
     case 'policy_set':
       marshalled = _.assign(marshalled, _.pick(resource, ['target']));
