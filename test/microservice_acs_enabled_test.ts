@@ -3,8 +3,8 @@ import * as should from 'should';
 import { Worker } from '../lib/worker';
 import * as testUtils from './utils';
 
-import * as srvConfig from '@restorecommerce/service-config';
-import { Logger } from '@restorecommerce/logger';
+import { createServiceConfig } from '@restorecommerce/service-config';
+import { createLogger } from '@restorecommerce/logger';
 import { Client } from '@restorecommerce/grpc-client';
 
 import * as yaml from 'js-yaml';
@@ -71,8 +71,8 @@ let testRule = [{
 }];
 
 async function setupService(): Promise<void> {
-  cfg = srvConfig(process.cwd() + '/test');
-  logger = new Logger(cfg.get('logger'));
+  cfg = createServiceConfig(process.cwd() + '/test');
+  logger = createLogger(cfg.get('logger'));
 
   worker = new Worker();
   await worker.start(cfg, logger);

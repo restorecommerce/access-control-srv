@@ -2,6 +2,8 @@
 
 - add new grpc healthcheck with readiness probe
 - listen on 0.0.0.0 for grpc port
+- add evaluation_cacheable for isAllowed and whatIsAllowed
+- updated acs-client and protos
 
 ### 0.1.5 (October 9th, 2020)
 

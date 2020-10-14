@@ -100,7 +100,7 @@ export class AccessController {
             // only apply a policy effect if there are no rules
             // combine rules otherwise
             if (rules.size == 0 && !!policy.effect) {
-              policyEffects.push({effect: policy.effect, evaluation_cacheable: policy.evaluation_cacheable});
+              policyEffects.push({ effect: policy.effect, evaluation_cacheable: policy.evaluation_cacheable });
             }
 
             else {
@@ -646,13 +646,21 @@ export class AccessController {
   * @param effects
   */
   protected denyOverrides(effects: EffectEvaluation[]): EffectEvaluation {
-    for (let effect of effects) {
-      const effectValue = _.includes(effect.effect, Effect.DENY) ? Effect.DENY : Effect.PERMIT;
-      return {
-        effect: effectValue,
-        evaluation_cacheable: effect.evaluation_cacheable
-      };
+    let effect, evaluation_cacheable;
+    for (let effectObj of effects) {
+      if (effectObj.effect === Effect.DENY) {
+        effect = effectObj.effect;
+        evaluation_cacheable = effectObj.evaluation_cacheable;
+        break;
+      } else {
+        effect = effectObj.effect;
+        evaluation_cacheable = effectObj.evaluation_cacheable;
+      }
     }
+    return {
+      effect,
+      evaluation_cacheable
+    };
   }
 
   /**
@@ -660,13 +668,21 @@ export class AccessController {
    * @param effects
    */
   protected permitOverrides(effects: EffectEvaluation[]): EffectEvaluation {
-    for (let effect of effects) {
-      const effectValue = _.includes(effect.effect, Effect.PERMIT) ? Effect.PERMIT : Effect.DENY;
-      return {
-        effect: effectValue,
-        evaluation_cacheable: effect.evaluation_cacheable
-      };
+    let effect, evaluation_cacheable;
+    for (let effectObj of effects) {
+      if (effectObj.effect === Effect.PERMIT) {
+        effect = effectObj.effect;
+        evaluation_cacheable = effectObj.evaluation_cacheable;
+        break;
+      } else {
+        effect = effectObj.effect;
+        evaluation_cacheable = effectObj.evaluation_cacheable;
+      }
     }
+    return {
+      effect,
+      evaluation_cacheable
+    };
   }
 
   /**

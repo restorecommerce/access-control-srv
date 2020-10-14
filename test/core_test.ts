@@ -5,13 +5,13 @@ import * as should from 'should';
 import * as core from '../lib/core';
 import * as testUtils from './utils';
 
-import * as srvConfig from '@restorecommerce/service-config';
-import { Logger } from '@restorecommerce/logger';
+import { createServiceConfig } from '@restorecommerce/service-config';
+import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
 
-const cfg = srvConfig(process.cwd() + '/test');
+const cfg = createServiceConfig(process.cwd() + '/test');
 const acConfig = require('./access_control.json');
-const logger = new Logger(cfg.get('logger'));
+const logger = createLogger(cfg.get('logger'));
 
 let ac: core.AccessController;
 let request: core.Request;
@@ -570,6 +570,7 @@ async function prepare(filepath: string): Promise<void> {
 
 async function requestAndValidate(ac: core.AccessController, request: core.Request, expectedDecision: core.Decision): Promise<void> {
   const response: core.Response = await ac.isAllowed(request);
+  console.log('Resp is...', response);
   should.exist(response);
   should.exist(response.decision);
   const decision: core.Decision = response.decision;
