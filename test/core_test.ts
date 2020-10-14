@@ -570,7 +570,6 @@ async function prepare(filepath: string): Promise<void> {
 
 async function requestAndValidate(ac: core.AccessController, request: core.Request, expectedDecision: core.Decision): Promise<void> {
   const response: core.Response = await ac.isAllowed(request);
-  console.log('Resp is...', response);
   should.exist(response);
   should.exist(response.decision);
   const decision: core.Decision = response.decision;
