@@ -109,7 +109,7 @@
       "publisher": {
         "name": "static",
         "instances": [
-          "grpc://localhost:50061"
+          "grpc://0.0.0.0:50061"
         ]
       },
       "endpoints": {
