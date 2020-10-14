@@ -4,6 +4,7 @@ import { Events } from '@restorecommerce/kafka-client';
 import { AccessControlService, AccessControlCommandInterface } from './accessControlService';
 import { ResourceManager } from './resourceManager';
 import { RedisClient, createClient } from 'redis';
+import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base';
 
 import * as core from './core';
 import { initAuthZ, ACSAuthZ, initializeCache } from '@restorecommerce/acs-client';
@@ -46,7 +47,7 @@ export class Worker {
   logger: any;
   server: chassis.Server;
   events: Events;
-  commandInterface: chassis.ICommandInterface;
+  commandInterface: AccessControlCommandInterface;
   accessController: core.AccessController;
   redisClient: RedisClient;
   authZ: ACSAuthZ;
@@ -112,6 +113,22 @@ export class Worker {
     this.commandInterface = new AccessControlCommandInterface(server, this.cfg,
       this.logger, events, accessControlService, this.redisClient);
     await server.bind('io-restorecommerce-access-control-ci', this.commandInterface);
+
+    await server.bind('grpc-health-v1', new chassis.Health(this.commandInterface, async () => {
+      if (!this.redisClient.ping()) {
+        return false;
+      }
+
+      try {
+        if (!(await ((db as Arango).db).version())) {
+          return false;
+        }
+      } catch (e) {
+        return false;
+      }
+
+      return true;
+    }));
 
     this.events = events;
     this.server = server;
