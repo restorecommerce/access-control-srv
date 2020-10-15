@@ -114,20 +114,8 @@ export class Worker {
       this.logger, events, accessControlService, this.redisClient);
     await server.bind('io-restorecommerce-access-control-ci', this.commandInterface);
 
-    await server.bind('grpc-health-v1', new chassis.Health(this.commandInterface, async () => {
-      if (!this.redisClient.ping()) {
-        return false;
-      }
-
-      try {
-        if (!(await ((db as Arango).db).version())) {
-          return false;
-        }
-      } catch (e) {
-        return false;
-      }
-
-      return true;
+    await server.bind('grpc-health-v1', new chassis.Health(this.commandInterface, {
+      readiness: async () => !!await ((db as Arango).db).version()
     }));
 
     this.events = events;

@@ -1,3 +1,7 @@
+### 0.1.7 (October 15th, 2020)
+
+- updated chassis-srv
+
 ### 0.1.6 (October 14th, 2020)
 
 - add new grpc healthcheck with readiness probe
