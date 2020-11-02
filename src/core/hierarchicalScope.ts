@@ -130,17 +130,8 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   }
 
   // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
-  if (context && context.subject && context.subject.id &&
+  if (context && context.subject && context.subject.token &&
     _.isEmpty(context.subject.hierarchical_scopes)) {
-    let sub = (context as any).subject;
-    let token;
-    if (!sub.token && sub.token_name && !_.isEmpty(sub.tokens)) {
-      const tokenInfo = _.find(sub.tokens, { name: sub.token_name });
-      if (tokenInfo && tokenInfo.token) {
-        token = tokenInfo.token;
-        context.subject.token = token;
-      }
-    }
     context = await accessController.createHRScope(context);
   }
 

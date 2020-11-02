@@ -8,6 +8,7 @@ import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arang
 
 import * as core from './core';
 import { initAuthZ, ACSAuthZ, initializeCache } from '@restorecommerce/acs-client';
+import { Client } from '@restorecommerce/grpc-client';
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {
@@ -88,8 +89,15 @@ export class Worker {
     this.redisClient = createClient(redisConfig);
 
     const userTopic = events.topic(kafkaConfig.topics['user'].topic);
+    // instantiate IDS client
+    let userService;
+    const grpcIDSConfig = this.cfg.get('client:user');
+    if (grpcIDSConfig) {
+      const idsClient = new Client(grpcIDSConfig, logger);
+      userService = await idsClient.connect();
+    }
     this.accessController = new core.AccessController(this.logger,
-      this.cfg.get('policies:options'), userTopic, this.cfg);
+      this.cfg.get('policies:options'), userTopic, this.cfg, userService);
 
     // resources
     const db = await chassis.database.get(this.cfg.get('database:main'), this.logger);
@@ -133,13 +141,12 @@ export class Worker {
         await accessControlService.loadPolicies();
       } else if (eventName === hierarchicalScopesResponse) {
         // Add subject_id to waiting list
-        const subDate = msg.subject_id;
         const hierarchical_scopes = msg.hierarchical_scopes;
-        const token = msg.token;
+        const tokenDate = msg.token;
         if (!_.isEmpty(hierarchical_scopes)) {
           // store HR scopes to cache with subjectID
-          const subDate = msg.subject_id;
-          const subID = subDate.split(':')[0];
+          const subID = msg.subject_id;
+          const token = tokenDate.split(':')[0];
           let redisKey = `cache:${subID}:subject`;
           let subject: any;
           let redisHRScopesKey = `cache:${subID}:hrScopes`;
@@ -158,13 +165,13 @@ export class Worker {
             that.logger.info('Subject not persisted in redis for updating');
           }
         }
-        if (that.accessController.waiting[subDate]) {
+        if (that.accessController.waiting[tokenDate]) {
           // clear timeout and resolve
-          that.accessController.waiting[subDate].forEach(waiter => {
+          that.accessController.waiting[tokenDate].forEach(waiter => {
             clearTimeout(waiter.timeoutId);
             return waiter.resolve(true);
           });
-          delete that.accessController.waiting[subDate];
+          delete that.accessController.waiting[tokenDate];
         }
       } else {
         await that.commandInterface.command(msg, context);

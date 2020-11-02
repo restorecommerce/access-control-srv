@@ -21,8 +21,9 @@ export class AccessController {
   userTopic: Topic;
   waiting: any[];
   cfg: any;
+  userService: any;
   constructor(private logger: Logger, opts: AccessControlConfiguration,
-    userTopic: Topic, cfg: any) {
+    userTopic: Topic, cfg: any, userService: any) {
     this.policySets = new Map<string, PolicySet>();
     this.combiningAlgorithms = new Map<string, any>();
 
@@ -51,6 +52,7 @@ export class AccessController {
     this.redisClient = createClient(redisConfig);
     this.userTopic = userTopic;
     this.waiting = [];
+    this.userService = userService;
   }
 
   clearPolicies(): void {
@@ -71,6 +73,11 @@ export class AccessController {
     }
 
     let effect: EffectEvaluation;
+    let context = request.context;
+    if (context && context.subject && context.subject.token) {
+      const user = await this.userService.findByToken(context.subject.token);
+      request.context.subject.id = user.id;
+    }
     for (let [, value] of this.policySets) {
       const policySet: PolicySet = value;
       let policyEffects: EffectEvaluation[] = [];
@@ -187,6 +194,11 @@ export class AccessController {
 
   async whatIsAllowed(request: Request): Promise<PolicySetRQ[]> {
     let policySets: PolicySetRQ[] = [];
+    let context = request.context;
+    if (context && context.subject && context.subject.token) {
+      const user = await this.userService.findByToken(context.subject.token);
+      request.context.subject.id = user.id;
+    }
     for (let [, value] of this.policySets) {
       let pSet: PolicySetRQ;
       if (_.isEmpty(value.target) || await this.targetMatches(value.target, request)) {
@@ -411,9 +423,9 @@ export class AccessController {
   }
 
   async  createHRScope(context) {
+    const token = context.subject.token;
     const subjectID = context.subject.id;
     let redisKey = `cache:${subjectID}:subject`;
-    const token = context.subject.token;
     let timeout = this.cfg.get('authorization:hrReqTimeout');
     if (!timeout) {
       timeout = 300000;
@@ -439,19 +451,19 @@ export class AccessController {
 
     if (_.isEmpty(hrScopes)) {
       const date = new Date().toISOString();
-      const subDate = subjectID + ':' + date;
-      await this.userTopic.emit('hierarchicalScopesRequest', { subject_id: subDate, token });
-      this.waiting[subDate] = [];
+      const tokenDate = token + ':' + date;
+      await this.userTopic.emit('hierarchicalScopesRequest', { token: tokenDate });
+      this.waiting[tokenDate] = [];
       try {
         await new Promise((resolve, reject) => {
           const timeoutId = setTimeout(async () => {
-            reject({ message: 'hr scope read timed out', subDate });
+            reject({ message: 'hr scope read timed out', tokenDate });
           }, timeout);
-          this.waiting[subDate].push({ resolve, reject, timeoutId });
+          this.waiting[tokenDate].push({ resolve, reject, timeoutId });
         });
       } catch (err) {
         // unhandled promise rejection for timeout
-        this.logger.error(`Error creating Hierarchical scope for subject ${subDate}`);
+        this.logger.error(`Error creating Hierarchical scope for subject ${tokenDate}`);
       }
       if (!subject) {
         subject = await this.getRedisKey(redisKey);
@@ -519,17 +531,8 @@ export class AccessController {
 
     let context = request.context;
     // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
-    if (context && context.subject && context.subject.id &&
+    if (context && context.subject && context.subject.token &&
       _.isEmpty(context.subject.hierarchical_scopes)) {
-      let sub = (context as any).subject;
-      let token;
-      if (!sub.token && sub.token_name && !_.isEmpty(sub.tokens)) {
-        const tokenInfo = _.find(sub.tokens, { name: sub.token_name });
-        if (tokenInfo && tokenInfo.token) {
-          token = tokenInfo.token;
-          context.subject.token = token;
-        }
-      }
       context = await this.createHRScope(context);
     }
 

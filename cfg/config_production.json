@@ -56,5 +56,23 @@
     "graphql": {
       "url": "https://api.restorecommerce.io/graphql"
     }
+  },
+  "client": {
+    "acs-srv": {
+      "publisher": {
+        "name": "static",
+        "instances": [
+          "grpc://access-control-srv:50051"
+        ]
+      }
+    },
+    "user": {
+      "publisher": {
+        "name": "static",
+        "instances": [
+          "grpc://identity-srv:50051"
+        ]
+      }
+    }
   }
 }

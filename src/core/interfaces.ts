@@ -64,12 +64,17 @@ export interface Request {
 }
 
 export interface Context {
-  subject: ContextSubject;
+  subject: ContextSubjectResolved;
   resources: Resource[];
   security?: any; // session tokens, etc.
 }
 
 export interface ContextSubject {
+  id: string;
+  token?: string;
+}
+
+export interface ContextSubjectResolved {
   id: string;
   role_associations: RoleAssociations[];
   hierarchical_scopes?: HierarchicalScope[];
