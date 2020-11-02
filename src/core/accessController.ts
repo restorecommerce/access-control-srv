@@ -423,6 +423,9 @@ export class AccessController {
   }
 
   async  createHRScope(context) {
+    if (context && !context.subject) {
+      context.subject = {};
+    }
     const token = context.subject.token;
     const subjectID = context.subject.id;
     let redisKey = `cache:${subjectID}:subject`;
