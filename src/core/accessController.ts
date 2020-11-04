@@ -76,7 +76,9 @@ export class AccessController {
     let context = request.context;
     if (context && context.subject && context.subject.token) {
       const user = await this.userService.findByToken({ token: context.subject.token });
-      request.context.subject.id = user.id;
+      if (user && user.data) {
+        request.context.subject.id = user.data.id;
+      }
     }
     for (let [, value] of this.policySets) {
       const policySet: PolicySet = value;
@@ -197,7 +199,9 @@ export class AccessController {
     let context = request.context;
     if (context && context.subject && context.subject.token) {
       const user = await this.userService.findByToken({ token: context.subject.token });
-      request.context.subject.id = user.id;
+      if (user && user.data) {
+        request.context.subject.id = user.data.id;
+      }
     }
     for (let [, value] of this.policySets) {
       let pSet: PolicySetRQ;
