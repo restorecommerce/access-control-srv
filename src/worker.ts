@@ -147,18 +147,22 @@ export class Worker {
           // store HR scopes to cache with subjectID
           const subID = msg.subject_id;
           const token = tokenDate.split(':')[0];
-          let redisKey = `cache:${subID}:subject`;
-          let subject: any;
-          let redisHRScopesKey = `cache:${subID}:hrScopes`;
-          try {
-            subject = await that.accessController.getRedisKey(redisKey);
-            if (subject && subject.tokens) {
-              for (let tokenInfo of subject.tokens) {
-                if ((tokenInfo.token === token) && tokenInfo.scopes && tokenInfo.scopes.length > 0) {
-                  redisHRScopesKey = `cache:${subID}:${token}:hrScopes`;
-                }
+          let redisHRScopesKey;
+          let subject;
+          if (token) {
+            subject = await this.accessController.userService.findByToken({ token });
+            if (subject && subject.data) {
+              const tokens = subject.data.tokens;
+              const tokenFound = _.find(tokens, {token});
+              if (tokenFound && tokenFound.interactive) {
+                redisHRScopesKey = `cache:${subject.id}:hrScopes`;
+              } else if (tokenFound && !tokenFound.interactive) {
+                redisHRScopesKey = `cache:${subject.id}:${token}:hrScopes`;
               }
             }
+          }
+
+          try {
             await that.accessController.setRedisKey(redisHRScopesKey, JSON.stringify(hierarchical_scopes));
             that.logger.info(`HR scope saved successfully for Subject ${subID}`);
           } catch (err) {

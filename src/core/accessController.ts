@@ -78,6 +78,7 @@ export class AccessController {
       const user = await this.userService.findByToken({ token: context.subject.token });
       if (user && user.data) {
         request.context.subject.id = user.data.id;
+        request.context.subject.tokens = user.data.tokens;
       }
     }
     for (let [, value] of this.policySets) {
@@ -201,6 +202,7 @@ export class AccessController {
       const user = await this.userService.findByToken({ token: context.subject.token });
       if (user && user.data) {
         request.context.subject.id = user.data.id;
+        request.context.subject.tokens = user.data.tokens;
       }
     }
     for (let [, value] of this.policySets) {
@@ -432,25 +434,20 @@ export class AccessController {
     }
     const token = context.subject.token;
     const subjectID = context.subject.id;
-    let redisKey = `cache:${subjectID}:subject`;
+    const subjectTokens = context.subject.tokens;
+    const tokenFound = _.find(subjectTokens, { token });
+    let redisHRScopesKey;
+    if (tokenFound && tokenFound.interactive) {
+      redisHRScopesKey = `cache:${subjectID}:hrScopes`;
+    } else if (tokenFound && !tokenFound.interactive) {
+      redisHRScopesKey = `cache:${subjectID}:${token}:hrScopes`;
+    }
     let timeout = this.cfg.get('authorization:hrReqTimeout');
     if (!timeout) {
       timeout = 300000;
     }
-    let redisHRScopesKey = `cache:${subjectID}:hrScopes`;
-    let subject: any;
     let hrScopes: any;
     try {
-      subject = await this.getRedisKey(redisKey);
-      // check if given token and subject token has scopes from `subject`
-      // if it has scope then use hte other HR scope key if not use standard HR scope key
-      if (subject && subject.tokens) {
-        for (let tokenInfo of subject.tokens) {
-          if ((tokenInfo.token === token) && tokenInfo.scopes && tokenInfo.scopes.length > 0) {
-            redisHRScopesKey = `cache:${subjectID + ':' + token}:hrScopes`;
-          }
-        }
-      }
       hrScopes = await this.getRedisKey(redisHRScopesKey);
     } catch (err) {
       this.logger.info(`Subject or HR Scope not persisted in redis in acs`);
@@ -472,19 +469,10 @@ export class AccessController {
         // unhandled promise rejection for timeout
         this.logger.error(`Error creating Hierarchical scope for subject ${tokenDate}`);
       }
-      if (!subject) {
-        subject = await this.getRedisKey(redisKey);
-        redisHRScopesKey = `cache:${subjectID + ':' + token}:hrScopes`;
-        if (!subject) {
-          subject = { id: '', role_associations: [] };
-        }
-      }
       const subjectHRScopes = await this.getRedisKey(redisHRScopesKey);
-      Object.assign(subject, { hierarchical_scopes: subjectHRScopes });
-      context.subject = subject;
+      Object.assign(context.subject, { hierarchical_scopes: subjectHRScopes });
     } else {
-      Object.assign(subject, { hierarchical_scopes: hrScopes });
-      context.subject = subject;
+      Object.assign(context.subject, { hierarchical_scopes: hrScopes });
     }
     return context;
   }

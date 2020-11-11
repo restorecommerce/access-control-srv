@@ -74,11 +74,21 @@ export interface ContextSubject {
   token?: string;
 }
 
+export interface Tokens {
+  name: string;
+  expires_at: number;
+  token: string;
+  scopes: string[];
+  token_type: string;
+  interactive: boolean;
+}
+
 export interface ContextSubjectResolved {
   id: string;
   role_associations: RoleAssociations[];
   hierarchical_scopes?: HierarchicalScope[];
   token?: string;
+  tokens?: Tokens[];
 }
 
 export interface RoleAssociations {
