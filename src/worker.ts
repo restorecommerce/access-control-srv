@@ -155,9 +155,9 @@ export class Worker {
               const tokens = subject.data.tokens;
               const tokenFound = _.find(tokens, {token});
               if (tokenFound && tokenFound.interactive) {
-                redisHRScopesKey = `cache:${subject.id}:hrScopes`;
+                redisHRScopesKey = `cache:${subject?.data?.id}:hrScopes`;
               } else if (tokenFound && !tokenFound.interactive) {
-                redisHRScopesKey = `cache:${subject.id}:${token}:hrScopes`;
+                redisHRScopesKey = `cache:${subject?.data?.id}:${token}:hrScopes`;
               }
             }
           }
