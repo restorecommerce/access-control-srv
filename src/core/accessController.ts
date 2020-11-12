@@ -79,6 +79,7 @@ export class AccessController {
       if (user && user.data) {
         request.context.subject.id = user.data.id;
         request.context.subject.tokens = user.data.tokens;
+        request.context.subject.role_associations = user.data.role_associations;
       }
     }
     for (let [, value] of this.policySets) {
@@ -203,6 +204,7 @@ export class AccessController {
       if (user && user.data) {
         request.context.subject.id = user.data.id;
         request.context.subject.tokens = user.data.tokens;
+        request.context.subject.role_associations = user.data.role_associations;
       }
     }
     for (let [, value] of this.policySets) {
@@ -542,15 +544,17 @@ export class AccessController {
             const targetScopingInstance = requestSubAttribute.value;
             // check in role_associations
             const userRoleAssocs = context.subject.role_associations;
-            for (let role of userRoleAssocs) {
-              const roleID = role.role;
-              const attributes = role.attributes;
-              for (let attribute of attributes) {
-                if (attribute.id === scopingInstanceURN &&
-                  attribute.value === targetScopingInstance) {
-                  if (!ruleRole || (ruleRole && ruleRole === roleID)) {
-                    matches = true;
-                    return matches;
+            if (!_.isEmpty(userRoleAssocs)) {
+              for (let role of userRoleAssocs) {
+                const roleID = role.role;
+                const attributes = role.attributes;
+                for (let attribute of attributes) {
+                  if (attribute.id === scopingInstanceURN &&
+                    attribute.value === targetScopingInstance) {
+                    if (!ruleRole || (ruleRole && ruleRole === roleID)) {
+                      matches = true;
+                      return matches;
+                    }
                   }
                 }
               }
