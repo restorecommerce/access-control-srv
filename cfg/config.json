@@ -287,17 +287,17 @@
       },
       "hierarchicalScopesRequest": {
         "protos": [
-          "io/restorecommerce/user.proto"
+          "io/restorecommerce/auth.proto"
         ],
         "protoRoot": "node_modules/@restorecommerce/protos/",
-        "messageObject": "io.restorecommerce.user.HierarchicalScopesRequest"
+        "messageObject": "io.restorecommerce.auth.HierarchicalScopesRequest"
       },
       "hierarchicalScopesResponse": {
         "protos": [
-          "io/restorecommerce/user.proto"
+          "io/restorecommerce/auth.proto"
         ],
         "protoRoot": "node_modules/@restorecommerce/protos/",
-        "messageObject": "io.restorecommerce.user.HierarchicalScopesResponse"
+        "messageObject": "io.restorecommerce.auth.HierarchicalScopesResponse"
       },
       "topics": {
         "policy.resource": {
