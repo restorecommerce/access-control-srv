@@ -568,14 +568,15 @@ export class AccessController {
               for (let hrScope of hrScopes) {
                 if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
                   const userRoleAssocs = context.subject.role_associations;
-                  for (let role of userRoleAssocs) {
-                    const roleID = role.role;
-                    if (!ruleRole || (ruleRole && ruleRole === roleID)) {
-                      matches = true;
-                      return matches;
+                  if (!_.isEmpty(userRoleAssocs)) {
+                    for (let role of userRoleAssocs) {
+                      const roleID = role.role;
+                      if (!ruleRole || (ruleRole && ruleRole === roleID)) {
+                        matches = true;
+                        return matches;
+                      }
                     }
                   }
-
                 }
               }
             }
@@ -586,12 +587,14 @@ export class AccessController {
       // scoping entity does not exist - check for point 3.
       if (request.context && request.context.subject) {
         const userRoleAssocs = request.context.subject.role_associations;
-        for (let ruleSubAttribute of ruleSubAttributes) {
-          if (ruleSubAttribute.id === roleURN) {
-            for (let userRoleAssoc of userRoleAssocs) {
-              if (userRoleAssoc.role === ruleSubAttribute.value) {
-                matches = true;
-                return matches;
+        if (!_.isEmpty(userRoleAssocs)) {
+          for (let ruleSubAttribute of ruleSubAttributes) {
+            if (ruleSubAttribute.id === roleURN) {
+              for (let userRoleAssoc of userRoleAssocs) {
+                if (userRoleAssoc.role === ruleSubAttribute.value) {
+                  matches = true;
+                  return matches;
+                }
               }
             }
           }
