@@ -8,6 +8,7 @@ import * as testUtils from './utils';
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
+import { Client } from '@restorecommerce/grpc-client';
 
 const cfg = createServiceConfig(process.cwd() + '/test');
 const acConfig = require('./access_control.json');
@@ -563,7 +564,13 @@ async function prepare(filepath: string): Promise<void> {
   const events = new Events(kafkaConfig, logger); // Kafka
   await events.start();
   const userTopic = events.topic(kafkaConfig.topics['user'].topic);
-  ac = new core.AccessController(logger, acConfig, userTopic, cfg);
+  let userService;
+  const grpcIDSConfig = cfg.get('client:user');
+  if (grpcIDSConfig) {
+    const idsClient = new Client(grpcIDSConfig, logger);
+    userService = await idsClient.connect();
+  }
+  ac = new core.AccessController(logger, acConfig, userTopic, cfg, userService);
   testUtils.populate(ac, filepath);
 }
 
