@@ -1,3 +1,10 @@
+### 0.1.8 (November 19th, 2020)
+
+- fix to set subjectID from findByToken operation
+- updated to store HR scopes to redis considering interactive flag
+- moved HR scopes request and response messages to auth.proto
+- updated dependencies
+
 ### 0.1.7 (October 19th, 2020)
 
 - updated chassis-srv
