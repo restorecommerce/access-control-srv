@@ -8,7 +8,7 @@ import {
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
 import { checkHierarchicalScope } from './hierarchicalScope';
-import { Logger } from '@restorecommerce/chassis-srv';
+import { Logger } from 'winston';
 import { RedisClient, createClient } from 'redis';
 import { Topic } from '@restorecommerce/kafka-client';
 

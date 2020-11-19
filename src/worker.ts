@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import * as chassis from '@restorecommerce/chassis-srv';
+import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
 import { AccessControlService, AccessControlCommandInterface } from './accessControlService';
 import { ResourceManager } from './resourceManager';
@@ -54,7 +55,7 @@ export class Worker {
   authZ: ACSAuthZ;
   async start(cfg?: any, logger?: any): Promise<any> {
     this.cfg = cfg || await chassis.config.get();
-    this.logger = logger || new chassis.Logger(this.cfg.get('logger'));
+    this.logger = logger || createLogger(this.cfg.get('logger'));
 
     this.logger.info('Starting access control service');
     const server = new chassis.Server(this.cfg.get('server'), this.logger);  // gRPC server
@@ -153,7 +154,7 @@ export class Worker {
             subject = await this.accessController.userService.findByToken({ token });
             if (subject && subject.data) {
               const tokens = subject.data.tokens;
-              const tokenFound = _.find(tokens, {token});
+              const tokenFound = _.find(tokens, { token });
               if (tokenFound && tokenFound.interactive) {
                 redisHRScopesKey = `cache:${subject?.data?.id}:hrScopes`;
               } else if (tokenFound && !tokenFound.interactive) {
