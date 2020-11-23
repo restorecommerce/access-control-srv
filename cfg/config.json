@@ -299,6 +299,13 @@
         "protoRoot": "node_modules/@restorecommerce/protos/",
         "messageObject": "io.restorecommerce.auth.HierarchicalScopesResponse"
       },
+      "userModified": {
+        "protos": [
+          "io/restorecommerce/user.proto"
+        ],
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "messageObject": "io.restorecommerce.user.User"
+      },
       "topics": {
         "policy.resource": {
           "topic": "io.restorecommerce.policies.resource",
@@ -340,6 +347,12 @@
           "topic": "io.restorecommerce.user",
           "events": [
             "hierarchicalScopesResponse"
+          ]
+        },
+        "users.resource": {
+          "topic": "io.restorecommerce.users.resource",
+          "events": [
+            "userModified"
           ]
         }
       }

@@ -407,6 +407,29 @@ export class AccessController {
     });
   }
 
+  async evictHRScopes(subID: string): Promise<void> {
+    const key = `cache:${subID}:*`;
+    return new Promise((resolve, reject) => {
+      this.redisClient.keys(key, async (err, reply) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        if (reply && reply.length) {
+          this.redisClient.del(reply, (err1) => {
+            if (err1) {
+              reject(err1);
+              return;
+            }
+            this.logger.debug('Evicted Subject cache: ' + key);
+            resolve();
+          });
+        }
+      });
+    });
+  }
+
   async setRedisKey(key: string, value: any): Promise<any> {
     new Promise((resolve, reject) => {
       this.redisClient.set(key, value, (err, res) => {

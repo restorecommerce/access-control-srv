@@ -154,11 +154,23 @@ export class Worker {
             subject = await this.accessController.userService.findByToken({ token });
             if (subject && subject.data) {
               const tokens = subject.data.tokens;
+              const subID = subject.data.id;
               const tokenFound = _.find(tokens, { token });
               if (tokenFound && tokenFound.interactive) {
-                redisHRScopesKey = `cache:${subject?.data?.id}:hrScopes`;
+                redisHRScopesKey = `cache:${subID}:hrScopes`;
               } else if (tokenFound && !tokenFound.interactive) {
-                redisHRScopesKey = `cache:${subject?.data?.id}:${token}:hrScopes`;
+                redisHRScopesKey = `cache:${subID}:${token}:hrScopes`;
+              }
+
+              let redisSubKey = `cache:${subID}:subject`;
+              let redisSub;
+              try {
+                redisSub = await that.accessController.getRedisKey(redisSubKey);
+                if (_.isEmpty(redisSub)) {
+                  that.accessController.setRedisKey(redisSubKey, JSON.stringify(subject.data));
+                }
+              } catch (err) {
+                this.logger.error('Error retrieving Subject from redis in acs-srv');
               }
             }
           }
@@ -177,6 +189,46 @@ export class Worker {
             return waiter.resolve(true);
           });
           delete that.accessController.waiting[tokenDate];
+        }
+      } else if (eventName === 'userModified') {
+        if (msg && 'id' in msg) {
+          const updatedRoleAssocs = msg.role_associations;
+          const updatedTokens = msg.tokens;
+          let redisKey = `cache:${msg.id}:subject`;
+          const redisSubject = await that.accessController.getRedisKey(redisKey);
+          if (redisSubject) {
+            const redisRoleAssocs = redisSubject.role_associations;
+            const redisTokens = redisSubject.tokens;
+            let roleAssocEqual;
+            let tokensEqual;
+            for (let obj of updatedRoleAssocs) {
+              roleAssocEqual = _.find(redisRoleAssocs, obj);
+              if (!roleAssocEqual) {
+                logger.debug('Subject Role assocation has been updated', obj);
+                break;
+              }
+            }
+            // for interactive login after logout we receive userModified event
+            // with empty tokens, so below check is not to evict cache for this case
+            if (_.isEmpty(updatedTokens)) {
+              tokensEqual = true;
+            }
+            for (let token of updatedTokens) {
+              if (!token.interactive) {
+                tokensEqual = _.find(redisTokens, token);
+                if (!tokensEqual) {
+                  logger.debug('Subject Token scope has been updated', token);
+                  break;
+                }
+              } else {
+                tokensEqual = true;
+              }
+            }
+            if (!roleAssocEqual || !tokensEqual || (updatedRoleAssocs.length != redisRoleAssocs.length)) {
+              logger.info('Evicting HR scope for Subject', { id: msg.id });
+              await that.accessController.evictHRScopes(msg.id); // flush HR scopes
+            }
+          }
         }
       } else {
         await that.commandInterface.command(msg, context);
