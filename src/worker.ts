@@ -204,7 +204,7 @@ export class Worker {
             for (let obj of updatedRoleAssocs) {
               roleAssocEqual = _.find(redisRoleAssocs, obj);
               if (!roleAssocEqual) {
-                logger.debug('Subject Role assocation has been updated', obj);
+                that.logger.debug('Subject Role assocation has been updated', obj);
                 break;
               }
             }
@@ -225,7 +225,7 @@ export class Worker {
               }
             }
             if (!roleAssocEqual || !tokensEqual || (updatedRoleAssocs.length != redisRoleAssocs.length)) {
-              logger.info('Evicting HR scope for Subject', { id: msg.id });
+              that.logger.info('Evicting HR scope for Subject', { id: msg.id });
               await that.accessController.evictHRScopes(msg.id); // flush HR scopes
             }
           }
