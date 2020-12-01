@@ -67,6 +67,7 @@
     "mocha": "cross-env NODE_ENV=test mocha -R spec --timeout 60000 test/*_test.js --stack-trace --exit",
     "mocha-debug": "mocha -R spec test/*_test.js --inspect-brk",
     "test-core": "cross-env NODE_ENV=test npm run lint && npm run mocha-core",
+    "lcov-report": "nyc report --reporter=lcov",
     "coveralls": "cross-env NODE_ENV=test; nyc --reporter text --reporter lcov npm test",
     "createtopics": "node setupTopics.js io.restorecommerce.command",
     "tsctests": "tsc -d -p tsconfig.test.json",
