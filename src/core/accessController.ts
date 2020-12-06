@@ -390,7 +390,7 @@ export class AccessController {
     return new Promise((resolve, reject) => {
       if (!key) {
         this.logger.info('Key not defined');
-        resolve();
+        return resolve();
       }
       this.redisClient.get(key, async (err, reply) => {
         if (err) {
