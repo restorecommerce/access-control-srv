@@ -388,6 +388,10 @@ export class AccessController {
 
   async getRedisKey(key: string): Promise<any> {
     return new Promise((resolve, reject) => {
+      if (!key) {
+        this.logger.info('Key not defined');
+        resolve();
+      }
       this.redisClient.get(key, async (err, reply) => {
         if (err) {
           reject(err);
