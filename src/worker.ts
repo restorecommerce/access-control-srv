@@ -215,9 +215,14 @@ export class Worker {
             }
             for (let token of updatedTokens) {
               if (!token.interactive) {
-                tokensEqual = _.find(redisTokens, token);
+                // compare only token scopes (since it now contains last_login as well)
+                for (let redisToken of redisTokens) {
+                  if (redisToken.token === token.token) {
+                    tokensEqual = _.isEqual(redisToken.scopes.sort(), token.scopes.sort());
+                  }
+                }
                 if (!tokensEqual) {
-                  logger.debug('Subject Token scope has been updated', token);
+                  that.logger.debug('Subject Token scope has been updated', token);
                   break;
                 }
               } else {
