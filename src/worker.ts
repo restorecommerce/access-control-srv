@@ -144,43 +144,41 @@ export class Worker {
         // Add subject_id to waiting list
         const hierarchical_scopes = msg.hierarchical_scopes;
         const tokenDate = msg.token;
-        if (!_.isEmpty(hierarchical_scopes)) {
-          // store HR scopes to cache with subjectID
-          const subID = msg.subject_id;
-          const token = tokenDate.split(':')[0];
-          let redisHRScopesKey;
-          let subject;
-          if (token) {
-            subject = await this.accessController.userService.findByToken({ token });
-            if (subject && subject.data) {
-              const tokens = subject.data.tokens;
-              const subID = subject.data.id;
-              const tokenFound = _.find(tokens, { token });
-              if (tokenFound && tokenFound.interactive) {
-                redisHRScopesKey = `cache:${subID}:hrScopes`;
-              } else if (tokenFound && !tokenFound.interactive) {
-                redisHRScopesKey = `cache:${subID}:${token}:hrScopes`;
-              }
+        // store HR scopes to cache with subjectID
+        const subID = msg.subject_id;
+        const token = tokenDate.split(':')[0];
+        let redisHRScopesKey;
+        let subject;
+        if (token) {
+          subject = await this.accessController.userService.findByToken({ token });
+          if (subject && subject.data) {
+            const tokens = subject.data.tokens;
+            const subID = subject.data.id;
+            const tokenFound = _.find(tokens, { token });
+            if (tokenFound && tokenFound.interactive) {
+              redisHRScopesKey = `cache:${subID}:hrScopes`;
+            } else if (tokenFound && !tokenFound.interactive) {
+              redisHRScopesKey = `cache:${subID}:${token}:hrScopes`;
+            }
 
-              let redisSubKey = `cache:${subID}:subject`;
-              let redisSub;
-              try {
-                redisSub = await that.accessController.getRedisKey(redisSubKey);
-                if (_.isEmpty(redisSub)) {
-                  that.accessController.setRedisKey(redisSubKey, JSON.stringify(subject.data));
-                }
-              } catch (err) {
-                this.logger.error('Error retrieving Subject from redis in acs-srv');
+            let redisSubKey = `cache:${subID}:subject`;
+            let redisSub;
+            try {
+              redisSub = await that.accessController.getRedisKey(redisSubKey);
+              if (_.isEmpty(redisSub)) {
+                that.accessController.setRedisKey(redisSubKey, JSON.stringify(subject.data));
               }
+            } catch (err) {
+              this.logger.error('Error retrieving Subject from redis in acs-srv');
             }
           }
+        }
 
-          try {
-            await that.accessController.setRedisKey(redisHRScopesKey, JSON.stringify(hierarchical_scopes));
-            that.logger.info(`HR scope saved successfully for Subject ${subID}`);
-          } catch (err) {
-            that.logger.info('Subject not persisted in redis for updating');
-          }
+        try {
+          await that.accessController.setRedisKey(redisHRScopesKey, JSON.stringify(hierarchical_scopes));
+          that.logger.info(`HR scope saved successfully for Subject ${subID}`);
+        } catch (err) {
+          that.logger.info('Subject not persisted in redis for updating');
         }
         if (that.accessController.waiting[tokenDate]) {
           // clear timeout and resolve

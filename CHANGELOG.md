@@ -1,3 +1,7 @@
+## 0.1.12 (December 15th, 2020)
+
+- fix to remove empty HR scope check (super_admin)
+
 ## 0.1.11 (December 10th, 2020)
 
 - fix to compare token scopes and not complete object
