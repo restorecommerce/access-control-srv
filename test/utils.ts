@@ -195,7 +195,7 @@ export function marshallRequest(request: core.Request): void {
 }
 
 export function populate(accessController: core.AccessController, filepath: string): core.AccessController {
-  const rawObject = yaml.safeLoad(fs.readFileSync(filepath));
+  const rawObject = yaml.load(fs.readFileSync(filepath));
   const policySets = rawObject.policy_sets;
 
   for (let policySetYaml of policySets) {

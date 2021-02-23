@@ -1,3 +1,8 @@
+## 0.1.13 (February 23rd, 2020)
+
+- updated deps, node and npm version
+- fix redis set for null check
+
 ## 0.1.12 (December 15th, 2020)
 
 - fix to remove empty HR scope check (super_admin)

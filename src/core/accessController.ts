@@ -387,7 +387,7 @@ export class AccessController {
   }
 
   async getRedisKey(key: string): Promise<any> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve: any, reject) => {
       if (!key) {
         this.logger.info('Key not defined');
         return resolve();
@@ -435,7 +435,11 @@ export class AccessController {
   }
 
   async setRedisKey(key: string, value: any): Promise<any> {
-    new Promise((resolve, reject) => {
+    if (!key || !value) {
+      this.logger.info(`Either key or value for redis set is not defined key: ${key} value: ${value}`);
+      return;
+    }
+    new Promise((resolve: any, reject) => {
       this.redisClient.set(key, value, (err, res) => {
         if (err) {
           this.logger.error('Error writing to Subject cache:', err);

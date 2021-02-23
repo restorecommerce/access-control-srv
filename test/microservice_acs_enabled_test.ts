@@ -87,7 +87,7 @@ async function setupService(): Promise<void> {
 
 async function load(policiesFile: string): Promise<void> {
   // load from fixtures
-  const yamlPolicies = yaml.safeLoad(fs.readFileSync(policiesFile));
+  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile));
   const marshalled = testUtils.marshallYamlPolicies(yamlPolicies);
 
   rules = marshalled.rules;
