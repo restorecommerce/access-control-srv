@@ -1,3 +1,7 @@
+## 0.1.14 (February 24th, 2020)
+
+- updated logger and service config
+
 ## 0.1.13 (February 23rd, 2020)
 
 - updated deps, node and npm version
