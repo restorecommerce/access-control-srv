@@ -1,8 +1,12 @@
-## 0.1.14 (February 24th, 2020)
+## 0.1.15 (March 11th, 2021)
+
+- updated dependencies
+
+## 0.1.14 (February 24th, 2021)
 
 - updated logger and service config
 
-## 0.1.13 (February 23rd, 2020)
+## 0.1.13 (February 23rd, 2021)
 
 - updated deps, node and npm version
 - fix redis set for null check
