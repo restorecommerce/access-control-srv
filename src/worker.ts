@@ -260,7 +260,7 @@ export class Worker {
                 type_url: 'payload',
                 value: eventPayload
               };
-              await commandTopic.emit('flushCacheCommand', eventPayload);
+              await commandTopic.emit('flushCacheCommand', eventObject);
               that.logger.info('ACS flush cache command event emitted to kafka topic successfully');
             }
           }
