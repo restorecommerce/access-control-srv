@@ -1,3 +1,9 @@
+## 0.1.16 (March 22nd, 2021)
+
+- emit flushCache command to flush acs cache when subject role associations are modified
+- migrate from redis to ioredis
+- update dependencies
+
 ## 0.1.15 (March 11th, 2021)
 
 - updated dependencies
