@@ -9,7 +9,7 @@ import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
 import { checkHierarchicalScope } from './hierarchicalScope';
 import { Logger } from 'winston';
-import { RedisClient, createClient } from 'redis';
+import * as Redis from 'ioredis';
 import { Topic } from '@restorecommerce/kafka-client';
 
 export class AccessController {
@@ -17,7 +17,7 @@ export class AccessController {
   combiningAlgorithms: Map<string, any>;
   urns: Map<string, string>;
   resourceAdapter: ResourceAdapter;
-  redisClient: RedisClient;
+  redisClient: Redis;
   userTopic: Topic;
   waiting: any[];
   cfg: any;
@@ -49,7 +49,7 @@ export class AccessController {
     this.cfg = cfg;
     const redisConfig = this.cfg.get('redis');
     redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
-    this.redisClient = createClient(redisConfig);
+    this.redisClient = new Redis(redisConfig);
     this.userTopic = userTopic;
     this.waiting = [];
     this.userService = userService;

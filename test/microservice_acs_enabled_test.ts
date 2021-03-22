@@ -10,6 +10,8 @@ import { Client } from '@restorecommerce/grpc-client';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import { updateConfig } from '@restorecommerce/acs-client';
+import { createMockServer } from 'grpc-mock';
+import { Topic, Events } from '@restorecommerce/kafka-client';
 
 let cfg: any;
 let logger;
@@ -18,11 +20,14 @@ let worker: Worker;
 let ruleService: any, policyService: any, policySetService: any;
 let accessControlService: any;
 let rules, policies, policySets;
+let mockServer: any;
+let userTopic: Topic;
 
 // Admin of mainOrg -> A -> B -> C
 let subject = {
   id: 'admin_user_id',
   scope: 'orgC',
+  token: 'admin_token',
   role_associations: [
     {
       role: 'admin-r-id',
@@ -69,6 +74,40 @@ let testRule = [{
   },
   effect: 'PERMIT'
 }];
+
+interface serverRule {
+  method: string,
+  input: any,
+  output: any
+}
+
+const user = {
+  id: subject.id,
+  tokens: [{ token: subject.token }],
+  role_associations: subject.role_associations
+};
+
+// Mock server for ids - findByToken
+const startGrpcMockServer = async (rules: serverRule[]) => {
+  // Create a mock ACS server to expose isAllowed and whatIsAllowed
+  mockServer = createMockServer({
+    protoPath: 'test/protos/io/restorecommerce/user.proto',
+    packageName: 'io.restorecommerce.user',
+    serviceName: 'Service',
+    options: {
+      keepCase: true
+    },
+    rules
+  });
+  mockServer.listen('0.0.0.0:50052');
+  logger.info('Identity Server started on port 50052');
+};
+
+const stopGrpcMockServer = async () => {
+  await mockServer.close(() => {
+    logger.info('Server closed successfully');
+  });
+};
 
 async function setupService(): Promise<void> {
   cfg = createServiceConfig(process.cwd() + '/test');
@@ -117,13 +156,42 @@ async function truncate(): Promise<void> {
   });
 }
 
+// mock to emit back hierarchicalScopesResponse
+const hrScopeReqListener = (msg) => {
+  const token = msg.token.split(':')[0];
+  if (token === 'admin_token') {
+    const hrScopeResponse = {
+      subject_id: 'admin_user_id',
+      token: 'admin_token',
+      hierarchical_scopes: subject.hierarchical_scopes
+    };
+    userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
+  } else if (token === 'user_token') {
+    const hrScopeResponse = {
+      subject_id: 'user_id',
+      token: 'user_token',
+      hierarchical_scopes: subject.hierarchical_scopes
+    };
+    userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
+  }
+}
+
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS Enabled', () => {
     before(async () => {
       await setupService();
       await load('./test/fixtures/default_policies.yml');
+      // Add a HR scopeReq listener and send back HR scope response
+      // to imitate mock from service which is responsible for creating HR scopes
+      const events = new Events(cfg.get('events:kafka'), logger);
+      await events.start();
+      userTopic = events.topic(cfg.get('events:kafka:topics:user:topic'));
+      userTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
     });
     after(async () => {
+      // stop mock ids-srv
+      stopGrpcMockServer();
+      await userTopic.removeAllListeners('hierarchicalScopesRequest');
       await truncate();
       await client.end();
       await worker.stop();
@@ -158,6 +226,8 @@ describe('testing microservice', () => {
       });
 
       it('should allow to create test rule with ACS enabled with valid scope in subject', async () => {
+        // start mock ids-srv needed for findByToken response and return subject
+        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         // enable authorization
         cfg.set('authorization:enabled', true);
         cfg.set('authorization:enforce', true);
@@ -177,6 +247,15 @@ describe('testing microservice', () => {
         // change subject to normal user
         subject.id = 'user_id';
         subject.role_associations[0].role = 'user-r-id';
+        subject.token = 'user_token';
+        const user = {
+          id: subject.id,
+          tokens: [{ token: 'user_token' }],
+          role_associations: subject.role_associations
+        };
+        stopGrpcMockServer();
+        // restart grpcMock with normal user id
+        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         const result = await ruleService.create({
           items: testRule,
           subject
@@ -192,6 +271,15 @@ describe('testing microservice', () => {
         // change subject to admin user
         subject.id = 'admin_user_id';
         subject.role_associations[0].role = 'admin-r-id';
+        subject.token = 'admin_token';
+        const user = {
+          id: subject.id,
+          tokens: [{ token: 'admin_token' }],
+          role_associations: subject.role_associations
+        };
+        stopGrpcMockServer();
+        // restart grpcMock with admin user id
+        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         testRule[0].name = 'modified test rule for test entitiy';
         const result = await ruleService.update({
           items: testRule,
@@ -202,9 +290,18 @@ describe('testing microservice', () => {
       });
 
       it('should not allow to update rule with invalid subject scope', async () => {
-        // change subject to user
+        // change subject to normal user
         subject.id = 'user_id';
         subject.role_associations[0].role = 'user-r-id';
+        subject.token = 'user_token';
+        const user = {
+          id: subject.id,
+          tokens: [{ token: 'user_token' }],
+          role_associations: subject.role_associations
+        };
+        stopGrpcMockServer();
+        // restart grpcMock with normal user id
+        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         testRule[0].name = 'new test rule for test entitiy';
         const result = await ruleService.update({
           items: testRule,
@@ -218,6 +315,16 @@ describe('testing microservice', () => {
         // change subject to admin user
         subject.id = 'admin_user_id';
         subject.role_associations[0].role = 'admin-r-id';
+        subject.token = 'admin_token';
+        const user = {
+          id: subject.id,
+          tokens: [{ token: 'admin_token' }],
+          role_associations: subject.role_associations
+        };
+        stopGrpcMockServer();
+        // restart grpcMock with admin user id
+        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
+
         testRule[0].name = 'upserted test rule for test entitiy';
         const result = await ruleService.upsert({
           items: testRule,
@@ -228,9 +335,19 @@ describe('testing microservice', () => {
       });
 
       it('should not allow to upsert rule with invalid subject scope', async () => {
-        // change subject to admin user
+        // change subject to normal user
         subject.id = 'user_id';
         subject.role_associations[0].role = 'user-r-id';
+
+        subject.token = 'user_token';
+        const user = {
+          id: subject.id,
+          tokens: [{ token: 'user_token' }],
+          role_associations: subject.role_associations
+        };
+        stopGrpcMockServer();
+        // restart grpcMock with normal user id
+        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         testRule[0].name = 'new test rule for test entitiy';
         const result = await ruleService.upsert({
           items: testRule,
@@ -256,6 +373,15 @@ describe('testing microservice', () => {
         // change subject to admin user
         subject.id = 'admin_user_id';
         subject.role_associations[0].role = 'admin-r-id';
+        subject.token = 'admin_token';
+        const user = {
+          id: subject.id,
+          tokens: [{ token: 'admin_token' }],
+          role_associations: subject.role_associations
+        };
+        stopGrpcMockServer();
+        // restart grpcMock with admin user id
+        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         const result = await ruleService.delete({
           ids: testRule[0].id,
           subject

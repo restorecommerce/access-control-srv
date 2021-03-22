@@ -75,6 +75,30 @@
         "whatIsAllowed": {}
       }
     },
+    "user": {
+      "transports": {
+        "grpc": {
+          "service": "io.restorecommerce.user.Service",
+          "protos": [
+            "io/restorecommerce/user.proto"
+          ],
+          "protoRoot": "node_modules/@restorecommerce/protos/",
+          "timeout": 3000
+        }
+      },
+      "loadbalancer": {
+        "name": "roundRobin"
+      },
+      "publisher": {
+        "name": "static",
+        "instances": [
+          "grpc://localhost:50052"
+        ]
+      },
+      "endpoints": {
+        "findByToken": {}
+      }
+    },
     "policy_set": {
       "transports": {
         "grpc": {
@@ -389,17 +413,17 @@
       },
       "hierarchicalScopesRequest": {
         "protos": [
-          "io/restorecommerce/user.proto"
+          "io/restorecommerce/auth.proto"
         ],
         "protoRoot": "node_modules/@restorecommerce/protos/",
-        "messageObject": "io.restorecommerce.user.HierarchicalScopesRequest"
+        "messageObject": "io.restorecommerce.auth.HierarchicalScopesRequest"
       },
       "hierarchicalScopesResponse": {
         "protos": [
-          "io/restorecommerce/user.proto"
+          "io/restorecommerce/auth.proto"
         ],
         "protoRoot": "node_modules/@restorecommerce/protos/",
-        "messageObject": "io.restorecommerce.user.HierarchicalScopesResponse"
+        "messageObject": "io.restorecommerce.auth.HierarchicalScopesResponse"
       },
       "topics": {
         "policy.resource": {

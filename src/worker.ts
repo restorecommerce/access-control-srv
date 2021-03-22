@@ -4,7 +4,7 @@ import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
 import { AccessControlService, AccessControlCommandInterface } from './accessControlService';
 import { ResourceManager } from './resourceManager';
-import { RedisClient, createClient } from 'redis';
+import * as Redis from 'ioredis';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base';
 
 import * as core from './core';
@@ -51,7 +51,7 @@ export class Worker {
   events: Events;
   commandInterface: AccessControlCommandInterface;
   accessController: core.AccessController;
-  redisClient: RedisClient;
+  redisClient: Redis;
   authZ: ACSAuthZ;
   async start(cfg?: any, logger?: any): Promise<any> {
     this.cfg = cfg || await chassis.config.get();
@@ -87,7 +87,7 @@ export class Worker {
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');
     redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
-    this.redisClient = createClient(redisConfig);
+    this.redisClient = new Redis(redisConfig);
 
     const userTopic = events.topic(kafkaConfig.topics['user'].topic);
     // instantiate IDS client
@@ -136,6 +136,7 @@ export class Worker {
     await accessControlService.loadPolicies();
 
     const that = this;
+    const commandTopic = events.topic(this.cfg.get('events:kafka:topics:command:topic'));
     const eventListener = async (msg: any,
       context: any, config: any, eventName: string): Promise<any> => {
       if (acsEvents.indexOf(eventName) > -1) {
@@ -199,10 +200,20 @@ export class Worker {
             const redisTokens = redisSubject.tokens;
             let roleAssocEqual;
             let tokensEqual;
-            for (let obj of updatedRoleAssocs) {
-              roleAssocEqual = _.find(redisRoleAssocs, obj);
-              if (!roleAssocEqual) {
-                that.logger.debug('Subject Role assocation has been updated', obj);
+            for (let userRoleAssoc of updatedRoleAssocs) {
+              let found = false;
+              for (let redisRoleAssoc of redisRoleAssocs) {
+                if (redisRoleAssoc.role === userRoleAssoc.role) {
+                  if (_.isEqual(userRoleAssoc.attributes, redisRoleAssoc.attributes)) {
+                    found = true;
+                    roleAssocEqual = true;
+                    break;
+                  }
+                }
+              }
+              if (!found) {
+                that.logger.debug('Subject Role assocation has been updated', { userRoleAssoc });
+                roleAssocEqual = false;
                 break;
               }
             }
@@ -230,6 +241,27 @@ export class Worker {
             if (!roleAssocEqual || !tokensEqual || (updatedRoleAssocs.length != redisRoleAssocs.length)) {
               that.logger.info('Evicting HR scope for Subject', { id: msg.id });
               await that.accessController.evictHRScopes(msg.id); // flush HR scopes
+              // TODO use tech user below once ACS check is implemented on chassis-srv for command-interface
+              // Flush ACS Cache via flushCache Command
+              const payload = {
+                payload: {
+                  data: {
+                    db_index: this.cfg.get('authorization:cach:db-index'),
+                    pattern: msg.id
+                  }
+                }
+              };
+              const eventObject = {
+                name: 'flush_cache',
+                payload: {}
+              };
+              const eventPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
+              eventObject.payload = {
+                type_url: 'payload',
+                value: eventPayload
+              };
+              await commandTopic.emit('flushCacheCommand', eventPayload);
+              that.logger.info('ACS flush cache command event emitted to kafka topic successfully');
             }
           }
         }
