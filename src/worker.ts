@@ -257,11 +257,9 @@ export class Worker {
               // TODO use tech user below once ACS check is implemented on chassis-srv for command-interface
               // Flush ACS Cache via flushCache Command
               const payload = {
-                payload: {
-                  data: {
-                    db_index: this.cfg.get('authorization:cach:db-index'),
-                    pattern: msg.id
-                  }
+                data: {
+                  db_index: that.cfg.get('authorization:cache:db-index'),
+                  pattern: msg.id
                 }
               };
               const eventObject = {
