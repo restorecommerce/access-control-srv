@@ -226,6 +226,11 @@ describe('testing microservice', () => {
       });
 
       it('should allow to create test rule with ACS enabled with valid scope in subject', async () => {
+        const user = {
+          id: 'admin_user_id',
+          tokens: [{ token: 'admin_token' }],
+          role_associations: subject.role_associations
+        };
         // start mock ids-srv needed for findByToken response and return subject
         startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         // enable authorization
