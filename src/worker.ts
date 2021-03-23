@@ -204,9 +204,22 @@ export class Worker {
               let found = false;
               for (let redisRoleAssoc of redisRoleAssocs) {
                 if (redisRoleAssoc.role === userRoleAssoc.role) {
-                  if (_.isEqual(userRoleAssoc.attributes, redisRoleAssoc.attributes)) {
+                  let i = 0;
+                  const attrLenght = userRoleAssoc.attributes.length;
+                  for (let redisAttribute of redisRoleAssoc.attributes) {
+                    for (let userAttribute of userRoleAssoc.attributes) {
+                      if (userAttribute.id === redisAttribute.id && userAttribute.value === redisAttribute.value) {
+                        i++;
+                      }
+                    }
+                  }
+                  if (attrLenght === i) {
                     found = true;
                     roleAssocEqual = true;
+                    break;
+                  } else {
+                    found = false;
+                    roleAssocEqual = false;
                     break;
                   }
                 }
