@@ -21,7 +21,8 @@ link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modu
 * link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[A detailed description]
 on how ABAC is implemented and URN references
 for `subject`, `resources` and `action` attributes.
-* Mechanism to calculate HieararchicalScopes for Subject using https://kafka.apache.org/[Kafka]
+* Mechanism to calculate HieararchicalScopes for Subject using https://kafka.apache.org/[Kafka], caching of subject and HieararchicalScopes and invalidating the cache
+* Invalidate https://github.com/restorecommerce/acs-client[acs-client] cache via `flushCacheCommand`
 
 [#configuration]
 == Configuration
@@ -177,7 +178,8 @@ a `io.restorecommerce.access_control.ReverseQuery` message.
 NOTE : For `IsAllowed` and `WhatIsAllowed` operations if `context` contains only the subject identifier, then the service will emit a message
 to link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L326[Kafka-topic] with event name `hierarchicalScopesRequest`
 and service resonsible for creating the HieararchicalScopes will consume this message and send back `hierarchicalScopesResponse` which is then saved
-to redis link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L11[subject] cache by this service. 
+to redis link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L11[subject] cache by this service.
+If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[role associations] are modified then this service invalidates both the subject cache and `acs-client` cache. 
 
 `io.restorecommerce.access_control.Request`
 
