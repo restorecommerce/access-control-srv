@@ -217,10 +217,6 @@ export class Worker {
                     found = true;
                     roleAssocEqual = true;
                     break;
-                  } else {
-                    found = false;
-                    roleAssocEqual = false;
-                    break;
                   }
                 }
               }
