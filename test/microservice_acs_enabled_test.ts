@@ -162,14 +162,14 @@ const hrScopeReqListener = (msg) => {
   if (token === 'admin_token') {
     const hrScopeResponse = {
       subject_id: 'admin_user_id',
-      token: 'admin_token',
+      token: msg.token,
       hierarchical_scopes: subject.hierarchical_scopes
     };
     userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
   } else if (token === 'user_token') {
     const hrScopeResponse = {
       subject_id: 'user_id',
-      token: 'user_token',
+      token: msg.token,
       hierarchical_scopes: subject.hierarchical_scopes
     };
     userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
