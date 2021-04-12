@@ -22,7 +22,7 @@ link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modu
 on how ABAC is implemented and URN references
 for `subject`, `resources` and `action` attributes.
 * Mechanism to calculate HieararchicalScopes for Subject using https://kafka.apache.org/[Kafka], caching of subject and HieararchicalScopes and invalidating the cache
-* Invalidate https://github.com/restorecommerce/acs-client[acs-client] cache via `flushCacheCommand`
+* Invalidate https://github.com/restorecommerce/acs-client#caching[acs-client] cache via `flushCacheCommand` event.
 
 [#configuration]
 == Configuration
@@ -267,6 +267,7 @@ List of events emitted by this microservice for below topics:
 |                                           | `healthCheckResponse` | system health check response
 |                                           | `versionResponse` | system version response
 |                                           | `configUpdateResponse` | configuration update response
+|                                           | `flushCacheCommand` | Command event to flush ACS Cache
 |                                           | `flushCacheResponse` | flush ACS Cache response
 |                                           | `setApiKeyResponse` | set API Key response
 | `io.restorecommerce.policy_sets.resource` | `policy_setCreated` | emitted when policy_set is created
@@ -293,7 +294,7 @@ This microservice consumes messages for the following events by topic:
 |                              | `resetCommand` | used for system reset
 |                              | `healthCheckCommand` | to get system health check
 |                              | `versionCommand` | to get system version
-|                              | `flushCacheCommand` | used to flush ACS Cache
+|                              | `flushCacheCommand` | flushes ACS Cache
 |                              | `configUpdateCommand` | used to update configurations
 |                              | `setApiKeyCommand` | used to set API key
 | `io.restorecommerce.user`    | `hierarchicalScopesResponse` | emitted when HierarchicalScope response is received
