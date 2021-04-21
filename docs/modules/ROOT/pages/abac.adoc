@@ -1,11 +1,13 @@
+[#abac]
 = ABAC Core for Restorecommerce
 
 http://en.wikipedia.org/wiki/Attribute_Based_Access_Control[Attribute based access control] with for Restorecommerce
 inspired by http://en.wikipedia.org/wiki/XACML[XACML].
 
+[#data_model]
 == Data Model / Message Structure
 
-=== Policy
+=== `Policy`
 
 A Policy consisting of rules.
 
@@ -17,10 +19,9 @@ A Policy consisting of rules.
 (- target)
 - rule                    Reference to 1..n rules
 - effect [permit, deny]
-
 ----
 
-=== PolicySet
+=== `PolicySet`
 
 A set of policies.
 
@@ -30,10 +31,9 @@ A set of policies.
 - description
 - combiningAlgorithm      See policy
 - policy                  Reference to 1..n policies
-
 ----
 
-=== Rule
+=== `Rule`
 
 Atomic element of the ABAC system.
 
@@ -53,21 +53,20 @@ Atomic element of the ABAC system.
       - value             ex: urn:restorecommerce:acs:names:action:create
 - condition               JavaScript Code, ex: subject.roles.includes('admin')
 - effect [permit, deny]
-
 ----
 
 === General
 
 The `subject`, `resource`, `action` properties are arrays and can contain 1..n elements.
 
-== API (Core Interface)
+[#abstract_api]
+== Abstract API
 
 There are two main operations exposed through the API:
 
 [source,ts]
 ----
 isAllowed(request: Request): Response
-
 ----
 
 This method is used to evaluate a request based on the active policies.
@@ -75,7 +74,6 @@ This method is used to evaluate a request based on the active policies.
 [source,ts]
 ----
 whatIsAllowed(request: Request): PolicySetList
-
 ----
 
 This method returns a set of policies which match the request's target for client-side evaluation.
@@ -86,7 +84,7 @@ client side how the resources would be filtered.
 _Note_: this feature does not return any rule based on policy evaluation through dynamic code execution (through the `condition` property)
 as demanding such evaluation would require a replication of this functionality at client-side.
 
-=== Request
+=== `Request`
 
 [source,yml]
 ----
@@ -120,52 +118,39 @@ as demanding such evaluation would require a replication of this functionality a
 - context
 ----
 
-=== Response
+=== `Response`
 
 [source,yml]
 ----
-- decision [PERMIT, DENY, NOT-APPLICABLE, INDETERMINATE]
-- obligation              TBD
+- decision: PERMIT | DENY | NOT-APPLICABLE | INDETERMINATE
+- obligation: [environment]
 ----
 
-=== PolicySetList
+=== `PolicySetList`
 
 [source,yml]
 ----
 - policy_sets List of applicable policy sets containing only the applicable policies and rules
 ----
 
-== URN Reference
+=== `environment`
 
-=== Restorecommerce defined
+An array of all environment properties along with their values (if applicable)
+that are spcified in the rules that have matched. For example:
 
-* `urn:restorecommerce:acs:*` ACS Related
-* `urn:restorecommerce:acs:model:*` Domain model related
-* `urn:restorecommerce:acs:names:*` Keywords for access control related concepts
-* `urn:restorecommerce:acs:names:role` Role as in RBAC
-* `urn:restorecommerce:acs:names:roleScopingEntity` Scopes a role by a given type
-* `urn:restorecommerce:acs:names:roleScopeInstance` Specify an actual instance of a scoping entity by its ID
-* `urn:restorecommerce:acs:names:hierarchicalRoleScoping` Specify if hierarchical role scope matching is done (if the property is not configured by default HR scoping is done)
-* `urn:restorecommerce:acs:names:ownerIndicatoryEntity` Specify the entity which indicates the owner of a resource
-* `urn:restorecommerce:acs:names:ownerInstance` Specify an actual instance of an owner entity
-* `urn:restorecommerce:acs:names:model:entity` An entity (type)
-* `urn:restorecommerce:acs:names:model:property` A property of an entity
-* `urn:restorecommerce:acs:names:operation` An operation (e. g. a mutation or query in a GraphQL API or a gRPC method)
-* `urn:restorecommerce:acs:names:action:read` Read access
-* `urn:restorecommerce:acs:names:action:modify` Modify (update) access
-* `urn:restorecommerce:acs:names:action:create` Create access
-* `urn:restorecommerce:acs:names:action:delete` Delete access
-* `urn:restorecommerce:acs:names:action:execute` Execute access
-* `urn:restorecommerce:acs:names:action:drop` Drop access
+[source,yml]
+----
+environment:
+  - id: urn:restorecommerce:acs:names:environment:autenticationMaxAge
+    value: 600
+----
 
-=== XACML
+==== `urn:restorecommerce:acs:names:environment:autenticationMaxAge`
 
-* `urn:oasis:names:tc:xacml:1.0:resource:resource-id` A resource ID which can uniquely identify an instance of a given entity type
-* ex: `urn:oasis:names:tc:xacml:1.0:subject:subject-id` An ID of a subject
-* `urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm` Diverse rule combining algorithms
-* `urn:oasis:names:tc:xacml:1.0:action:action-id` Denotes an action ID that in-turn defines an action performed on the given resource
+The property allows the rule author specify the maximum time in seconds since the last authentication of the subject has been performed. This rule requres the property `lastLogin` with an ISO data-time string as value to be present in the `context`.
 
-== Concepts
+[#advanced_concepts]
+== Advanced Concepts
 
 === Role Scoping
 
@@ -237,7 +222,7 @@ request:
               value: RandomUser
 ----
 
-Policies:
+Policy set:
 
 [source,yml]
 ----
@@ -277,7 +262,7 @@ There is one policy with one rule, which permits access by `Organization`-scoped
 Since the request's target matches all attributes from this rule a `PERMIT` effect is returned,
 which according to the policy's combining algorithm means access should be granted to the resource. If the value of `urn:restorecommerce:acs:names:hierarchicalRoleScoping` was set to 'false' in the Rule above then the subject would be denied access to resource since `Device` resource is owned by `OrgB` and the hierarchical scope matching would be skipped.
 
-===== `whatIsAllowed` - No Specific Resource or Specific Action is defined
+===== `whatIsAllowed` - No specific Resource or specific Action is defined
 
 The operation `whatIsAllowed` is used when there is not a specific target resource for a request, for example, when Subject aims to see as much resources as possible.
 This example illustrates permissible actions on two resource entities `Address` and `Country` for Subject `Alice` who has the role `admin` within the scoping entity
@@ -326,10 +311,8 @@ request:
 ----
 
 There are two policy sets, `Address` policy containing `PERMIT` rules for `create` and `read` action.
-`Conuntry` policy containing `PERMIT` rules for `modify` and `delete` action.
-Response containing list of applicable rules for above request.
-
-PolicySetList:
+`Country` policy containing `PERMIT` rules for `modify` and `delete` action.
+Here the matching response as `PolicySetList` containing list of applicable rules for above request:
 
 [source,yml]
 ----
@@ -384,45 +367,73 @@ policy_sets:
 
 ===== Operation based
 
-Policies:
+A rule using an operation attribute:
 
 [source,yml]
 ----
 ...
-      rules:
-        - name: Rule A
-          description: A simple rule targeting a high level operation in the GraphQL API
-          target:
-            resources:
-                - id: urn:restorecommerce:acs:names:operation
-                  value: mutation.orgDelete
-            action:
-                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
-                  value: urn:restorecommerce:acs:names:action:execute
-            subject:
-                - id: urn:restorecommerce:acs:names:role
-                  value: admin
-                - id: urn:restorecommerce:acs:names:roleScopingEntity
-                  value: urn:restorecommerce:model:organization.Organization
-          effect: PERMIT
+rules:
+  - name: Rule A
+    description: A simple rule targeting a high level operation in the GraphQL API
+    target:
+      resources:
+          - id: urn:restorecommerce:acs:names:operation
+            value: mutation.orgDelete
+      action:
+          - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+            value: urn:restorecommerce:acs:names:action:execute
+      subject:
+          - id: urn:restorecommerce:acs:names:role
+            value: admin
+          - id: urn:restorecommerce:acs:names:roleScopingEntity
+            value: urn:restorecommerce:model:organization.Organization
+    effect: PERMIT
 ----
 
 == Architecture Decisions
 
-* No internal attribute store such as Predix ACS.
-* Adapters to pull resource or subject attributes for example via GQL.
+* No internal attribute store, all context data to make decisions needs to be provided in the context.
 
 == Future Stuff
 
-=== Further Attributes describing a Subject
-
-* type [systemuser|]
-
-=== Further potential Attributes describing a Request (Environment)
+=== Further potential Environment Attributes
 
 * `geoLocation`
-* `dateTimeFron` / `dateTimeTo`
-* `connection`
-* `remoteIpv4Address`
-* `remoteIpv6Address`
+* `dateTimeFrom` / `dateTimeTo`
+* `remoteIpv4AddressRange`
+* `remoteIpv6AddressRange`
 * `callRate`
+
+[#urn_reference]
+== URN Reference
+
+The URNs enumerated here are understood and used by the ACS.
+
+=== Restorecommerce
+
+* `urn:restorecommerce:acs:*` ACS Related
+* `urn:restorecommerce:acs:model:*` Domain model identifiers
+* `urn:restorecommerce:acs:names:*` Keywords for access control related concepts
+* `urn:restorecommerce:acs:names:role` Role as in RBAC
+* `urn:restorecommerce:acs:names:roleScopingEntity` Scopes a role by a given type
+* `urn:restorecommerce:acs:names:roleScopeInstance` Specify an actual instance of a scoping entity by its ID
+* `urn:restorecommerce:acs:names:hierarchicalRoleScoping` Specify if hierarchical role scope matching is done (if the property is not configured by default HR scoping is done)
+* `urn:restorecommerce:acs:names:ownerIndicatoryEntity` Specify the entity which indicates the owner of a resource
+* `urn:restorecommerce:acs:names:ownerInstance` Specify an actual instance of an owner entity
+* `urn:restorecommerce:acs:names:model:entity` An entity (type)
+* `urn:restorecommerce:acs:names:model:property` A property of an entity
+* `urn:restorecommerce:acs:names:operation` An operation (e. g. a mutation or query in a GraphQL API or a gRPC method)
+* `urn:restorecommerce:acs:names:action:read` Read access
+* `urn:restorecommerce:acs:names:action:modify` Modify (update) access
+* `urn:restorecommerce:acs:names:action:create` Create access
+* `urn:restorecommerce:acs:names:action:delete` Delete access
+* `urn:restorecommerce:acs:names:action:execute` Execute access
+* `urn:restorecommerce:acs:names:action:drop` Drop access
+* `urn:restorecommerce:acs:names:environment:autenticationMaxAge` Maximum time in seconds since the last authentication of the subject has been performed.
+
+=== XACML
+
+* `urn:oasis:names:tc:xacml:1.0:resource:resource-id` A resource ID which can uniquely identify an instance of a given entity type
+* ex: `urn:oasis:names:tc:xacml:1.0:subject:subject-id` An ID of a subject
+* `urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm` Diverse rule combining algorithms
+* `urn:oasis:names:tc:xacml:1.0:action:action-id` Denotes an action ID that in-turn defines an action performed on the given resource

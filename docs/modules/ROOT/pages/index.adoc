@@ -13,16 +13,15 @@ the link:https://github.com/restorecommerce[Restorecommerce].
 * https://en.wikipedia.org/wiki/Attribute-based_access_control[Attribute-based access control]
 inspired by https://en.wikipedia.org/wiki/XACML[XACML].
 * Implementing the PAP (partially), PDP, PRP.
-* Supports arbitrary policies based on arbitrary attributes such as scoped roles as supported
+* Supports arbitrary policies based on arbitrary attributes such as scoped roles as supported.
 by the https://github.com/restorecommerce/identity-srv[Identity Service].
-* Control access to distributed resources centrally using
-link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[Rule, Policy and PolicySet].
-* Authorization policies can be updated at run time and affect all clients immediately.
-* link:https://github.com/restorecommerce/access-control-srv/blob/master/docs/modules/ROOT/pages/restorecommerce_ABAC.adoc[A detailed description]
-on how ABAC is implemented and URN references
-for `subject`, `resources` and `action` attributes.
-* Mechanism to calculate HieararchicalScopes for Subject using https://kafka.apache.org/[Kafka], caching of subject and HieararchicalScopes and invalidating the cache
-* Invalidate https://github.com/restorecommerce/acs-client#caching[acs-client] cache via `flushCacheCommand` event.
+* Control access to distributed resources centrally using.
+link:abac.adoc[Rule, Policy and PolicySet].
+* Authorization policies can be updated at run time.
+* Emits events to trigger cache invalidation of the https://github.com/restorecommerce/acs-client#caching[acs-client] via `flushCacheCommand` event.
+* Mechanism to calculate hierarchical scopes for subject using https://kafka.apache.org/[Kafka], caching of subject and hierarchical scopes and invalidating the cache.
+
+link:abac.adoc[A detailed description] on how ABAC is implemented in Restorecommerce.
 
 [#configuration]
 == Configuration
@@ -177,9 +176,9 @@ a `io.restorecommerce.access_control.ReverseQuery` message.
 
 NOTE : For `IsAllowed` and `WhatIsAllowed` operations if `context` contains only the subject identifier, then the service will emit a message
 to link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L326[Kafka-topic] with event name `hierarchicalScopesRequest`
-and service resonsible for creating the HieararchicalScopes will consume this message and send back `hierarchicalScopesResponse` which is then saved
+and service resonsible for creating the hierarchical scopes will consume this message and send back `hierarchicalScopesResponse` which is then saved
 to redis link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L11[subject] cache by this service.
-If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[role associations] are modified then this service invalidates both the subject cache and `acs-client` cache. 
+If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[role associations] are modified then this service invalidates both the subject cache and `acs-client` cache.
 
 `io.restorecommerce.access_control.Request`
 

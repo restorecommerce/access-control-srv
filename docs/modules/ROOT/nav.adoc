@@ -4,6 +4,13 @@
 // FEATURES
 * xref:index.adoc#features[Features]
 
+// ABAC
+* xref:abac.adoc#abac[ABAC Core for Restorecommerce]
+** xref:abac.adoc#data_model[Data Model / Message Structure]
+** xref:abac.adoc#abstract_api[Abstract API]
+** xref:abac.adoc#advanced_concepts[Advanced Concepts]
+** xref:abac.adoc#urn_reference[URN Reference]
+
 // CONFIGURATION
 * xref:index.adoc#configuration[Configuration]
 
