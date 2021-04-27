@@ -84,7 +84,9 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     const rules = new Map<string, core.Rule>();
     if (result && result.items) {
       _.forEach(result.items, (rule) => {
-        rules.set(rule.id, marshallResource(rule, 'rule'));
+        if (!_.isEmpty(rule) && rule.id) {
+          rules.set(rule.id, marshallResource(rule, 'rule'));
+        }
       });
     }
 
@@ -218,7 +220,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     }
     if (call.request.collection) {
       action = AuthZAction.DROP;
-      resources = [{collection: call.request.collection}];
+      resources = [{ collection: call.request.collection }];
     }
 
     let acsResponse: AccessResponse;
@@ -413,15 +415,21 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         if (!_.isEmpty(result.items[i].rules)) {
           policy.combinables = await this.ruleService.getRules(result.items[i].rules);
           if (policy.combinables.size != result.items[i].rules.length) {
-            for (let rule of result.items[i].rules) {
-              if (!policy.combinables.has(rule)) {
-                policy.combinables.set(rule, null);
+            for (let ruleID of result.items[i].rules) {
+              const ruleData = await this.ruleService.getRules([ruleID]);
+              if(ruleData.size === 0){
+                this.logger.info(`Invalid Rule ID ${ruleID} or data for Rule does not exist`);
+                continue;
+              }
+              if (!policy.combinables.has(ruleID) && ruleData.size === 1) {
+                policy.combinables.set(ruleID, null);
               }
             }
           }
         }
-
-        policies.set(policy.id, policy);
+        if (!_.isEmpty(policy) && policy.id) {
+          policies.set(policy.id, policy);
+        }
       }
     }
 
@@ -447,7 +455,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     }
     if (call.request.collection) {
       action = AuthZAction.DROP;
-      resources = [{collection: call.request.collection}];
+      resources = [{ collection: call.request.collection }];
     }
 
     let acsResponse: AccessResponse;
@@ -661,7 +669,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     }
     if (call.request.collection) {
       action = AuthZAction.DROP;
-      resources = [{collection: call.request.collection}];
+      resources = [{ collection: call.request.collection }];
     }
 
     let acsResponse: AccessResponse;

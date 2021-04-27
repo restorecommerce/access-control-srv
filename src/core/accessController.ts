@@ -99,7 +99,10 @@ export class AccessController {
 
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
-
+          if (!policy) {
+            this.logger.debug('Policy Object not set');
+            continue;
+          }
           const ruleEffects: EffectEvaluation[] = [];
           if ((!!policy.target && exactMatch && await this.targetMatches(policy.target, request))
             // regex match
@@ -116,6 +119,10 @@ export class AccessController {
 
             else {
               for (let [, rule] of policy.combinables) {
+                if (!rule) {
+                  this.logger.debug('Rule Object not set');
+                  continue;
+                }
                 let evaluation_cacheable = rule.evaluation_cacheable;
                 // if rule has not target it should be always applied inside the policy scope
                 this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
@@ -148,7 +155,6 @@ export class AccessController {
                     }
                   } catch (err) {
                     this.logger.error('Caught an exception while applying rule condition to request: ', err);
-                    // this.logger.verbose(err.stack);
                     return {  // if an exception is caught deny by default
                       decision: Decision.DENY,
                       obligation: '',
@@ -223,6 +229,10 @@ export class AccessController {
 
         for (let [, policy] of value.combinables) {
           let policyRQ: PolicyRQ;
+          if (!policy) {
+            this.logger.debug('Policy Object not set');
+            continue;
+          }
           if (_.isEmpty(policy.target)
             || (exactMatch && await this.targetMatches(policy.target, request))
             || (!exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', true))) {
@@ -232,6 +242,10 @@ export class AccessController {
             policyRQ.has_rules = (!!policy.combinables && policy.combinables.size > 0);
 
             for (let [, rule] of policy.combinables) {
+              if (!rule) {
+                this.logger.debug('Rule Object not set');
+                continue;
+              }
               let ruleRQ: RuleRQ;
               if (_.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
                 ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
