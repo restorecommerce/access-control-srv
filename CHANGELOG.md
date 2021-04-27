@@ -1,3 +1,8 @@
+## 0.1.18 (March 23rd, 2021)
+
+- fix not to load rules / policies that do not exist
+- improved logging
+
 ## 0.1.17 (March 23rd, 2021)
 
 - fix to compare attributes id and values
