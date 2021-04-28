@@ -452,6 +452,48 @@ describe('Testing access control core', () => {
 
       await requestAndValidate(ac, request, core.Decision.DENY);
     });
+    it('should PERMIT Execute action on executeTestMutation by an Admin', async () => {
+      request = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'Admin',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'mutation.executeTestMutation',
+        resourceID: 'TestMutate 1',
+        actionType: 'urn:restorecommerce:acs:names:action:execute',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      await requestAndValidate(ac, request, core.Decision.PERMIT);
+    });
+    it('should DENY Execute action on executeTestMutation by an Admin from another organization', async () => {
+      request = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org2',
+        resourceType: 'mutation.executeTestMutation',
+        resourceID: 'TestMutate 1',
+        actionType: 'urn:restorecommerce:acs:names:action:execute',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      await requestAndValidate(ac, request, core.Decision.DENY);
+    });
+    it('should DENY Execute action on executeTestMutation by a SimpleUser', async () => {
+      request = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'mutation.executeTestMutation',
+        resourceID: 'TestMutate 1',
+        actionType: 'urn:restorecommerce:acs:names:action:execute',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      await requestAndValidate(ac, request, core.Decision.DENY);
+    });
   });
   describe('testing rules with HR scopes disabled', () => {
     before(async () => {

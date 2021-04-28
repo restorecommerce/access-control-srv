@@ -464,7 +464,8 @@
         "ownerInstance": "urn:restorecommerce:acs:names:ownerInstance",
         "resourceID": "urn:oasis:names:tc:xacml:1.0:resource:resource-id",
         "entity": "urn:restorecommerce:acs:names:model:entity",
-        "role": "urn:restorecommerce:acs:names:role"
+        "role": "urn:restorecommerce:acs:names:role",
+        "operation": "urn:restorecommerce:acs:names:operation"
       },
       "combiningAlgorithms": [
         {

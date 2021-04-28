@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import * as traverse from 'traverse';
+import { Logger } from 'winston';
 
 import { Target, Request, Attribute, AccessController } from '.';
 import { Resource } from './interfaces';
@@ -18,7 +19,7 @@ const getAllValues = (obj: any, pushedValues: any): any => {
 };
 
 export const checkHierarchicalScope = async (ruleTarget: Target,
-  request: Request, urns: Map<string, string>, accessController: AccessController): Promise<boolean> => {
+  request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
   const scopedRoles = new Map<string, Map<string, string[]>>(); // <role, <scopingEntity, scopingInstances[]>>
   let role: string;
   const totalScopingEntities: string[] = [];
@@ -47,6 +48,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   }
 
   if (_.isEmpty(totalScopingEntities)) {
+    logger.debug('Scoping entity not found in rule subject hence hierarchical scope check not needed');
     return true; // no scoping entities specified in rule, request ignored
   }
 
@@ -61,6 +63,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   // iterating through all targeted resources and retrieve relevant owner instances
   for (let attribute of ruleTarget.resources) {
     if (attribute.id == urns.get('entity')) { // resource type found
+      logger.debug('Evaluating resource entity match');
       currentResourceEntity = attribute.value;
 
       let entitiesMatch = false;
@@ -94,6 +97,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
             const meta = ctxResource.meta;
 
             if (_.isEmpty(meta) || _.isEmpty(meta.owner)) {
+              logger.debug(`Owner information missing for hierarchical scope matching of entity ${attribute.value}, evaluation fails`);
               return false; // no ownership was passed, evaluation fails
             }
 
@@ -117,15 +121,59 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               }
             }
           } else {
+            logger.debug('Resource of targeted entity was not provided in context');
             return false; // resource of targeted entity was not provided in context
           }
           entitiesMatch = false;
+        }
+      }
+    } else if (attribute.id === urns.get('operation')) {
+      logger.debug('Evaluating resource operation match');
+      currentResourceEntity = attribute.value;
+      for (let reqAttribute of reqTarget.resources) {
+        // match Rule resource operation URN and operation name with request resource operation URN and operation name
+        if (reqAttribute.id === attribute.id && reqAttribute.value === attribute.value) {
+          if (ctxResources.length === 1) {
+            let meta;
+            if (ctxResources[0]?.instance) {
+              meta = ctxResources[0]?.instance?.meta;
+            } else if(ctxResources[0]?.meta) {
+              meta = ctxResources[0].meta;
+            }
+
+            if (_.isEmpty(meta) || _.isEmpty(meta.owner)) {
+              logger.debug(`Owner information missing for hierarchical scope matching of operation ${attribute.value}, evaluation fails`);
+              return false; // no ownership was passed, evaluation fails
+            }
+            let ownerEntity: string;
+            for (let owner of meta.owner) {
+              if (owner.id == urns.get('ownerEntity')) {
+                if (_.find(totalScopingEntities, e => e == owner.value)) {
+                  ownerEntity = owner.value;
+                }
+              } else if (owner.id == urns.get('ownerInstance') && !!ownerEntity) {
+                for (let [role, entities] of scopedRoles) {
+                  if (entities.has(ownerEntity)) {
+                    const instances = entities.get(ownerEntity);
+                    instances.push(owner.value);
+                    entities.set(ownerEntity, instances);
+                    scopedRoles.set(role, entities);
+                  }
+                }
+                ownerEntity = null;
+              }
+            }
+          } else {
+            logger.debug('Invalid resource passed', { resource: ctxResources });
+            return false;
+          }
         }
       }
     }
   }
 
   if (_.isNil(currentResourceEntity) || _.isEmpty(currentResourceEntity)) {
+    logger.debug('No Entity or operation name found');
     return false; // no entity found
   }
 
@@ -137,6 +185,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
 
   const roleAssociations = context.subject.role_associations;
   if (_.isEmpty(roleAssociations)) {
+    logger.debug('Role Associations not found');
     return false; // impossible to evaluate context
   }
   const treeNodes = new Map<string, Map<string, string[]>>(); // <role, <entity, hierarchicalTreeNodes>>
@@ -179,6 +228,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
     }
     else {
       if (i == roleAssociations.length - 1 && scopedRoles.size > 0 && treeNodes.size === 0) {
+        logger.debug('Subject does not have one of the required roles in its context');
         return false; // user does not have one of the required roles in its context
       }
     }

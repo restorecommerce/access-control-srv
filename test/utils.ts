@@ -40,20 +40,29 @@ export function buildRequest(opts: RequestOpts): core.Request {
     ]);
   }
 
-  resources = resources.concat([
-    {
-      id: 'urn:restorecommerce:acs:names:model:entity',
-      value: opts.resourceType
-    },
-    {
-      id: 'urn:restorecommerce:acs:names:model:property',
-      value: opts.resourceProperty
-    },
-    {
-      id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
-      value: opts.resourceID
-    },
-  ]);
+  if (opts.actionType === 'urn:restorecommerce:acs:names:action:execute') {
+    resources = resources.concat([
+      {
+        id: 'urn:restorecommerce:acs:names:operation',
+        value: opts.resourceType
+      }
+    ]);
+  } else {
+    resources = resources.concat([
+      {
+        id: 'urn:restorecommerce:acs:names:model:entity',
+        value: opts.resourceType
+      },
+      {
+        id: 'urn:restorecommerce:acs:names:model:property',
+        value: opts.resourceProperty
+      },
+      {
+        id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
+        value: opts.resourceID
+      },
+    ]);
+  }
 
   action.push({
     id: 'urn:oasis:names:tc:xacml:1.0:action:action-id',
@@ -72,7 +81,7 @@ export function buildRequest(opts: RequestOpts): core.Request {
           id: opts.resourceID,
           meta: {
             created: Date.now(), modified: Date.now(),
-            owner: (opts.ownerIndicatoryEntity && opts.ownerInstance ) ? [
+            owner: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
               {
                 id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
                 value: opts.ownerIndicatoryEntity

@@ -45,3 +45,19 @@
             name: Fallback rule
             description: Always deny
             effect: DENY
+          - id: ruleAA4
+            name: Rule AA4
+            descripton: A rule targeting a 'execute' action by a Admin
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: Admin
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:operation
+                  value: mutation.executeTestMutation
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:execute
+            effect: PERMIT

@@ -417,8 +417,8 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
           if (policy.combinables.size != result.items[i].rules.length) {
             for (let ruleID of result.items[i].rules) {
               const ruleData = await this.ruleService.getRules([ruleID]);
-              if(ruleData.size === 0){
-                this.logger.info(`Invalid Rule ID ${ruleID} or data for Rule does not exist`);
+              if (ruleData.size === 0) {
+                this.logger.info(`No rules were found for rule identifier ${ruleID}`);
                 continue;
               }
               if (!policy.combinables.has(ruleID) && ruleData.size === 1) {
@@ -541,6 +541,8 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       _.forEach(item.policies, (policyID) => {
         if (policies.has(policyID)) {
           policySet.combinables.set(policyID, policies.get(policyID));
+        } else {
+          this.logger.info(`No policies were found for policy identifier ${policyID}`);
         }
       });
 

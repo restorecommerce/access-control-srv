@@ -131,7 +131,7 @@ export class AccessController {
                 if (matches) {
                   this.logger.verbose(`Checking rule ${rule.name}`);
                   if (matches && rule.target) {
-                    matches = await checkHierarchicalScope(rule.target, request, this.urns, this);
+                    matches = await checkHierarchicalScope(rule.target, request, this.urns, this, this.logger);
                   }
 
                   try {
