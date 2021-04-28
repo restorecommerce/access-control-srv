@@ -1,4 +1,9 @@
-## 0.1.18 (March 23rd, 2021)
+## 0.1.19 (April 28th, 2021)
+
+- extend HR scope matching to check for operation name
+- improved logging
+
+## 0.1.18 (April 27th, 2021)
 
 - fix not to load rules / policies that do not exist
 - improved logging
