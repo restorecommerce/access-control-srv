@@ -2,13 +2,13 @@ import * as _ from 'lodash';
 import * as chassis from '@restorecommerce/chassis-srv';
 import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
-import { AccessControlService, AccessControlCommandInterface } from './accessControlService';
+import { AccessControlCommandInterface, AccessControlService } from './accessControlService';
 import { ResourceManager } from './resourceManager';
 import * as Redis from 'ioredis';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base';
 
 import * as core from './core';
-import { initAuthZ, ACSAuthZ, initializeCache } from '@restorecommerce/acs-client';
+import { ACSAuthZ, initAuthZ, initializeCache } from '@restorecommerce/acs-client';
 import { Client } from '@restorecommerce/grpc-client';
 
 const capitalized = (collectionName: string): string => {
@@ -89,7 +89,7 @@ export class Worker {
     redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
     this.redisClient = new Redis(redisConfig);
 
-    const userTopic = events.topic(kafkaConfig.topics['user'].topic);
+    const userTopic = await events.topic(kafkaConfig.topics['user'].topic);
     // instantiate IDS client
     let userService;
     const grpcIDSConfig = this.cfg.get('client:user');
@@ -105,10 +105,10 @@ export class Worker {
     // init ACS cache
     initializeCache();
     // init AuthZ
-    let authZ = await initAuthZ(this.cfg) as ACSAuthZ;
-    this.authZ = authZ;
+    this.authZ = await initAuthZ(this.cfg) as ACSAuthZ;
     const resourceManager = new ResourceManager(this.cfg, this.logger, events, db,
       this.accessController, this.redisClient, this.authZ);
+    await resourceManager.setup();
 
     await server.bind('io-restorecommerce-policy-set-srv', resourceManager.getResourceService('policy_set'));
     // policy resource
@@ -136,7 +136,7 @@ export class Worker {
     await accessControlService.loadPolicies();
 
     const that = this;
-    const commandTopic = events.topic(this.cfg.get('events:kafka:topics:command:topic'));
+    const commandTopic = await events.topic(this.cfg.get('events:kafka:topics:command:topic'));
     const eventListener = async (msg: any,
       context: any, config: any, eventName: string): Promise<any> => {
       if (acsEvents.indexOf(eventName) > -1) {
@@ -279,7 +279,7 @@ export class Worker {
 
     for (let topicLabel in kafkaConfig.topics) {
       const topicCfg = kafkaConfig.topics[topicLabel];
-      const topic = events.topic(topicCfg.topic);
+      const topic = await events.topic(topicCfg.topic);
 
       if (topicCfg.events) {
         for (let eventName of topicCfg.events) {

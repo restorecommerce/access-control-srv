@@ -353,8 +353,10 @@
     "kafka": {
       "provider": "kafka",
       "groupId": "access-control-srv",
-      "clientId": "access-control-srv",
-      "kafkaHost": "localhost:29092",
+      "kafka": {
+        "clientId": "access-control-srv",
+        "brokers": ["localhost:29092"]
+      },
       "healthCheckCommand": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"
@@ -508,7 +510,7 @@
   "logger": {
     "console": {
       "handleExceptions": false,
-      "level": "crit",
+      "level": "info",
       "colorize": true,
       "prettyPrint": true
     }

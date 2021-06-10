@@ -1,6 +1,5 @@
-import * as mocha from 'mocha';
 import * as should from 'should';
-import { Worker } from '../lib/worker';
+import { Worker } from '../src/worker';
 import * as testUtils from './utils';
 
 import { createServiceConfig } from '@restorecommerce/service-config';
@@ -185,7 +184,7 @@ describe('testing microservice', () => {
       // to imitate mock from service which is responsible for creating HR scopes
       const events = new Events(cfg.get('events:kafka'), logger);
       await events.start();
-      userTopic = events.topic(cfg.get('events:kafka:topics:user:topic'));
+      userTopic = await events.topic(cfg.get('events:kafka:topics:user:topic'));
       userTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
     });
     after(async () => {
@@ -232,7 +231,8 @@ describe('testing microservice', () => {
           role_associations: subject.role_associations
         };
         // start mock ids-srv needed for findByToken response and return subject
-        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
+        await startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
+        await new Promise(r => setTimeout(r, 1000));
         // enable authorization
         cfg.set('authorization:enabled', true);
         cfg.set('authorization:enforce', true);

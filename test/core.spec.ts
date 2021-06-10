@@ -2,7 +2,7 @@ import * as mocha from 'mocha';
 import * as nock from 'nock';
 import * as should from 'should';
 
-import * as core from '../lib/core';
+import * as core from '../src/core';
 import * as testUtils from './utils';
 
 import { createServiceConfig } from '@restorecommerce/service-config';
@@ -605,7 +605,7 @@ async function prepare(filepath: string): Promise<void> {
   const kafkaConfig = cfg.get('events:kafka');
   const events = new Events(kafkaConfig, logger); // Kafka
   await events.start();
-  const userTopic = events.topic(kafkaConfig.topics['user'].topic);
+  const userTopic = await events.topic(kafkaConfig.topics['user'].topic);
   let userService;
   const grpcIDSConfig = cfg.get('client:user');
   if (grpcIDSConfig) {

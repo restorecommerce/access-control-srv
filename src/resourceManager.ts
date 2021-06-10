@@ -737,19 +737,34 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 }
 
 export class ResourceManager {
+
+  cfg: any;
+  logger: any;
+  events: any;
+  db: any;
+  redisClient: any;
+  authZ: any;
+
   constructor(cfg: any, logger: any, events: Events, db: any,
     accessController: core.AccessController, redisClient: RedisClient, authZ: ACSAuthZ) {
-
-    const kafkaCfg = cfg.get('events:kafka');
-    const rulesTopic = events.topic(kafkaCfg.topics['rule.resource'].topic);
-    const policyTopic = events.topic(kafkaCfg.topics['policy.resource'].topic);
-    const policySetTopic = events.topic(kafkaCfg.topics['policy_set.resource'].topic);
-
-    policySetService = new PolicySetService(logger, db, policySetTopic, cfg, redisClient, authZ);
-    policyService = new PolicyService(logger, db, policyTopic, rulesTopic, cfg, redisClient, authZ);
-    ruleService = new RuleService(logger, rulesTopic, db, cfg, redisClient, authZ);
-
     _accessController = accessController;
+    this.cfg = cfg;
+    this.logger = logger;
+    this.events = events;
+    this.db = db;
+    this.redisClient = redisClient;
+    this.authZ = authZ;
+  }
+
+  async setup() {
+    const kafkaCfg = this.cfg.get('events:kafka');
+    const rulesTopic = await this.events.topic(kafkaCfg.topics['rule.resource'].topic);
+    const policyTopic = await this.events.topic(kafkaCfg.topics['policy.resource'].topic);
+    const policySetTopic = await this.events.topic(kafkaCfg.topics['policy_set.resource'].topic);
+
+    policySetService = new PolicySetService(this.logger, this.db, policySetTopic, this.cfg, this.redisClient, this.authZ);
+    policyService = new PolicyService(this.logger, this.db, policyTopic, rulesTopic, this.cfg, this.redisClient, this.authZ);
+    ruleService = new RuleService(this.logger, rulesTopic, this.db, this.cfg, this.redisClient, this.authZ);
   }
 
   getResourceService(resource: string): IAccessControlResourceService<any> {
