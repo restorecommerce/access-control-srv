@@ -173,7 +173,7 @@ const hrScopeReqListener = (msg) => {
     };
     userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
   }
-}
+};
 
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS Enabled', () => {
@@ -182,7 +182,14 @@ describe('testing microservice', () => {
       await load('./test/fixtures/default_policies.yml');
       // Add a HR scopeReq listener and send back HR scope response
       // to imitate mock from service which is responsible for creating HR scopes
-      const events = new Events(cfg.get('events:kafka'), logger);
+      // const events = new Events(cfg.get('events:kafka'), logger);
+      const events = new Events({
+        ...cfg.get('events:kafka'),
+        groupId: 'restore-access-control-srv-test-runner',
+        kafka: {
+          ...cfg.get('events:kafka:kafka'),
+        }
+      }, logger);
       await events.start();
       userTopic = await events.topic(cfg.get('events:kafka:topics:user:topic'));
       userTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
