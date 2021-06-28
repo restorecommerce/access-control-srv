@@ -1,3 +1,8 @@
+## 0.1.20 (June 28th, 2021)
+
+- updated node version to 16.3
+- updated logger and protos
+
 ## 0.1.19 (April 28th, 2021)
 
 - extend HR scope matching to check for operation name
