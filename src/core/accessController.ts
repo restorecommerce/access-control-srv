@@ -320,7 +320,7 @@ export class AccessController {
 
                 if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
                   const reExp = new RegExp(entityRegexValue);
-                  if (reqAttribute.value.match(reExp)) {
+                  if (requestEntityValue.match(reExp)) {
                     return true;
                   }
                 }
@@ -383,7 +383,7 @@ export class AccessController {
 
           if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
             const reExp = new RegExp(entityRegexValue);
-            if (requestAttribute.value.match(reExp)) {
+            if (requestEntityValue.match(reExp)) {
               return true;
             }
           }
