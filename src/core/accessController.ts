@@ -11,6 +11,7 @@ import { checkHierarchicalScope } from './hierarchicalScope';
 import { Logger } from 'winston';
 import * as Redis from 'ioredis';
 import { Topic } from '@restorecommerce/kafka-client';
+import { verifyACLList } from './verifyACL';
 
 export class AccessController {
   policySets: Map<string, PolicySet>;
@@ -162,6 +163,11 @@ export class AccessController {
                     };
                   }
 
+                  // check if request has an ACL property set, if so verify it with the current rule target
+                  if (matches) {
+                    matches = await verifyACLList(rule.target, request, this.urns, this, this.logger);
+                  }
+
                   if (matches) {
                     ruleEffects.push({ effect: rule.effect, evaluation_cacheable });
                   }
@@ -308,6 +314,12 @@ export class AccessController {
                 }
                 // request entity
                 let reqValue = reqAttribute.value;
+                const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
+                const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
+                // verify namespace before entity name
+                if (reqAttributeNS != ruleAttributeNS) {
+                  return false;
+                }
                 let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
                 let reqNSEntityArray = reqPattern.split('.');
                 // firstElement could be either entity or namespace
@@ -371,6 +383,12 @@ export class AccessController {
 
           // request entity
           let reqValue = requestAttribute.value;
+          const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
+          const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
+          // verify namespace before entity name
+          if (reqAttributeNS != ruleAttributeNS) {
+            return false;
+          }
           let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
           let reqNSEntityArray = reqPattern.split('.');
           // firstElement could be either entity or namespace

@@ -77,6 +77,13 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
           // let regexValue = pattern.split('.')[0];
           // get Entity name last element
           let regexValue = pattern.split(/[.]+/).pop();
+          const reqValue = reqAttribute.value;
+          const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
+          const ruleAttributeNS = currentResourceEntity.substring(0, currentResourceEntity.lastIndexOf(':'));
+          // verify namespace before entity name
+          if (reqAttributeNS != ruleAttributeNS) {
+            return false;
+          }
           const reExp = new RegExp(regexValue);
           if (reqAttribute.value.match(reExp)) {
             entitiesMatch = true;
