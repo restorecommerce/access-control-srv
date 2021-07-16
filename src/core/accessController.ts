@@ -164,7 +164,7 @@ export class AccessController {
                   }
 
                   // check if request has an ACL property set, if so verify it with the current rule target
-                  if (matches) {
+                  if (matches && rule.target) {
                     matches = await verifyACLList(rule.target, request, this.urns, this, this.logger);
                   }
 
@@ -254,8 +254,10 @@ export class AccessController {
               }
               let ruleRQ: RuleRQ;
               if (_.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
-                ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
-                policyRQ.rules.push(ruleRQ);
+                if (verifyACLList(rule.target, request, this.urns, this, this.logger)) {
+                  ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
+                  policyRQ.rules.push(ruleRQ);
+                }
               }
             }
             if (!!policyRQ.effect || (!policyRQ.effect && !_.isEmpty(policyRQ.rules))) {

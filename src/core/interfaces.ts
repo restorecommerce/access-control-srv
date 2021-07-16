@@ -115,7 +115,7 @@ export interface AttributeObj {
 export interface ResourceMeta {
   created: number;
   modified: number;
-  acl: AttributeObj[];
+  acl?: AttributeObj[];
   owner: ResourceOwnerAttributes[];
 }
 

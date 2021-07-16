@@ -62,10 +62,9 @@
   "scripts": {
     "start": "npm run createtopics && node lib/start.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch './src/**/*.ts' --exec 'ts-node' src/start.ts",
-    "pretest": "npm run build && npm run tsctests && npm run createtopics && npm run lint",
-    "test": "cross-env NODE_ENV=test nyc npm run mocha",
+    "test": "npm run lint && cross-env NODE_ENV=test nyc npm run mocha",
     "lint": "eslint src --ext .ts",
-    "mocha": "cross-env NODE_ENV=test mocha -R spec --timeout 60000 test/*_test.js --stack-trace --exit",
+    "mocha": "cross-env NODE_ENV=test mocha --full-trace --exit --timeout 30000",
     "mocha-debug": "mocha -R spec test/*_test.js --inspect-brk",
     "test-core": "cross-env NODE_ENV=test npm run lint && npm run mocha-core",
     "lcov-report": "nyc report --reporter=lcov",
