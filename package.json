@@ -62,7 +62,7 @@
   "scripts": {
     "start": "npm run createtopics && node lib/start.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch './src/**/*.ts' --exec 'ts-node' src/start.ts",
-    "test": "npm run lint && cross-env NODE_ENV=test nyc npm run mocha",
+    "test": "npm run build && npm run lint && cross-env NODE_ENV=test nyc npm run mocha",
     "lint": "eslint src --ext .ts",
     "mocha": "cross-env NODE_ENV=test mocha --full-trace --exit --timeout 30000",
     "mocha-debug": "mocha -R spec test/*_test.js --inspect-brk",
