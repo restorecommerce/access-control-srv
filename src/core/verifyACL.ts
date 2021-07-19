@@ -63,8 +63,14 @@ export const verifyACLList = async (ruleTarget: Target,
             for (let attribute of aclObj.attribute) {
               if (attribute.id === urns.get('aclInstance')) {
                 targetScopeEntInstances.get(scopingEntity).push(attribute.value);
+              } else {
+                logger.info('Missing ACL instance value');
+                return false;
               }
             }
+          } else {
+            logger.info('Missing ACL IndicatoryEntity');
+            return false;
           }
         }
       }

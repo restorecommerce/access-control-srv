@@ -69,6 +69,25 @@ export function buildRequest(opts: RequestOpts): core.Request {
     value: opts.actionType
   });
 
+  let acl = [];
+  if (opts.aclIndicatoryEntity && opts.aclInstances) {
+    let aclInstances = [];
+    opts.aclInstances.forEach(aclInstance => {
+      aclInstances.push({
+        id: "urn:restorecommerce:acs:names:aclInstance",
+        value: aclInstance
+      })
+    });
+    acl = [
+      {
+        attribute: {
+          id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
+          value: opts.aclIndicatoryEntity,
+          attribute: aclInstances
+        }
+      }];
+  }
+
   return {
     target: {
       subject,
@@ -81,6 +100,7 @@ export function buildRequest(opts: RequestOpts): core.Request {
           id: opts.resourceID,
           meta: {
             created: Date.now(), modified: Date.now(),
+            acl,
             owner: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
               {
                 id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
@@ -113,6 +133,7 @@ export function buildRequest(opts: RequestOpts): core.Request {
         hierarchical_scopes: opts.roleScopingInstance && opts.roleScopingEntity ? [
           {
             id: 'SuperOrg1',
+            role: opts.subjectRole,
             children: [
               {
                 id: 'Org1',
@@ -141,7 +162,7 @@ export function marshallYamlPolicies(yamlPolicies: any): any {
   const rules = [];
 
   for (let policySet of yamlPolicies.policy_sets) {
-    const policySetObj = _.pick<any>(policySet, ['id', 'description', 'target', 'combining_algorithm']);
+    const policySetObj = _.pick<any>(policySet, ['id', 'name', 'description', 'target', 'combining_algorithm']);
     policySetObj.policies = policySet.policies ? policySet.policies.map((p) => { return p.id; }) : [];
     _.set(policySetObj, 'meta', {
       owner: [],
@@ -150,7 +171,7 @@ export function marshallYamlPolicies(yamlPolicies: any): any {
     policySets.push(policySetObj);
     for (let policy of policySet.policies) {
       const ruleIDs = policy.rules ? policy.rules.map((p) => { return p.id; }) : [];
-      const obj = _.pick<any>(policy, ['id', 'description', 'target', 'combining_algorithm', 'effect']);
+      const obj = _.pick<any>(policy, ['id', 'name', 'description', 'target', 'combining_algorithm', 'effect']);
       obj.rules = ruleIDs;
       _.set(obj, 'rules', ruleIDs);
       _.set(obj, 'meta', {
@@ -164,7 +185,7 @@ export function marshallYamlPolicies(yamlPolicies: any): any {
           modified_by: ''
         };
         rules.push(
-          _.pick(rule, ['id', 'description', 'condition', 'context_query', 'target', 'effect', 'meta'])
+          _.pick(rule, ['id', 'name', 'description', 'condition', 'context_query', 'target', 'effect', 'meta'])
         );
       }
     }
@@ -188,6 +209,8 @@ export interface RequestOpts {
   resourceType: string;
   ownerIndicatoryEntity?: string;
   ownerInstance?: string;
+  aclIndicatoryEntity?: string;
+  aclInstances?: string[];
 }
 
 export function marshallProtobufAny(object: any): any {

@@ -100,6 +100,7 @@ export interface RoleAssociations {
 export interface HierarchicalScope {
   id: string;
   children?: HierarchicalScope[];
+  role?: string;
 }
 
 export interface Resource {
