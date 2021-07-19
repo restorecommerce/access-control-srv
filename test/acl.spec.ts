@@ -47,7 +47,6 @@ describe('testing ACL for microservice', () => {
         await truncate();
       });
       it('should PERMIT creating bucket resource with valid ACL instances', async () => {
-
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'Admin',
@@ -62,7 +61,6 @@ describe('testing ACL for microservice', () => {
           aclInstances: ['Org1', 'Org2', 'Org3']
         });
         testUtils.marshallRequest(accessRequest);
-
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.data);
@@ -70,8 +68,51 @@ describe('testing ACL for microservice', () => {
         result.data.decision.should.equal(core.Decision.PERMIT);
       });
 
-      it('should DENY creating bucket resource with Invalid ACL instances', async () => {
+      it('should PERMIT modifying bucket resource with reduced valid ACL instances', async () => {
+        const accessRequest = testUtils.buildRequest({
+          subjectID: 'Alice',
+          subjectRole: 'Admin',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'SuperOrg1',
+          resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
+          resourceID: 'test',
+          actionType: 'urn:restorecommerce:acs:names:action:modify',
+          ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          ownerInstance: 'SuperOrg1',
+          aclIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          aclInstances: ['Org1']
+        });
+        testUtils.marshallRequest(accessRequest);
+        const result = await accessControlService.isAllowed(accessRequest);
+        should.exist(result);
+        should.exist(result.data);
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.PERMIT);
+      });
 
+      it('should DENY modifying bucket resource with invalid ACL instances', async () => {
+        const accessRequest = testUtils.buildRequest({
+          subjectID: 'Alice',
+          subjectRole: 'Admin',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'SuperOrg1',
+          resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
+          resourceID: 'test',
+          actionType: 'urn:restorecommerce:acs:names:action:modify',
+          ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          ownerInstance: 'SuperOrg1',
+          aclIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          aclInstances: ['Org1', 'Org4'] // Org4 is invalid as its not present in user HR
+        });
+        testUtils.marshallRequest(accessRequest);
+        const result = await accessControlService.isAllowed(accessRequest);
+        should.exist(result);
+        should.exist(result.data);
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.DENY);
+      });
+
+      it('should DENY creating bucket resource with Invalid ACL instances', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'Admin',
@@ -86,7 +127,6 @@ describe('testing ACL for microservice', () => {
           aclInstances: ['Org1', 'Org4'] // Org4 is invalid as its not present in user HR
         });
         testUtils.marshallRequest(accessRequest);
-
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.data);
@@ -94,6 +134,73 @@ describe('testing ACL for microservice', () => {
         result.data.decision.should.equal(core.Decision.DENY);
       });
 
+      it('should PERMIT creating bucket resource with SubjectID ACL instances', async () => {
+        const accessRequest = testUtils.buildRequest({
+          subjectID: 'Alice',
+          subjectRole: 'Admin',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'SuperOrg1',
+          resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
+          resourceID: 'test',
+          actionType: 'urn:restorecommerce:acs:names:action:create',
+          ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          ownerInstance: 'SuperOrg1',
+          aclIndicatoryEntity: 'urn:restorecommerce:acs:model:user.User',
+          aclInstances: ['SubjectID1', 'SubjectID2'] // subjectIDs are currently not validted and Permit
+        });
+        testUtils.marshallRequest(accessRequest);
+        const result = await accessControlService.isAllowed(accessRequest);
+        should.exist(result);
+        should.exist(result.data);
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.PERMIT);
+      });
+
+      it('should PERMIT creating bucket resource with SubjectID ACL instances and valid Org Instances', async () => {
+        const accessRequest = testUtils.buildRequest({
+          subjectID: 'Alice',
+          subjectRole: 'Admin',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'SuperOrg1',
+          resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
+          resourceID: 'test',
+          actionType: 'urn:restorecommerce:acs:names:action:create',
+          ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          ownerInstance: 'SuperOrg1',
+          multipleAclIndicatoryEntity: [ 'urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
+          orgInstances: ['Org1', 'Org2', 'Org3'],
+          subjectInstances: ['SubjectID1', 'SubjectID2']
+        });
+        testUtils.marshallRequest(accessRequest);
+        const result = await accessControlService.isAllowed(accessRequest);
+        should.exist(result);
+        should.exist(result.data);
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.PERMIT);
+      });
+
+      it('should DENY creating bucket resource with SubjectID ACL instances and Invalid Org Instances', async () => {
+        const accessRequest = testUtils.buildRequest({
+          subjectID: 'Alice',
+          subjectRole: 'Admin',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'SuperOrg1',
+          resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
+          resourceID: 'test',
+          actionType: 'urn:restorecommerce:acs:names:action:create',
+          ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          ownerInstance: 'SuperOrg1',
+          multipleAclIndicatoryEntity: [ 'urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
+          orgInstances: ['Org1', 'Org4'], // Org4 is invalid as its not present in user HR
+          subjectInstances: ['SubjectID1', 'SubjectID2']
+        });
+        testUtils.marshallRequest(accessRequest);
+        const result = await accessControlService.isAllowed(accessRequest);
+        should.exist(result);
+        should.exist(result.data);
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.DENY);
+      });
      
     });
     // describe('testing whatIsAllowed', () => {

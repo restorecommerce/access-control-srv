@@ -117,6 +117,7 @@ export const verifyACLList = async (ruleTarget: Target,
   for (let scopingEntity of targetScopingEntities) {
     // do not verify the ACL check for subject identifiers
     if (scopingEntity === urns.get('user')) {
+      logger.info(`ACL indicatory entity is Subject ${urns.get('user')} and hence no verification is needed`);
       continue;
     }
     let targetInstances = targetScopeEntInstances.get(scopingEntity);
@@ -131,10 +132,11 @@ export const verifyACLList = async (ruleTarget: Target,
     // if action is create / modify then only verify the HR scopes (if not direct match should be done)
     const actionObj = reqTarget.action;
     if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
-      actionObj[0].value === urns.get('create')) {
+      (actionObj[0].value === urns.get('create') || actionObj[0].value === urns.get('modify'))) {
       const hierarchical_scopes = context.subject.hierarchical_scopes;
       let validTargetInstances = true;
-      traverse(hierarchical_scopes).forEach((node: any): any => { // depth-first search
+      traverse(hierarchical_scopes).forEach((node: any): any => {
+        // match the role with HR node and validate all the targetInstances
         if (scopedRoles.includes(node.role)) {
           let eligibleOrgScopes = [];
           getAllValues(node, eligibleOrgScopes);

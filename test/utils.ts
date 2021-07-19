@@ -86,6 +86,35 @@ export function buildRequest(opts: RequestOpts): core.Request {
           attribute: aclInstances
         }
       }];
+  } else if (opts.multipleAclIndicatoryEntity && opts.orgInstances && opts.subjectInstances) {
+    let orgInstances = [], subjectInstances = [];
+    opts.orgInstances.forEach(orgInstance => {
+      orgInstances.push({
+        id: "urn:restorecommerce:acs:names:aclInstance",
+        value: orgInstance
+      })
+    });
+    opts.subjectInstances.forEach(subjectInstance => {
+      subjectInstances.push({
+        id: "urn:restorecommerce:acs:names:aclInstance",
+        value: subjectInstance
+      })
+    });
+    acl = [
+      {
+        attribute: {
+          id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
+          value: opts.multipleAclIndicatoryEntity[0],
+          attribute: orgInstances
+        }
+      },
+      {
+        attribute: {
+          id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
+          value: opts.multipleAclIndicatoryEntity[1],
+          attribute: subjectInstances
+        }
+      }];
   }
 
   return {
@@ -211,6 +240,9 @@ export interface RequestOpts {
   ownerInstance?: string;
   aclIndicatoryEntity?: string;
   aclInstances?: string[];
+  multipleAclIndicatoryEntity?: string[],
+  orgInstances?: string[];
+  subjectInstances?: string[];
 }
 
 export function marshallProtobufAny(object: any): any {
