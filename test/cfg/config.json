@@ -469,7 +469,9 @@
         "role": "urn:restorecommerce:acs:names:role",
         "operation": "urn:restorecommerce:acs:names:operation",
         "aclIndicatoryEntity": "urn:restorecommerce:acs:names:aclIndicatoryEntity",
-        "aclInstance": "urn:restorecommerce:acs:names:aclInstance"
+        "aclInstance": "urn:restorecommerce:acs:names:aclInstance",
+        "actionID": "urn:oasis:names:tc:xacml:1.0:action:action-id",
+        "create": "urn:restorecommerce:acs:names:action:create"
       },
       "combiningAlgorithms": [
         {

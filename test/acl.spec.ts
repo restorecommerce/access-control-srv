@@ -46,7 +46,7 @@ describe('testing ACL for microservice', () => {
         this.timeout(5000);
         await truncate();
       });
-      it('should PERMIT creating bucket resource with valid ACS instances', async () => {
+      it('should PERMIT creating bucket resource with valid ACL instances', async () => {
 
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
@@ -59,18 +59,39 @@ describe('testing ACL for microservice', () => {
           ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
           ownerInstance: 'SuperOrg1',
           aclIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
-          aclInstances: ['SuperOrg1', 'Org1']
+          aclInstances: ['Org1', 'Org2', 'Org3']
         });
-        console.log('AccessRequest is....', JSON.stringify(accessRequest));
         testUtils.marshallRequest(accessRequest);
 
         const result = await accessControlService.isAllowed(accessRequest);
-        console.log('Respnose is.........', result);
-        // should.exist(result);
-        // should.not.exist(result.error);
-        // should.exist(result.data);
-        // should.exist(result.data.decision);
-        // result.data.decision.should.equal(core.Decision.PERMIT);
+        should.exist(result);
+        should.exist(result.data);
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.PERMIT);
+      });
+
+      it('should DENY creating bucket resource with Invalid ACL instances', async () => {
+
+        const accessRequest = testUtils.buildRequest({
+          subjectID: 'Alice',
+          subjectRole: 'Admin',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'SuperOrg1',
+          resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
+          resourceID: 'test',
+          actionType: 'urn:restorecommerce:acs:names:action:create',
+          ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          ownerInstance: 'SuperOrg1',
+          aclIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          aclInstances: ['Org1', 'Org4'] // Org4 is invalid as its not present in user HR
+        });
+        testUtils.marshallRequest(accessRequest);
+
+        const result = await accessControlService.isAllowed(accessRequest);
+        should.exist(result);
+        should.exist(result.data);
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.DENY);
       });
 
      

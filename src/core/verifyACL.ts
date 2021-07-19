@@ -3,6 +3,8 @@ import { Logger } from 'winston';
 
 import { Target, Request, Attribute, AccessController } from '.';
 import { Resource } from './interfaces';
+import * as traverse from 'traverse';
+import { getAllValues } from './utils';
 
 export const verifyACLList = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
@@ -46,7 +48,7 @@ export const verifyACLList = async (ruleTarget: Target,
         }
       }
 
-      if(_.isEmpty(aclList)) {
+      if (_.isEmpty(aclList)) {
         logger.debug('ACL meta data not set and hence no verification is needed');
         return true;
       }
@@ -126,13 +128,40 @@ export const verifyACLList = async (ruleTarget: Target,
     }
 
     // verify each of targetInstance is under subjectInstances
-    for (let targetACLInstance of targetInstances) {
-      if (subjectInstances.includes(targetACLInstance)) {
-        // exatch instance match found
-        continue;
-      } else {
-        logger.info(`Subject ${context.subject.id} does not have permissions to assign ${targetACLInstance}`);
+    // if action is create / modify then only verify the HR scopes (if not direct match should be done)
+    const actionObj = reqTarget.action;
+    if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
+      actionObj[0].value === urns.get('create')) {
+      const hierarchical_scopes = context.subject.hierarchical_scopes;
+      let validTargetInstances = true;
+      traverse(hierarchical_scopes).forEach((node: any): any => { // depth-first search
+        if (scopedRoles.includes(node.role)) {
+          let eligibleOrgScopes = [];
+          getAllValues(node, eligibleOrgScopes);
+          for (let targetInstance of targetInstances) {
+            if (eligibleOrgScopes.includes(targetInstance)) {
+              logger.debug(`ACL instance ${targetInstance} is valid`);
+              continue;
+            } else {
+              logger.info(`ACL instance ${targetInstance} cannot be assigned by subject ${context.subject.id}
+                as subject does not have permissions`);
+              validTargetInstances = false;
+            }
+          }
+        }
+      });
+      if (!validTargetInstances) {
         return false;
+      }
+    } else {
+      for (let targetACLInstance of targetInstances) {
+        if (subjectInstances.includes(targetACLInstance)) {
+          // exatch instance match found
+          continue;
+        } else {
+          logger.info(`Subject ${context.subject.id} does not have permissions to assign ${targetACLInstance}`);
+          return false;
+        }
       }
     }
   }
