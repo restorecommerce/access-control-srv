@@ -29,9 +29,8 @@ export const verifyACLList = async (ruleTarget: Target,
   const reqTarget = request.target;
   // iterating through all targeted resources and retrieve relevant target instances
   let targetScopeEntInstances = new Map<string, string[]>(); // <org.Org, [a, b, c]> OR <user.User, [user1, user2 user3]>
-
   for (let reqAttribute of reqTarget.resources) {
-    if (reqAttribute.id == urns.get('resourceID')) {
+    if (reqAttribute.id == urns.get('resourceID') || (reqAttribute.id === urns.get('operation'))) {
       const instanceID = reqAttribute.value;
       let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
       let aclList, scopingEntity;
