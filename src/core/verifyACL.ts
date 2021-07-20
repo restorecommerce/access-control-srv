@@ -21,6 +21,7 @@ export const verifyACLList = async (ruleTarget: Target,
 
   let context = request.context;
   if (_.isEmpty(context)) {
+    logger.debug('No valid context in request');
     return false; // no context was provided, evaluation fails
   }
 
@@ -87,7 +88,7 @@ export const verifyACLList = async (ruleTarget: Target,
 
   const roleAssociations = context.subject.role_associations;
   if (_.isEmpty(roleAssociations)) {
-    logger.info('Role Associations not found for verifying ACL');
+    logger.info('Role Associations not found in subject for verifying ACL');
     return false; // impossible to evaluate context
   }
 
@@ -113,60 +114,100 @@ export const verifyACLList = async (ruleTarget: Target,
     }
   }
 
-  // verify targetScopeEntInstances with subjectScopedEntityInstances
-  for (let scopingEntity of targetScopingEntities) {
-    // do not verify the ACL check for subject identifiers
-    if (scopingEntity === urns.get('user')) {
-      logger.info(`ACL indicatory entity is Subject ${urns.get('user')} and hence no verification is needed`);
-      continue;
-    }
-    let targetInstances = targetScopeEntInstances.get(scopingEntity);
-    let subjectInstances = subjectScopedEntityInstances.get(scopingEntity);
+  const actionObj = reqTarget.action;
+  // verify targetScopeEntInstances with subjectScopedEntityInstances for create action
 
-    if (!subjectInstances) {
-      logger.info('Subject role scoping instances not found for verifying ACL');
-      return false; // impossible to evaluate context
-    }
+  if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
+    (actionObj[0].value === urns.get('create'))) {
+    let validTargetInstances = false;
+    for (let scopingEntity of targetScopingEntities) {
+      // do not verify the ACL check for subject identifiers
+      if ((scopingEntity === urns.get('user')) && (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
+        (actionObj[0].value === urns.get('create')))) {
+        logger.info(`ACL indicatory entity is Subject ${urns.get('user')} and hence no verification is needed`);
+        validTargetInstances = true;
+        continue;
+      }
+      const targetInstances = targetScopeEntInstances.get(scopingEntity);
+      const subjectInstances = subjectScopedEntityInstances.get(scopingEntity);
 
-    // verify each of targetInstance is under subjectInstances
-    // if action is create / modify then only verify the HR scopes (if not direct match should be done)
-    const actionObj = reqTarget.action;
-    if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
-      (actionObj[0].value === urns.get('create') || actionObj[0].value === urns.get('modify'))) {
-      const hierarchical_scopes = context.subject.hierarchical_scopes;
-      let validTargetInstances = true;
-      traverse(hierarchical_scopes).forEach((node: any): any => {
-        // match the role with HR node and validate all the targetInstances
-        if (scopedRoles.includes(node.role)) {
-          let eligibleOrgScopes = [];
-          getAllValues(node, eligibleOrgScopes);
-          for (let targetInstance of targetInstances) {
-            if (eligibleOrgScopes.includes(targetInstance)) {
-              logger.debug(`ACL instance ${targetInstance} is valid`);
-              continue;
-            } else {
-              logger.info(`ACL instance ${targetInstance} cannot be assigned by subject ${context.subject.id}
-                as subject does not have permissions`);
-              validTargetInstances = false;
+      if (!subjectInstances) {
+        logger.info('Subject role scoping instances not found for verifying ACL');
+        return false; // impossible to evaluate context
+      }
+
+      // verify each of targetInstance is under subjectInstances
+      // if action is create / modify then only verify the HR scopes (if not direct match should be done)
+      if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
+        (actionObj[0].value === urns.get('create'))) {
+        const hierarchical_scopes = context.subject.hierarchical_scopes;
+        traverse(hierarchical_scopes).forEach((node: any): any => {
+          // match the role with HR node and validate all the targetInstances
+          if (scopedRoles.includes(node.role)) {
+            let eligibleOrgScopes = [];
+            getAllValues(node, eligibleOrgScopes);
+            for (let targetInstance of targetInstances) {
+              if (eligibleOrgScopes.includes(targetInstance)) {
+                logger.debug(`ACL instance ${targetInstance} is valid`);
+                validTargetInstances = true;
+                continue;
+              } else {
+                logger.info(`ACL instance ${targetInstance} cannot be assigned by subject ${context.subject.id}
+                    as subject does not have permissions`);
+                validTargetInstances = false;
+                break;
+              }
             }
           }
-        }
-      });
-      if (!validTargetInstances) {
-        return false;
-      }
-    } else {
-      for (let targetACLInstance of targetInstances) {
-        if (subjectInstances.includes(targetACLInstance)) {
-          // exatch instance match found
-          continue;
-        } else {
-          logger.info(`Subject ${context.subject.id} does not have permissions to assign ${targetACLInstance}`);
+        });
+        if (!validTargetInstances) {
           return false;
         }
       }
     }
+    if (validTargetInstances) {
+      return true;
+    }
   }
 
-  return true;
+  if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
+    (actionObj[0].value === urns.get('read') || actionObj[0].value === urns.get('modify')
+      || actionObj[0].value === urns.get('delete'))) {
+    let validSubjectInstance = false;
+    // check if context.subject.id is there in ACL list then pass
+    for (let scopingEntity of targetScopingEntities) {
+      const targetInstances = targetScopeEntInstances.get(scopingEntity);
+      const subjectInstances = subjectScopedEntityInstances.get(scopingEntity);
+
+      // if ACL scoping entity is user, then directly verify if the subject id is in the targetInstances
+      if (scopingEntity === urns.get('user')) {
+        if (targetInstances.includes(context.subject.id)) {
+          validSubjectInstance = true;
+          break;
+        }
+      }
+
+      // match atleast one of the subjectOrgInstance is present in targetInstances
+      if (subjectInstances && subjectInstances.length > 0) {
+        for (let subjectInstance of subjectInstances) {
+          // validate atleast one of the subjectInstance is present in the targetInstances list
+          // (same role can be assigned with multiple scoping instnaces hence subjectInstances is an array)
+          if (targetInstances.includes(subjectInstance)) {
+            logger.info(`Valid scope and subject ${context.subject.id} has access`);
+            validSubjectInstance = true;
+            break;
+          }
+        }
+      }
+    }
+    if (validSubjectInstance) {
+      logger.info(`Subject ${context.subject.id} has valid permissions in ACL list`);
+      return true;
+    } else {
+      logger.info(`Subject ${context.subject.id} does not have permissions in ACL list`);
+      return false;
+    }
+  }
+
+  return false;
 };

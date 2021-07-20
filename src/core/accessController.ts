@@ -254,10 +254,15 @@ export class AccessController {
               }
               let ruleRQ: RuleRQ;
               if (_.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
-                if (verifyACLList(rule.target, request, this.urns, this, this.logger)) {
-                  ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
-                  policyRQ.rules.push(ruleRQ);
+                if (!_.isEmpty(rule.target)) {
+                  const aclListVerification = await verifyACLList(rule.target, request, this.urns, this, this.logger);
+                  if (!aclListVerification) {
+                    this.logger.info(`ACL list could not be verified for rule ${rule.name}, hence skipping rule`);
+                    continue;
+                  }
                 }
+                ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
+                policyRQ.rules.push(ruleRQ);
               }
             }
             if (!!policyRQ.effect || (!policyRQ.effect && !_.isEmpty(policyRQ.rules))) {

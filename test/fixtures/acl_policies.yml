@@ -9,9 +9,9 @@
         description: Policy with two rules targeting Bucket resource
         combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
         rules:
-          - id: ruleCreatePermitAdmin
-            name: Rule create permit admin
-            descripton: A rule targeting a 'create' action by a AdminUser on Bucket resource
+          - id: ruleCRMDPermitAdmin
+            name: Rule CRMD permit admin
+            descripton: A rule targeting a 'CRMD' action by a AdminUser on Bucket resource
             target:
               subject:
                 - id: urn:restorecommerce:acs:names:role
@@ -21,25 +21,6 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:bucket.Bucket
-              action:
-                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
-                  value: urn:restorecommerce:acs:names:action:create
-            effect: PERMIT
-          - id: ruleModifyPermitAdmin
-            name: Rule modify permit admin
-            descripton: A rule targeting a 'modify' action by a AdminUser on Bucket resource
-            target:
-              subject:
-                - id: urn:restorecommerce:acs:names:role
-                  value: Admin
-                - id: urn:restorecommerce:acs:names:roleScopingEntity
-                  value: urn:restorecommerce:acs:model:organization.Organization
-              resources:
-                - id: urn:restorecommerce:acs:names:model:entity
-                  value: urn:restorecommerce:acs:model:bucket.Bucket
-              action:
-                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
-                  value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT
           - id: rulePermitRead
             name: Rule permit read

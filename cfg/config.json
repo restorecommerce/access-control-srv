@@ -467,6 +467,8 @@
         "actionID": "urn:oasis:names:tc:xacml:1.0:action:action-id",
         "create": "urn:restorecommerce:acs:names:action:create",
         "modify": "urn:restorecommerce:acs:names:action:modify",
+        "read": "urn:restorecommerce:acs:names:action:read",
+        "delete": "urn:restorecommerce:acs:names:action:delete",
         "user": "urn:restorecommerce:acs:model:user.User"
       },
       "combiningAlgorithms": [

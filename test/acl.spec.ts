@@ -73,12 +73,12 @@ describe('testing ACL for microservice', () => {
           subjectID: 'Alice',
           subjectRole: 'Admin',
           roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
-          roleScopingInstance: 'SuperOrg1',
+          roleScopingInstance: 'Org1',
           resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
           resourceID: 'test',
           actionType: 'urn:restorecommerce:acs:names:action:modify',
           ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
-          ownerInstance: 'SuperOrg1',
+          ownerInstance: 'Org1',
           aclIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
           aclInstances: ['Org1']
         });
@@ -112,7 +112,7 @@ describe('testing ACL for microservice', () => {
         result.data.decision.should.equal(core.Decision.DENY);
       });
 
-      it('should DENY creating bucket resource with Invalid ACL instances', async () => {
+      it('should DENY creating bucket resource with invalid ACL instances', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'Admin',
@@ -201,16 +201,68 @@ describe('testing ACL for microservice', () => {
         should.exist(result.data.decision);
         result.data.decision.should.equal(core.Decision.DENY);
       });
-     
     });
-    // describe('testing whatIsAllowed', () => {
-    //   before(async () => {
-    //     await create('./test/fixtures/acl_policies.yml');
-    //   });
-    //   after(async () => {
-    //     await truncate();
-    //   });
-    // });
+
+    describe('testing whatIsAllowed', () => {
+      before(async () => {
+        // disable authorization to import rules
+        cfg.set('authorization:enabled', false);
+        cfg.set('authorization:enforce', false);
+        updateConfig(cfg);
+        await create('./test/fixtures/acl_policies.yml');
+        // enable authorization after importing rules
+        cfg.set('authorization:enabled', false);
+        cfg.set('authorization:enforce', false);
+        updateConfig(cfg);
+      });
+      after(async function (): Promise<void> {
+        this.timeout(5000);
+        await truncate();
+      });
+      it('should PERMIT reading bucket resource by SimpleUser (valid ACL List)', async () => {
+        const accessRequest = testUtils.buildRequest({
+          subjectID: 'Alice',
+          subjectRole: 'SimpleUser',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'Org1',
+          resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
+          resourceID: 'test',
+          actionType: 'urn:restorecommerce:acs:names:action:read',
+          ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          ownerInstance: 'Org1',
+          aclIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          aclInstances: ['Org1', 'Org2', 'Org3']
+        });
+        testUtils.marshallRequest(accessRequest);
+        const result = await accessControlService.whatIsAllowed(accessRequest);
+        should.exist(result);
+        should.exist(result.data);
+        result.data.policy_sets[0].policies[0].rules.length.should.equal(2);
+        result.data.policy_sets[0].policies[0].rules[0].id.should.equal('rulePermitRead');
+        result.data.policy_sets[0].policies[0].rules[1].id.should.equal('ruleFallback');
+      });
+      it('should DENY reading bucket resource by SimpleUser (ACL list does not contain target role scope)', async () => {
+        const accessRequest = testUtils.buildRequest({
+          subjectID: 'Alice',
+          subjectRole: 'SimpleUser',
+          roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          roleScopingInstance: 'Org4', // role is scoped on Org4
+          resourceType: 'urn:restorecommerce:acs:model:bucket.Bucket',
+          resourceID: 'test',
+          actionType: 'urn:restorecommerce:acs:names:action:read',
+          ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          ownerInstance: 'Org1',
+          aclIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+          aclInstances: ['Org1', 'Org2', 'Org3']
+        });
+        testUtils.marshallRequest(accessRequest);
+        const result = await accessControlService.whatIsAllowed(accessRequest);
+        should.exist(result);
+        should.exist(result.data);
+        result.data.policy_sets[0].policies[0].rules.length.should.equal(1);
+        result.data.policy_sets[0].policies[0].rules[0].id.should.equal('ruleFallback');
+      });
+    });
   });
 });
 
