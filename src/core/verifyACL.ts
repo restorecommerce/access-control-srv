@@ -175,7 +175,7 @@ export const verifyACLList = async (ruleTarget: Target,
     let validSubjectInstance = false;
     // if targeScopingEntities is emtpy => no ACL data was sent in meta object / not a target for specific request ID
     if (_.isEmpty(targetScopingEntities)) {
-      logger.debug('ACL data was sent in the meta data request');
+      logger.debug('ACL data was not set in the meta data request, hence no ACL check is done');
       return true;
     }
     for (let scopingEntity of targetScopingEntities) {
