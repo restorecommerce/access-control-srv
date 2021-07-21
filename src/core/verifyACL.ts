@@ -119,6 +119,10 @@ export const verifyACLList = async (ruleTarget: Target,
   if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
     (actionObj[0].value === urns.get('create'))) {
     let validTargetInstances = false;
+    if (_.isEmpty(targetScopingEntities)) {
+      logger.debug('ACL data was not set in the meta data request, hence no ACL check is done');
+      return true;
+    }
     for (let scopingEntity of targetScopingEntities) {
       // do not verify the ACL check for subject identifiers
       if ((scopingEntity === urns.get('user')) && (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
