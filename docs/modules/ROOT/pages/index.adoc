@@ -20,6 +20,7 @@ link:abac.adoc[Rule, Policy and PolicySet].
 * Authorization policies can be updated at run time.
 * Emits events to trigger cache invalidation of the https://github.com/restorecommerce/acs-client#caching[acs-client] via `flushCacheCommand` event.
 * Mechanism to calculate hierarchical scopes for subject using https://kafka.apache.org/[Kafka], caching of subject and hierarchical scopes and invalidating the cache.
+* Support for access control list.
 
 link:abac.adoc[A detailed description] on how ABAC is implemented in Restorecommerce.
 
