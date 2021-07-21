@@ -123,7 +123,7 @@ describe('testing ACL for microservice', () => {
           actionType: 'urn:restorecommerce:acs:names:action:create',
           ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
           ownerInstance: 'SuperOrg1',
-          multipleAclIndicatoryEntity: [ 'urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
+          multipleAclIndicatoryEntity: ['urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
           orgInstances: ['Org1', 'Org2', 'Org3'],
           subjectInstances: ['SubjectID1', 'SubjectID2']
         });
@@ -146,7 +146,7 @@ describe('testing ACL for microservice', () => {
           actionType: 'urn:restorecommerce:acs:names:action:create',
           ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
           ownerInstance: 'SuperOrg1',
-          multipleAclIndicatoryEntity: [ 'urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
+          multipleAclIndicatoryEntity: ['urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
           orgInstances: ['Org1', 'Org4'], // Org4 is invalid as its not present in user HR
           subjectInstances: ['SubjectID1', 'SubjectID2']
         });
@@ -191,7 +191,7 @@ describe('testing ACL for microservice', () => {
           actionType: 'urn:restorecommerce:acs:names:action:modify',
           ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
           ownerInstance: 'Org4',
-          multipleAclIndicatoryEntity: [ 'urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
+          multipleAclIndicatoryEntity: ['urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
           orgInstances: ['Org1', 'Org2'],
           subjectInstances: ['SubjectID1', 'Alice']
         });
@@ -258,7 +258,7 @@ describe('testing ACL for microservice', () => {
           actionType: 'urn:restorecommerce:acs:names:action:delete',
           ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
           ownerInstance: 'Org4',
-          multipleAclIndicatoryEntity: [ 'urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
+          multipleAclIndicatoryEntity: ['urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
           orgInstances: ['Org1', 'Org2'],
           subjectInstances: ['SubjectID1', 'Alice']
         });
@@ -281,7 +281,7 @@ describe('testing ACL for microservice', () => {
           actionType: 'urn:restorecommerce:acs:names:action:delete',
           ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
           ownerInstance: 'Org4',
-          multipleAclIndicatoryEntity: [ 'urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
+          multipleAclIndicatoryEntity: ['urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
           orgInstances: ['Org1', 'Org2'],
           subjectInstances: ['SubjectID1']
         });
@@ -292,24 +292,7 @@ describe('testing ACL for microservice', () => {
         should.exist(result.data.decision);
         result.data.decision.should.equal(core.Decision.DENY);
       });
-    });
 
-    describe('testing whatIsAllowed', () => {
-      before(async () => {
-        // disable authorization to import rules
-        cfg.set('authorization:enabled', false);
-        cfg.set('authorization:enforce', false);
-        updateConfig(cfg);
-        await create('./test/fixtures/acl_policies.yml');
-        // enable authorization after importing rules
-        cfg.set('authorization:enabled', false);
-        cfg.set('authorization:enforce', false);
-        updateConfig(cfg);
-      });
-      after(async function (): Promise<void> {
-        this.timeout(5000);
-        await truncate();
-      });
       it('should PERMIT reading bucket resource by SimpleUser role (valid ACL List)', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
@@ -325,13 +308,13 @@ describe('testing ACL for microservice', () => {
           aclInstances: ['Org1', 'Org2', 'Org3']
         });
         testUtils.marshallRequest(accessRequest);
-        const result = await accessControlService.whatIsAllowed(accessRequest);
+        const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.data);
-        result.data.policy_sets[0].policies[0].rules.length.should.equal(2);
-        result.data.policy_sets[0].policies[0].rules[0].id.should.equal('rulePermitRead');
-        result.data.policy_sets[0].policies[0].rules[1].id.should.equal('ruleFallback');
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.PERMIT);
       });
+
       it('should PERMIT reading bucket resource by SimpleUser role (ACL list contains valid subjectID)', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
@@ -343,18 +326,18 @@ describe('testing ACL for microservice', () => {
           actionType: 'urn:restorecommerce:acs:names:action:read',
           ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
           ownerInstance: 'Org4',
-          multipleAclIndicatoryEntity: [ 'urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
+          multipleAclIndicatoryEntity: ['urn:restorecommerce:acs:model:organization.Organization', 'urn:restorecommerce:acs:model:user.User'],
           orgInstances: ['Org1', 'Org2'],
           subjectInstances: ['SubjectID1', 'Alice']
         });
         testUtils.marshallRequest(accessRequest);
-        const result = await accessControlService.whatIsAllowed(accessRequest);
+        const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.data);
-        result.data.policy_sets[0].policies[0].rules.length.should.equal(2);
-        result.data.policy_sets[0].policies[0].rules[0].id.should.equal('rulePermitRead');
-        result.data.policy_sets[0].policies[0].rules[1].id.should.equal('ruleFallback');
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.PERMIT);
       });
+
       it('should DENY reading bucket resource by SimpleUser role (ACL list does not contain target role scope)', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
@@ -370,11 +353,11 @@ describe('testing ACL for microservice', () => {
           aclInstances: ['Org1', 'Org2', 'Org3']
         });
         testUtils.marshallRequest(accessRequest);
-        const result = await accessControlService.whatIsAllowed(accessRequest);
+        const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.data);
-        result.data.policy_sets[0].policies[0].rules.length.should.equal(1);
-        result.data.policy_sets[0].policies[0].rules[0].id.should.equal('ruleFallback');
+        should.exist(result.data.decision);
+        result.data.decision.should.equal(core.Decision.DENY);
       });
     });
   });
