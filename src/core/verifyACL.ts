@@ -173,7 +173,11 @@ export const verifyACLList = async (ruleTarget: Target,
     (actionObj[0].value === urns.get('read') || actionObj[0].value === urns.get('modify')
       || actionObj[0].value === urns.get('delete'))) {
     let validSubjectInstance = false;
-    // check if context.subject.id is there in ACL list then pass
+    // if targeScopingEntities is emtpy => no ACL data was sent in meta object / not a target for specific request ID
+    if (_.isEmpty(targetScopingEntities)) {
+      logger.debug('ACL data was sent in the meta data request');
+      return true;
+    }
     for (let scopingEntity of targetScopingEntities) {
       const targetInstances = targetScopeEntInstances.get(scopingEntity);
       const subjectInstances = subjectScopedEntityInstances.get(scopingEntity);
