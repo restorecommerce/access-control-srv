@@ -1,3 +1,8 @@
+## 0.1.21 (July 21st, 2021)
+
+- added access control list feature for `isAllowed` operation
+- updated dependencies
+
 ## 0.1.20 (June 28th, 2021)
 
 - updated node version to 16.3
