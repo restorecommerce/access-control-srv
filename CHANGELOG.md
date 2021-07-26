@@ -1,3 +1,8 @@
+## 0.1.22 (July 26th, 2021)
+
+- added `skipACL` attribute to support not to make ACL check if this attribute is set in rule
+- updated logger
+
 ## 0.1.21 (July 21st, 2021)
 
 - added access control list feature for `isAllowed` operation
