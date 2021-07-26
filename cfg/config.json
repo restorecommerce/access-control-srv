@@ -388,7 +388,8 @@
       "delete": "urn:restorecommerce:acs:names:action:delete",
       "organization": "urn:restorecommerce:acs:model:organization.Organization",
       "aclIndicatoryEntity": "urn:restorecommerce:acs:names:aclIndicatoryEntity",
-      "aclInstance": "urn:restorecommerce:acs:names:aclInstance"
+      "aclInstance": "urn:restorecommerce:acs:names:aclInstance",
+      "skipACL": "urn:restorecommerce:acs:names:skipACL"
     },
     "cache": {
       "host": "localhost",
@@ -469,7 +470,8 @@
         "modify": "urn:restorecommerce:acs:names:action:modify",
         "read": "urn:restorecommerce:acs:names:action:read",
         "delete": "urn:restorecommerce:acs:names:action:delete",
-        "user": "urn:restorecommerce:acs:model:user.User"
+        "user": "urn:restorecommerce:acs:model:user.User",
+        "skipACL": "urn:restorecommerce:acs:names:skipACL"
       },
       "combiningAlgorithms": [
         {

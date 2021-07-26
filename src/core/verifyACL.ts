@@ -13,9 +13,12 @@ export const verifyACLList = async (ruleTarget: Target,
   const ruleSubject = ruleTarget.subject || [];
   // retrieving all role scoping entities from the rule's subject
   for (let attribute of ruleSubject) {
-    if (attribute.id == urns.get('role')) {
+    if (attribute.id === urns.get('role')) {
       role = attribute.value;
       scopedRoles.push(role);
+    } else if (attribute.id === urns.get('skipACL')) {
+      logger.debug('Skipping ACL check as attribute skipACL is set');
+      return true;
     }
   }
 
