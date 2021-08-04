@@ -1,3 +1,18 @@
+## 0.1.22 (July 26th, 2021)
+
+- added `skipACL` attribute to support not to make ACL check if this attribute is set in rule
+- updated logger
+
+## 0.1.21 (July 21st, 2021)
+
+- added access control list feature for `isAllowed` operation
+- updated dependencies
+
+## 0.1.20 (June 28th, 2021)
+
+- updated node version to 16.3
+- updated logger and protos
+
 ## 0.1.19 (April 28th, 2021)
 
 - extend HR scope matching to check for operation name

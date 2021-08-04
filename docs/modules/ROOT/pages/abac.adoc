@@ -430,6 +430,9 @@ The URNs enumerated here are understood and used by the ACS.
 * `urn:restorecommerce:acs:names:action:execute` Execute access
 * `urn:restorecommerce:acs:names:action:drop` Drop access
 * `urn:restorecommerce:acs:names:environment:autenticationMaxAge` Maximum time in seconds since the last authentication of the subject has been performed.
+* `urn:restorecommerce:acs:names:aclIndicatoryEntity` Specify the entity which indicates the access control list
+* `urn:restorecommerce:acs:names:aclInstance` Specify an actaul instance of an access control list
+* `urn:restorecommerce:acs:names:skipACL` Specify if ACL check should be skipped `true` (if the property is not configured by default ACL check is done)
 
 === XACML
 

@@ -4,19 +4,7 @@ import { Logger } from 'winston';
 
 import { Target, Request, Attribute, AccessController } from '.';
 import { Resource } from './interfaces';
-
-const getAllValues = (obj: any, pushedValues: any): any => {
-  for (let value of (<any>Object).values(obj)) {
-    if (_.isArray(value)) {
-      getAllValues(value, pushedValues);
-    } else if (typeof value == 'string') {
-      pushedValues.push(value);
-    } else {
-      // It is an object
-      getAllValues(value, pushedValues);
-    }
-  }
-};
+import { getAllValues } from './utils';
 
 export const checkHierarchicalScope = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
@@ -77,6 +65,13 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
           // let regexValue = pattern.split('.')[0];
           // get Entity name last element
           let regexValue = pattern.split(/[.]+/).pop();
+          const reqValue = reqAttribute.value;
+          const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
+          const ruleAttributeNS = currentResourceEntity.substring(0, currentResourceEntity.lastIndexOf(':'));
+          // verify namespace before entity name
+          if (reqAttributeNS != ruleAttributeNS) {
+            return false;
+          }
           const reExp = new RegExp(regexValue);
           if (reqAttribute.value.match(reExp)) {
             entitiesMatch = true;

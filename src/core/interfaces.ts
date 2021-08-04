@@ -28,6 +28,7 @@ export interface PolicySet extends Combiner<Policy> { }
 export interface Attribute {
   id: string;
   value: string;
+  attribute?: Attribute[];
 }
 
 export interface Target {
@@ -99,6 +100,7 @@ export interface RoleAssociations {
 export interface HierarchicalScope {
   id: string;
   children?: HierarchicalScope[];
+  role?: string;
 }
 
 export interface Resource {
@@ -107,9 +109,14 @@ export interface Resource {
   [key: string]: any;
 }
 
+export interface AttributeObj {
+  attribute: Attribute[];
+}
+
 export interface ResourceMeta {
   created: number;
   modified: number;
+  acl?: AttributeObj[];
   owner: ResourceOwnerAttributes[];
 }
 

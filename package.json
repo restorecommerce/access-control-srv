@@ -1,6 +1,6 @@
 {
   "name": "@restorecommerce/access-control-srv",
-  "version": "0.1.19",
+  "version": "0.1.22",
   "description": "Access Control Service",
   "main": "lib/start.js",
   "author": "n-fuse GmbH",
@@ -62,9 +62,9 @@
   "scripts": {
     "start": "npm run createtopics && node lib/start.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch './src/**/*.ts' --exec 'ts-node' src/start.ts",
-    "test": "npm run lint && nyc npm run mocha",
+    "test": "npm run createtopics && npm run build && npm run lint && cross-env NODE_ENV=test nyc npm run mocha",
     "lint": "eslint src --ext .ts",
-    "mocha": "cross-env NODE_ENV=test mocha --stack-trace --exit --timeout 30000",
+    "mocha": "cross-env NODE_ENV=test mocha --full-trace --exit --timeout 120000",
     "mocha-debug": "mocha -R spec test/*_test.js --inspect-brk",
     "test-core": "cross-env NODE_ENV=test npm run lint && npm run mocha-core",
     "lcov-report": "nyc report --reporter=lcov",
@@ -77,6 +77,6 @@
     "healthcheck": "node lib/healthcheck.js"
   },
   "engines": {
-    "node": ">= 14.0.0"
+    "node": ">= 16.0.0"
   }
 }

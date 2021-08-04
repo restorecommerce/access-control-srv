@@ -1,0 +1,42 @@
+  policy_sets:
+  - id: policySetBucket
+    name: Policy set Bucket
+    description: Bucket policy set
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    policies:
+      - id: policyBucket
+        name: Policy Bucket
+        description: Policy with two rules targeting Bucket resource
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        rules:
+          - id: ruleCRMDPermitAdmin
+            name: Rule CRMD permit admin
+            descripton: A rule targeting a 'CRMD' action by a AdminUser on Bucket resource
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: Admin
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:bucket.Bucket
+            effect: PERMIT
+          - id: rulePermitRead
+            name: Rule permit read
+            descripton: A rule targeting 'read' action by an SimpleUser on Bucket resource
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:bucket.Bucket
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: ruleFallback
+            name: Fallback rule
+            description: Always deny
+            effect: DENY
