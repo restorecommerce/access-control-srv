@@ -4,7 +4,7 @@ import * as testUtils from './utils';
 
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
-import { Client } from '@restorecommerce/grpc-client';
+import { GrpcClient } from '@restorecommerce/grpc-client';
 
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
@@ -14,7 +14,7 @@ import { Topic, Events } from '@restorecommerce/kafka-client';
 
 let cfg: any;
 let logger;
-let client: Client;
+let client: GrpcClient;
 let worker: Worker;
 let ruleService: any, policyService: any, policySetService: any;
 let accessControlService: any;
@@ -30,6 +30,7 @@ let subject = {
   role_associations: [
     {
       role: 'admin-r-id',
+      id: '',
       attributes: [{
         id: 'urn:restorecommerce:acs:names:roleScopingEntity',
         value: 'urn:restorecommerce:acs:model:organization.Organization'
@@ -62,32 +63,26 @@ let testRule = [{
   name: 'test rule for test entitiy',
   description: 'test rule',
   target: {
-    subject: {
+    subject: [{
       id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
       value: 'test-r-id'
-    },
-    resources: {
+    }],
+    resources: [{
       id: 'urn:restorecommerce:acs:names:model:entity',
       value: 'urn:restorecommerce:acs:model:test.Test'
-    }
+    }]
   },
   effect: 'PERMIT'
 }];
 
-interface serverRule {
-  method: string,
-  input: any,
-  output: any
+interface ServerRule {
+  method: string;
+  input: any;
+  output: any;
 }
 
-const user = {
-  id: subject.id,
-  tokens: [{ token: subject.token }],
-  role_associations: subject.role_associations
-};
-
 // Mock server for ids - findByToken
-const startGrpcMockServer = async (rules: serverRule[]) => {
+const startGrpcMockServer = async (rules: ServerRule[]) => {
   // Create a mock ACS server to expose isAllowed and whatIsAllowed
   mockServer = createMockServer({
     protoPath: 'test/protos/io/restorecommerce/user.proto',
@@ -108,22 +103,22 @@ const stopGrpcMockServer = async () => {
   });
 };
 
-async function setupService(): Promise<void> {
+const setupService = async (): Promise<void> => {
   cfg = createServiceConfig(process.cwd() + '/test');
   logger = createLogger(cfg.get('logger'));
 
   worker = new Worker();
   await worker.start(cfg, logger);
 
-  client = new Client(cfg.get('client:policy_set'), logger);
-  policySetService = await client.connect();
-  client = new Client(cfg.get('client:policy'), logger);
-  policyService = await client.connect();
-  client = new Client(cfg.get('client:rule'), logger);
-  ruleService = await client.connect();
-}
+  client = new GrpcClient(cfg.get('client:policy_set'), logger);
+  policySetService = client.policy_set;
+  client = new GrpcClient(cfg.get('client:policy'), logger);
+  policyService = client.policy;
+  client = new GrpcClient(cfg.get('client:rule'), logger);
+  ruleService = client.rule;
+};
 
-async function load(policiesFile: string): Promise<void> {
+const load = async (policiesFile: string): Promise<void> => {
   // load from fixtures
   const yamlPolicies = yaml.load(fs.readFileSync(policiesFile));
   const marshalled = testUtils.marshallYamlPolicies(yamlPolicies);
@@ -132,11 +127,11 @@ async function load(policiesFile: string): Promise<void> {
   policies = marshalled.policies;
   policySets = marshalled.policySets;
 
-  client = new Client(cfg.get('client:acs'), logger);
-  accessControlService = await client.connect();
-}
+  client = new GrpcClient(cfg.get('client:acs-srv'), logger);
+  accessControlService = client['acs-srv'];
+};
 
-async function truncate(): Promise<void> {
+const truncate = async (): Promise<void> => {
   // disable authorization
   cfg.set('authorization:enabled', false);
   cfg.set('authorization:enforce', false);
@@ -153,7 +148,7 @@ async function truncate(): Promise<void> {
     collection: true,
     subject
   });
-}
+};
 
 // mock to emit back hierarchicalScopesResponse
 const hrScopeReqListener = (msg) => {
@@ -199,7 +194,7 @@ describe('testing microservice', () => {
       stopGrpcMockServer();
       await userTopic.removeAllListeners('hierarchicalScopesRequest');
       await truncate();
-      await client.end();
+      await client.close();
       await worker.stop();
     });
     describe('testing create() operations', () => {
@@ -212,30 +207,42 @@ describe('testing microservice', () => {
           items: policySets,
           subject
         });
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.length(policySets.length);
+        should.exist(result);
+        should.exist(result.items);
+        result.items.should.be.length(policySets.length);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
         result = await policyService.create({
           items: policies,
           subject
         });
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.length(policies.length);
+        should.exist(result);
+        should.exist(result.items);
+        result.items.should.be.length(policies.length);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
         result = await ruleService.create({
           items: rules,
           subject
         });
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.length(rules.length);
+        should.exist(result);
+        should.exist(result.items);
+        result.items.should.be.length(rules.length);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should allow to create test rule with ACS enabled with valid scope in subject', async () => {
         const user = {
-          id: 'admin_user_id',
-          tokens: [{ token: 'admin_token' }],
-          role_associations: subject.role_associations
+          payload: {
+            id: 'admin_user_id',
+            tokens: [{ token: 'admin_token' }],
+            role_associations: subject.role_associations
+          },
+          status: {
+            code: 200,
+            message: 'success'
+          }
         };
         // start mock ids-srv needed for findByToken response and return subject
         await startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
@@ -249,10 +256,10 @@ describe('testing microservice', () => {
           subject
         });
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.length(testRule.length);
+        should.exist(result.items);
+        result.items.should.be.length(testRule.length);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should throw an error when trying to create rule with invalid subject scope', async () => {
@@ -261,9 +268,15 @@ describe('testing microservice', () => {
         subject.role_associations[0].role = 'user-r-id';
         subject.token = 'user_token';
         const user = {
-          id: subject.id,
-          tokens: [{ token: 'user_token' }],
-          role_associations: subject.role_associations
+          payload: {
+            id: subject.id,
+            tokens: [{ token: 'user_token' }],
+            role_associations: subject.role_associations
+          },
+          status: {
+            code: 200,
+            message: 'success'
+          }
         };
         stopGrpcMockServer();
         // restart grpcMock with normal user id
@@ -273,10 +286,9 @@ describe('testing microservice', () => {
           subject
         });
         should.exist(result);
-        should.not.exist(result.dta);
-        should.exist(result.error);
-        should.exist(result.error.details);
-        result.error.details.should.equal('7 PERMISSION_DENIED: Access not allowed for request with subject:user_id, resource:rule, action:CREATE, target_scope:orgC; the response was DENY');
+        result.items.should.be.empty();
+        result.operation_status.code.should.equal(403);
+        result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:CREATE, target_scope:orgC; the response was DENY');
       });
 
       it('should allow to update rule with valid subject scope', async () => {
@@ -285,9 +297,11 @@ describe('testing microservice', () => {
         subject.role_associations[0].role = 'admin-r-id';
         subject.token = 'admin_token';
         const user = {
-          id: subject.id,
-          tokens: [{ token: 'admin_token' }],
-          role_associations: subject.role_associations
+          payload: {
+            id: subject.id,
+            tokens: [{ token: 'admin_token' }],
+            role_associations: subject.role_associations
+          }
         };
         stopGrpcMockServer();
         // restart grpcMock with admin user id
@@ -297,8 +311,10 @@ describe('testing microservice', () => {
           items: testRule,
           subject
         });
-        should.exist(result.data.items);
-        result.data.items[0].name.should.equal('modified test rule for test entitiy');
+        should.exist(result.items);
+        result.items[0].payload.name.should.equal('modified test rule for test entitiy');
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should not allow to update rule with invalid subject scope', async () => {
@@ -307,9 +323,11 @@ describe('testing microservice', () => {
         subject.role_associations[0].role = 'user-r-id';
         subject.token = 'user_token';
         const user = {
-          id: subject.id,
-          tokens: [{ token: 'user_token' }],
-          role_associations: subject.role_associations
+          payload: {
+            id: subject.id,
+            tokens: [{ token: 'user_token' }],
+            role_associations: subject.role_associations
+          }
         };
         stopGrpcMockServer();
         // restart grpcMock with normal user id
@@ -319,8 +337,9 @@ describe('testing microservice', () => {
           items: testRule,
           subject
         });
-        should.exist(result.error.details);
-        result.error.details.should.equal('7 PERMISSION_DENIED: Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY');
+        result.items.should.be.empty();
+        result.operation_status.code.should.equal(403);
+        result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY');
       });
 
       it('should allow to upsert rule with valid subject scope', async () => {
@@ -329,9 +348,11 @@ describe('testing microservice', () => {
         subject.role_associations[0].role = 'admin-r-id';
         subject.token = 'admin_token';
         const user = {
-          id: subject.id,
-          tokens: [{ token: 'admin_token' }],
-          role_associations: subject.role_associations
+          payload: {
+            id: subject.id,
+            tokens: [{ token: 'admin_token' }],
+            role_associations: subject.role_associations
+          }
         };
         stopGrpcMockServer();
         // restart grpcMock with admin user id
@@ -342,8 +363,10 @@ describe('testing microservice', () => {
           items: testRule,
           subject
         });
-        should.exist(result.data.items);
-        result.data.items[0].name.should.equal('upserted test rule for test entitiy');
+        should.exist(result.items);
+        result.items[0].payload.name.should.equal('upserted test rule for test entitiy');
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should not allow to upsert rule with invalid subject scope', async () => {
@@ -353,9 +376,11 @@ describe('testing microservice', () => {
 
         subject.token = 'user_token';
         const user = {
-          id: subject.id,
-          tokens: [{ token: 'user_token' }],
-          role_associations: subject.role_associations
+          payload: {
+            id: subject.id,
+            tokens: [{ token: 'user_token' }],
+            role_associations: subject.role_associations
+          }
         };
         stopGrpcMockServer();
         // restart grpcMock with normal user id
@@ -365,8 +390,9 @@ describe('testing microservice', () => {
           items: testRule,
           subject
         });
-        should.exist(result.error.details);
-        result.error.details.should.equal('7 PERMISSION_DENIED: Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY');
+        result.items.should.be.empty();
+        result.operation_status.code.should.equal(403);
+        result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY');
       });
 
       it('should not allow to delete rule with invalid subject scope', async () => {
@@ -374,11 +400,12 @@ describe('testing microservice', () => {
         subject.id = 'user_id';
         subject.role_associations[0].role = 'user-r-id';
         const result = await ruleService.delete({
-          ids: testRule[0].id,
+          ids: [testRule[0].id],
           subject
         });
-        should.exist(result.error.details);
-        result.error.details.should.equal('7 PERMISSION_DENIED: Access not allowed for request with subject:user_id, resource:rule, action:DELETE, target_scope:orgC; the response was DENY');
+        result.status.should.be.empty();
+        result.operation_status.code.should.equal(403);
+        result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:DELETE, target_scope:orgC; the response was DENY');
       });
 
       it('should allow to delete rule with valid subject scope', async () => {
@@ -387,19 +414,24 @@ describe('testing microservice', () => {
         subject.role_associations[0].role = 'admin-r-id';
         subject.token = 'admin_token';
         const user = {
-          id: subject.id,
-          tokens: [{ token: 'admin_token' }],
-          role_associations: subject.role_associations
+          payload: {
+            id: subject.id,
+            tokens: [{ token: 'admin_token' }],
+            role_associations: subject.role_associations
+          }
         };
         stopGrpcMockServer();
         // restart grpcMock with admin user id
         startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         const result = await ruleService.delete({
-          ids: testRule[0].id,
+          ids: [testRule[0].id],
           subject
         });
-        should.exist(result.data);
-        result.data.should.be.empty();
+        result.status[0].id.should.equal('test_rule_id');
+        result.status[0].code.should.equal(200);
+        result.status[0].message.should.equal('success');
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
     });
   });

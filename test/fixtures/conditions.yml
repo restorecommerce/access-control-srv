@@ -38,8 +38,14 @@ policy_sets:
                   value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT
             condition: "
-                const subjectID = context.subject.id;
-                const resources = context.resources;
+                let subjectID;
+                if (context && context.subject) {
+                  subjectID = context.subject.id;
+                }
+                let resources = context.resources;
+                if (!resources) {
+                  resources = [];
+                }
                 resources.find((resource) => {
                     return resource.id == subjectID;
                 }) != null;"

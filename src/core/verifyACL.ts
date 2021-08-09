@@ -25,7 +25,7 @@ export const verifyACLList = async (ruleTarget: Target,
   let context = request.context;
   if (_.isEmpty(context)) {
     logger.debug('No valid context in request');
-    return false; // no context was provided, evaluation fails
+    (context as any) = {};
   }
 
   const ctxResources = context.resources || [];

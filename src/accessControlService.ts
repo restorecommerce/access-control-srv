@@ -7,6 +7,7 @@ import { ResourceManager } from './resourceManager';
 import * as Redis from 'ioredis';
 
 import * as core from './core';
+import { ReverseQueryResponse } from './core/interfaces';
 
 export class AccessControlService {
   cfg: any;
@@ -61,9 +62,14 @@ export class AccessControlService {
     try {
       return this.accessController.isAllowed(acsRequest);
     } catch (err) { // deny if any error occurs
+      this.logger.error('Error evaluating isAllowed request', { error: err.message });
       return {
         decision: core.Decision.DENY,
-        obligation: ''
+        obligation: '',
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
       };
     }
   }
@@ -74,9 +80,19 @@ export class AccessControlService {
       target: request.target,
       context: request.context ? this.unmarshallContext(request.context) : {}
     };
-    return {
-      policy_sets: await this.accessController.whatIsAllowed(acsRequest)
-    };
+    let whatisAllowedResponse: ReverseQueryResponse;
+    try {
+      whatisAllowedResponse = await this.accessController.whatIsAllowed(acsRequest);
+    } catch (err) {
+      this.logger.error('Error evaluating whatIsAllowed request', { error: err.message });
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
+    }
+    return whatisAllowedResponse;
   }
 
   unmarshallContext(context: any): any {

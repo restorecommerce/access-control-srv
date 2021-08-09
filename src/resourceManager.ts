@@ -1,10 +1,10 @@
 import * as _ from 'lodash';
-import { ResourcesAPIBase, ServiceBase, toStruct } from '@restorecommerce/resource-base-interface';
+import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce/resource-base-interface';
 import { Topic, Events } from '@restorecommerce/kafka-client';
 
 import * as core from './core';
 import { getSubject, createMetadata, AccessResponse, checkAccessRequest, ReadPolicyResponse } from './core/utils';
-import { AuthZAction, PermissionDenied, Decision, ACSAuthZ } from '@restorecommerce/acs-client';
+import { AuthZAction, PermissionDenied, Decision, ACSAuthZ, DecisionResponse } from '@restorecommerce/acs-client';
 import { RedisClient } from 'redis';
 
 export interface IAccessControlResourceService<T> {
@@ -39,11 +39,13 @@ const marshallResource = (resource: any, resourceName: string): any => {
 };
 
 const makeFilter = (ids: string[]): any => {
-  return toStruct({
-    id: {
-      $in: ids
-    }
-  });
+  return [{
+    filter: [{
+      field: 'id',
+      operation: FilterOperation.in,
+      value: ids
+    }]
+  }];
 };
 
 let _accessController: core.AccessController;
@@ -74,18 +76,18 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
   }
 
   async getRules(ruleIDs?: string[]): Promise<Map<string, core.Rule>> {
-    const filter = ruleIDs ? makeFilter(ruleIDs) : {};
+    const filters = ruleIDs ? makeFilter(ruleIDs) : {};
     const result = await super.read({
       request: {
-        filter
+        filters
       }
     }, {});
 
     const rules = new Map<string, core.Rule>();
     if (result && result.items) {
       _.forEach(result.items, (rule) => {
-        if (!_.isEmpty(rule) && rule.id) {
-          rules.set(rule.id, marshallResource(rule, 'rule'));
+        if (!_.isEmpty(rule?.payload) && rule.payload && rule.payload.id) {
+          rules.set(rule.payload.id, marshallResource(rule.payload, 'rule'));
         }
       });
     }
@@ -96,11 +98,13 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
   async readMetaData(id?: string): Promise<any> {
     let result = await super.read({
       request: {
-        filter: toStruct({
-          id: {
-            $eq: id
-          }
-        })
+        filters: [{
+          filter: [{
+            field: 'id',
+            operation: FilterOperation.eq,
+            value: id
+          }]
+        }]
       }
     });
     return result;
@@ -112,23 +116,29 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.CREATE,
         'rule', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
+
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.create(call, context);
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result && result.items) {
       for (let item of result.items) {
-        const rule: core.Rule = marshallResource(item, 'rule');
+        const rule: core.Rule = marshallResource(item.payload, 'rule');
         for (let [, policySet] of policySets) {
           for (let [, policy] of policySet.combinables) {
             if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
@@ -150,10 +160,15 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
         'rule', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.read({ request: readRequest });
     return result;
@@ -165,16 +180,21 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
         'rule', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.update(call, context);
     return result;
@@ -186,16 +206,21 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
         'rule', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.upsert(call, context);
     return result;
@@ -205,7 +230,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let resources = [];
     let subject = await getSubject(call, this);
     let ruleIDs = call.request.ids;
-    let action;
+    let action, deleteResponse;
     if (ruleIDs) {
       action = AuthZAction.DELETE;
       if (_.isArray(ruleIDs)) {
@@ -223,18 +248,23 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       resources = [{ collection: call.request.collection }];
     }
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, resources, action,
         'rule', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
-    await super.delete(call, context);
+    deleteResponse = await super.delete(call, context);
     if (call.request.ids) {
       for (let id of call.request.ids) {
         for (let [, policySet] of _accessController.policySets) {
@@ -253,6 +283,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
         }
       }
     }
+    return deleteResponse;
   }
 }
 
@@ -286,16 +317,21 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.CREATE,
-        'policy', this);
+        'policy', this) as DecisionResponse;
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.create(call, context);
     const policySets = _.cloneDeep(_accessController.policySets);
@@ -303,14 +339,14 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     if (result && result.items) {
       for (let item of result.items) {
         for (let [, policySet] of policySets) {
-          if (policySet.combinables.has(item.id)) {
-            const policy: core.Policy = marshallResource(item, 'policy');
+          if (policySet.combinables.has(item.payload?.id)) {
+            const policy: core.Policy = marshallResource(item.payload, 'policy');
 
-            if (_.has(item, 'rules') && !_.isEmpty(item.rules)) {
-              policy.combinables = await ruleService.getRules(item.rules);
+            if (_.has(item.payload, 'rules') && !_.isEmpty(item.payload.rules)) {
+              policy.combinables = await ruleService.getRules(item.payload.rules);
 
-              if (policy.combinables.size != item.rules.length) {
-                for (let id of item.rules) {
+              if (policy.combinables.size != item.payload.rules.length) {
+                for (let id of item.payload.rules) {
                   if (!policy.combinables.has(id)) {
                     policy.combinables.set(id, null);
                   }
@@ -329,11 +365,13 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   async readMetaData(id?: string): Promise<any> {
     let result = await super.read({
       request: {
-        filter: toStruct({
-          id: {
-            $eq: id
-          }
-        })
+        filters: [{
+          filter: [{
+            field: 'id',
+            operation: FilterOperation.eq,
+            value: id
+          }]
+        }]
       }
     });
     return result;
@@ -348,10 +386,15 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         'policy', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.read({ request: readRequest });
     return result;
@@ -363,16 +406,21 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
         'policy', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.update(call, context);
     return result;
@@ -384,38 +432,43 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
         'policy', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.upsert(call, context);
     return result;
   }
 
   async getPolicies(policyIDs?: string[]): Promise<Map<string, core.Policy>> {
-    const filter = policyIDs ? makeFilter(policyIDs) : {};
+    const filters = policyIDs ? makeFilter(policyIDs) : {};
     const result = await super.read({
       request: {
-        filter
+        filters
       }
     }, {});
 
     const policies = new Map<string, core.Policy>();
     if (result && result.items) {
       for (let i = 0; i < result.items.length; i += 1) {
-        const policy: core.Policy = marshallResource(result.items[i], 'policy');
+        const policy: core.Policy = marshallResource(result.items[i].payload, 'policy');
 
-        if (!_.isEmpty(result.items[i].rules)) {
-          policy.combinables = await this.ruleService.getRules(result.items[i].rules);
-          if (policy.combinables.size != result.items[i].rules.length) {
-            for (let ruleID of result.items[i].rules) {
+        if (!_.isEmpty(result.items[i]?.payload?.rules)) {
+          policy.combinables = await this.ruleService.getRules(result.items[i].payload.rules);
+          if (policy.combinables.size != result.items[i].payload.rules.length) {
+            for (let ruleID of result.items[i].payload.rules) {
               const ruleData = await this.ruleService.getRules([ruleID]);
               if (ruleData.size === 0) {
                 this.logger.info(`No rules were found for rule identifier ${ruleID}`);
@@ -440,7 +493,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let resources = [];
     let subject = await getSubject(call, this);
     let policyIDs = call.request.ids;
-    let action;
+    let action, deleteResponse;
     if (policyIDs) {
       action = AuthZAction.DELETE;
       if (_.isArray(policyIDs)) {
@@ -458,18 +511,23 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       resources = [{ collection: call.request.collection }];
     }
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, resources, action,
         'policy', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
-    await super.delete(call, context);
+    deleteResponse = await super.delete(call, context);
 
     if (call.request.ids) {
       for (let id of call.request.ids) {
@@ -485,6 +543,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         _accessController.updatePolicySet(policySet);
       }
     }
+    return deleteResponse;
   }
 }
 
@@ -503,11 +562,13 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
   async readMetaData(id?: string): Promise<any> {
     let result = await super.read({
       request: {
-        filter: toStruct({
-          id: {
-            $eq: id
-          }
-        })
+        filters: [{
+          filter: [{
+            field: 'id',
+            operation: FilterOperation.eq,
+            value: id
+          }]
+        }]
       }
     });
     return result;
@@ -558,24 +619,27 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.CREATE,
         'policy_set', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.create(call, context);
-
     if (result && result.items) {
       for (let i = 0; i < result.items.length; i += 1) {
-        const policySet: core.PolicySet = marshallResource(result.items[i], 'policy_set');
-        const policyIDs = result.items[i].policies;
-
+        const policySet: core.PolicySet = marshallResource(result.items[i]?.payload, 'policy_set');
+        const policyIDs = result.items[i]?.payload?.policies;
         if (!_.isEmpty(policyIDs)) {
           policySet.combinables = await policyService.getPolicies(policyIDs);
           if (policySet.combinables.size != policyIDs.length) {
@@ -599,16 +663,21 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
         'policy_set', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.update(call, context);
 
@@ -656,7 +725,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let resources = [];
     let subject = await getSubject(call, this);
     let policySetIDs = call.request.ids;
-    let action;
+    let action, deleteResponse;
     if (policySetIDs) {
       action = AuthZAction.DELETE;
       if (_.isArray(policySetIDs)) {
@@ -674,18 +743,23 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       resources = [{ collection: call.request.collection }];
     }
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, resources, action,
         'policy_set', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
-    await super.delete(call, context);
+    deleteResponse = await super.delete(call, context);
 
     if (call.request.ids) {
       for (let id of call.request.ids) {
@@ -694,6 +768,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     } else if (call.request.collection && call.request.collection == 'policy_set') {
       _accessController.clearPolicies();
     }
+    return deleteResponse;
   }
 
   async read(call: any, context: any): Promise<any> {
@@ -705,10 +780,15 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         'policy', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv:', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.read({ request: readRequest });
     return result;
@@ -720,16 +800,21 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let items = call.request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this, this.readMetaData());
 
-    let acsResponse: AccessResponse;
+    let acsResponse: DecisionResponse;
     try {
       acsResponse = await checkAccessRequest(subject, items, AuthZAction.MODIFY,
         'policy', this);
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv', err);
-      throw err;
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
     }
     if (acsResponse.decision != Decision.PERMIT) {
-      throw new PermissionDenied(acsResponse.response.status.message, acsResponse.response.status.code);
+      return { operation_status: acsResponse.operation_status };
     }
     const result = await super.upsert(call, context);
     return result;

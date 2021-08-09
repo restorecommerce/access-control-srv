@@ -186,8 +186,10 @@
       "provider": "kafka",
       "groupId": "access-control-srv",
       "kafka": {
-        "clientId": "room-service-management-srv",
-        "brokers": ["localhost:29092"]
+        "clientId": "access-control-srv",
+        "brokers": [
+          "localhost:29092"
+        ]
       },
       "healthCheckCommand": {
         "protos": [
@@ -403,52 +405,29 @@
   },
   "client": {
     "acs-srv": {
-      "transports": {
-        "grpc": {
-          "service": "io.restorecommerce.access_control.Service",
-          "protos": [
-            "io/restorecommerce/access_control.proto"
-          ],
-          "protoRoot": "node_modules/@restorecommerce/protos/",
-          "timeout": 3000
+      "address": "localhost:50061",
+      "proto": {
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "protoPath": "io/restorecommerce/access_control.proto",
+        "services": {
+          "acs-srv": {
+            "packageName": "io.restorecommerce.access_control",
+            "serviceName": "Service"
+          }
         }
-      },
-      "loadbalancer": {
-        "name": "roundRobin"
-      },
-      "publisher": {
-        "name": "static",
-        "instances": [
-          "grpc://localhost:50061"
-        ]
-      },
-      "endpoints": {
-        "isAllowed": {},
-        "whatIsAllowed": {}
       }
     },
     "user": {
-      "transports": {
-        "grpc": {
-          "service": "io.restorecommerce.user.Service",
-          "protos": [
-            "io/restorecommerce/user.proto"
-          ],
-          "protoRoot": "node_modules/@restorecommerce/protos/",
-          "timeout": 3000
+      "address": "localhost:50052",
+      "proto": {
+        "protoRoot": "node_modules/@restorecommerce/protos/",
+        "protoPath": "io/restorecommerce/user.proto",
+        "services": {
+          "user": {
+            "packageName": "io.restorecommerce.user",
+            "serviceName": "Service"
+          }
         }
-      },
-      "loadbalancer": {
-        "name": "roundRobin"
-      },
-      "publisher": {
-        "name": "static",
-        "instances": [
-          "grpc://localhost:50052"
-        ]
-      },
-      "endpoints": {
-        "findByToken": {}
       }
     }
   },

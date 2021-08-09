@@ -9,7 +9,7 @@ import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arang
 
 import * as core from './core';
 import { ACSAuthZ, initAuthZ, initializeCache } from '@restorecommerce/acs-client';
-import { Client } from '@restorecommerce/grpc-client';
+import { GrpcClient } from '@restorecommerce/grpc-client';
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {
@@ -94,8 +94,8 @@ export class Worker {
     let userService;
     const grpcIDSConfig = this.cfg.get('client:user');
     if (grpcIDSConfig) {
-      const idsClient = new Client(grpcIDSConfig, logger);
-      userService = await idsClient.connect();
+      const idsClient = new GrpcClient(grpcIDSConfig, logger);
+      userService = idsClient.user;
     }
     this.accessController = new core.AccessController(this.logger,
       this.cfg.get('policies:options'), userTopic, this.cfg, userService);
@@ -152,9 +152,9 @@ export class Worker {
         let subject;
         if (token) {
           subject = await this.accessController.userService.findByToken({ token });
-          if (subject && subject.data) {
-            const tokens = subject.data.tokens;
-            const subID = subject.data.id;
+          if (subject && subject.payload) {
+            const tokens = subject.payload.tokens;
+            const subID = subject.payload.id;
             const tokenFound = _.find(tokens, { token });
             if (tokenFound && tokenFound.interactive) {
               redisHRScopesKey = `cache:${subID}:hrScopes`;
@@ -167,7 +167,7 @@ export class Worker {
             try {
               redisSub = await that.accessController.getRedisKey(redisSubKey);
               if (_.isEmpty(redisSub)) {
-                that.accessController.setRedisKey(redisSubKey, JSON.stringify(subject.data));
+                that.accessController.setRedisKey(redisSubKey, JSON.stringify(subject.payload));
               }
             } catch (err) {
               this.logger.error('Error retrieving Subject from redis in acs-srv');

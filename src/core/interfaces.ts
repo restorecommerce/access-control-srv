@@ -129,6 +129,10 @@ export interface Response {
   decision: Decision;
   obligation: string;
   evaluation_cacheable?: boolean;
+  operation_status: {
+    code: number;
+    message: string;
+  };
 }
 
 export interface CombiningAlgorithm {
@@ -145,6 +149,14 @@ export interface GQLFilter {
   field: string;
   operation: string;
   value: string;
+}
+
+export interface ReverseQueryResponse {
+  policy_sets: PolicySetRQ [];
+  operation_status: {
+    code: number;
+    message: string;
+  };
 }
 
 // Reverse query response

@@ -7,7 +7,7 @@ import * as testUtils from './utils';
 
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
-import { Client } from '@restorecommerce/grpc-client';
+import { GrpcClient } from '@restorecommerce/grpc-client';
 
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
@@ -15,11 +15,64 @@ import { updateConfig } from '@restorecommerce/acs-client';
 
 let cfg: any;
 let logger;
-let client: Client;
+let client: GrpcClient;
 let worker: Worker;
 let ruleService: any, policyService: any, policySetService: any;
 let accessControlService: any;
 let rules, policies, policySets;
+
+const setupService = async (): Promise<void> => {
+  cfg = createServiceConfig(process.cwd() + '/test');
+  logger = createLogger(cfg.get('logger'));
+
+  worker = new Worker();
+  await worker.start(cfg, logger);
+
+  client = new GrpcClient(cfg.get('client:policy_set'), logger);
+  policySetService = client.policy_set;
+  client = new GrpcClient(cfg.get('client:policy'), logger);
+  policyService = client.policy;
+  client = new GrpcClient(cfg.get('client:rule'), logger);
+  ruleService = client.rule;
+};
+
+const truncate = async (): Promise<void> => {
+  await policySetService.delete({
+    collection: true
+  });
+  await policyService.delete({
+    collection: true
+  });
+  await ruleService.delete({
+    collection: true
+  });
+};
+
+const load = async (policiesFile: string): Promise<void> => {
+  // load from fixtures
+  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile));
+  const marshalled = testUtils.marshallYamlPolicies(yamlPolicies);
+
+  rules = marshalled.rules;
+  policies = marshalled.policies;
+  policySets = marshalled.policySets;
+
+  client = new GrpcClient(cfg.get('client:acs-srv'), logger);
+  accessControlService = client['acs-srv'];
+};
+
+const create = async (policiesFile: string): Promise<void> => {
+  await load(policiesFile);
+  await policySetService.create({
+    items: policySets
+  });
+  await policyService.create({
+    items: policies
+  });
+  await ruleService.create({
+    items: rules
+  });
+};
 
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS disabled', () => {
@@ -32,7 +85,7 @@ describe('testing microservice', () => {
       updateConfig(cfg);
     });
     after(async () => {
-      await client.end();
+      await client.close();
       await worker.stop();
     });
     describe('testing create() operations', () => {
@@ -41,10 +94,10 @@ describe('testing microservice', () => {
           items: policySets
         });
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.length(policySets.length);
+        should.exist(result.items);
+        result.items.should.be.length(policySets.length);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should insert policies', async () => {
@@ -52,10 +105,10 @@ describe('testing microservice', () => {
           items: policies
         });
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.length(policies.length);
+        should.exist(result.items);
+        result.items.should.be.length(policies.length);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should insert rules', async () => {
@@ -63,10 +116,10 @@ describe('testing microservice', () => {
           items: rules
         });
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.length(rules.length);
+        should.exist(result.items);
+        result.items.should.be.length(rules.length);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should update in-memory policies when creating resources', async () => {
@@ -97,7 +150,7 @@ describe('testing microservice', () => {
               id: 'policySetA',
               name: 'Policy set A v2',
               policies: [
-                "policyA", "policyB"
+                'policyA', 'policyB'
               ],
               meta: {
                 owner: [],
@@ -108,11 +161,12 @@ describe('testing microservice', () => {
         }, {});
 
         should.exist(result);
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.have.length(1);
+        should.exist(result.items);
+        result.items.should.have.length(1);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
 
-        const updatedPS = result.data.items[0];
+        const updatedPS = result.items[0].payload;
         should.exist(updatedPS.name);
         should.exist(updatedPS.policies);
         updatedPS.name.should.equal('Policy set A v2');
@@ -145,15 +199,15 @@ describe('testing microservice', () => {
     describe('testing delete() operations', () => {
 
       it('should delete rules', async () => {
-        await ruleService.delete({
+        const deleteResponse = await ruleService.delete({
           ids: rules.map((r) => { return r.id; })
         });
-        const result = await ruleService.read();
+        const result = await ruleService.read({});
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.empty();
+        should.exist(result.items);
+        result.items.should.be.empty();
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should update in-memory policies by removing rules', () => {
@@ -171,12 +225,12 @@ describe('testing microservice', () => {
         await policyService.delete({
           ids: policies.map((p) => { return p.id; })
         });
-        const result = await policyService.read();
+        const result = await policyService.read({});
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.empty();
+        should.exist(result.items);
+        result.items.should.be.empty();
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should update in-memory policy sets by removing policies', () => {
@@ -192,12 +246,13 @@ describe('testing microservice', () => {
         await policySetService.delete({
           ids: policySets.map((p) => { return p.id; })
         });
-        const result = await policySetService.read();
+        const result = await policySetService.read({});
         should.exist(result);
         should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.items);
-        result.data.items.should.be.empty();
+        should.exist(result.items);
+        result.items.should.be.empty();
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
       it('should update in-memory info, which should be empty', () => {
@@ -213,7 +268,7 @@ describe('testing microservice', () => {
       await setupService();
     });
     after(async () => {
-      await client.end();
+      await client.close();
       await worker.stop();
     });
     describe('isAllowed()', () => {
@@ -239,13 +294,13 @@ describe('testing microservice', () => {
 
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.decision);
-        result.data.decision.should.equal(core.Decision.PERMIT);
+        should.exist(result.decision);
+        result.decision.should.equal(core.Decision.PERMIT);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
-      it('should throw DENY', async () => {
+      it('should return DENY', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'SimpleUser',
@@ -260,13 +315,13 @@ describe('testing microservice', () => {
 
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.decision);
-        result.data.decision.should.equal(core.Decision.DENY);
+        should.exist(result.decision);
+        result.decision.should.equal(core.Decision.DENY);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
-      it('should throw DENY due to invalid context', async () => {
+      it('should DENY due to invalid context', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'SimpleUser',
@@ -281,13 +336,13 @@ describe('testing microservice', () => {
 
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.decision);
-        result.data.decision.should.equal(core.Decision.DENY);
+        should.exist(result.decision);
+        result.decision.should.equal(core.Decision.DENY);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
 
-      it('should throw INDETERMINATE', async () => {
+      it('should return INDETERMINATE', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'SimpleUser',
@@ -302,10 +357,10 @@ describe('testing microservice', () => {
 
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.decision);
-        result.data.decision.should.equal(core.Decision.INDETERMINATE);
+        should.exist(result.decision);
+        result.decision.should.equal(core.Decision.INDETERMINATE);
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
       });
     });
     describe('testing whatIsAllowed', () => {
@@ -315,7 +370,7 @@ describe('testing microservice', () => {
       after(async () => {
         await truncate();
       });
-      it('should return filtered rules', async function (): Promise<void> {
+      it('should return filtered rules', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'SimpleUser',
@@ -328,16 +383,15 @@ describe('testing microservice', () => {
         const result = await accessControlService.whatIsAllowed(accessRequest);
         should.exist(result);
         should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.policy_sets);
-        result.data.policy_sets.should.be.length(1);
+        should.exist(result.policy_sets);
+        result.policy_sets.should.be.length(1);
 
-        should.exist(result.data.policy_sets[0].policies);
-        result.data.policy_sets[0].policies.should.be.length(1);
-        should.exist(result.data.policy_sets[0].policies[0].rules);
-        result.data.policy_sets[0].policies[0].rules.should.have.length(2);
+        should.exist(result.policy_sets[0].policies);
+        result.policy_sets[0].policies.should.be.length(1);
+        should.exist(result.policy_sets[0].policies[0].rules);
+        result.policy_sets[0].policies[0].rules.should.have.length(2);
 
-        const rule = result.data.policy_sets[0].policies[0].rules[0];
+        const rule = result.policy_sets[0].policies[0].rules[0];
         should.exist(rule.target);
         should.exist(rule.target.subject);
         rule.target.subject.should.have.length(2);
@@ -356,7 +410,7 @@ describe('testing microservice', () => {
         rule.target.action[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
         rule.target.action[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
       });
-      it('should return return only fallback rule when targets don\'t match', async function (): Promise<void> {
+      it('should return only fallback rule when targets don\'t match', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'SimpleUser',
@@ -370,71 +424,15 @@ describe('testing microservice', () => {
         const result = await accessControlService.whatIsAllowed(accessRequest);
 
         should.exist(result);
-        should.not.exist(result.error);
-        should.exist(result.data);
-        should.exist(result.data.policy_sets);
-        result.data.policy_sets.should.be.length(1);
+        should.exist(result.policy_sets);
+        result.policy_sets.should.be.length(1);
 
-        should.exist(result.data.policy_sets[0].policies);
-        result.data.policy_sets[0].policies.should.be.length(1);
-        should.exist(result.data.policy_sets[0].policies[0].rules);
-        result.data.policy_sets[0].policies[0].rules.should.have.length(1);
-        result.data.policy_sets[0].policies[0].rules[0].effect.should.equal(core.Decision.DENY);
+        should.exist(result.policy_sets[0].policies);
+        result.policy_sets[0].policies.should.be.length(1);
+        should.exist(result.policy_sets[0].policies[0].rules);
+        result.policy_sets[0].policies[0].rules.should.have.length(1);
+        result.policy_sets[0].policies[0].rules[0].effect.should.equal(core.Decision.DENY);
       });
     });
   });
 });
-
-
-async function setupService(): Promise<void> {
-  cfg = createServiceConfig(process.cwd() + '/test');
-  logger = createLogger(cfg.get('logger'));
-
-  worker = new Worker();
-  await worker.start(cfg, logger);
-
-  client = new Client(cfg.get('client:policy_set'), logger);
-  policySetService = await client.connect();
-  client = new Client(cfg.get('client:policy'), logger);
-  policyService = await client.connect();
-  client = new Client(cfg.get('client:rule'), logger);
-  ruleService = await client.connect();
-}
-
-async function truncate(): Promise<void> {
-  await policySetService.delete({
-    collection: true
-  });
-  await policyService.delete({
-    collection: true
-  });
-  await ruleService.delete({
-    collection: true
-  });
-}
-
-async function load(policiesFile: string): Promise<void> {
-  // load from fixtures
-  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile));
-  const marshalled = testUtils.marshallYamlPolicies(yamlPolicies);
-
-  rules = marshalled.rules;
-  policies = marshalled.policies;
-  policySets = marshalled.policySets;
-
-  client = new Client(cfg.get('client:acs'), logger);
-  accessControlService = await client.connect();
-}
-
-async function create(policiesFile: string): Promise<void> {
-  await load(policiesFile);
-  await policySetService.create({
-    items: policySets
-  });
-  await policyService.create({
-    items: policies
-  });
-  await ruleService.create({
-    items: rules
-  });
-}

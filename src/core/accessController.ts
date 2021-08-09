@@ -3,7 +3,7 @@ import * as nodeEval from 'node-eval';
 import {
   Rule, Policy, PolicySet, Request, Response,
   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
-  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation
+  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation, ReverseQueryResponse
 } from './interfaces';
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
@@ -70,17 +70,27 @@ export class AccessController {
     this.logger.silly('Received an access request');
     if (!request.target) {
       this.logger.silly('Access request had no target. Skipping request.');
-      throw new errors.InvalidRequest('target');
+      return {
+        decision: Decision.DENY,
+        obligation: '',
+        operation_status: {
+          code: 400,
+          message: 'Access request had no target. Skipping request'
+        }
+      };
     }
 
     let effect: EffectEvaluation;
     let context = request.context;
+    if (!context) {
+      (context as any) = {};
+    }
     if (context && context.subject && context.subject.token) {
-      const user = await this.userService.findByToken({ token: context.subject.token });
-      if (user && user.data) {
-        request.context.subject.id = user.data.id;
-        request.context.subject.tokens = user.data.tokens;
-        request.context.subject.role_associations = user.data.role_associations;
+      const subject = await this.userService.findByToken({ token: context.subject.token });
+      if (subject && subject.payload) {
+        request.context.subject.id = subject.payload.id;
+        request.context.subject.tokens = subject.payload.tokens;
+        request.context.subject.role_associations = subject.payload.role_associations;
       }
     }
     for (let [, value] of this.policySets) {
@@ -146,7 +156,11 @@ export class AccessController {
                           return {  // deny by default
                             decision: Decision.DENY,
                             obligation: '',
-                            evaluation_cacheable
+                            evaluation_cacheable,
+                            operation_status: {
+                              code: 200,
+                              message: 'success'
+                            }
                           };
                         }
                       }
@@ -159,7 +173,11 @@ export class AccessController {
                     return {  // if an exception is caught deny by default
                       decision: Decision.DENY,
                       obligation: '',
-                      evaluation_cacheable
+                      evaluation_cacheable,
+                      operation_status: {
+                        code: err.code ? err.code : 500,
+                        message: err.message
+                      }
                     };
                   }
 
@@ -192,31 +210,38 @@ export class AccessController {
       return {
         decision: Decision.INDETERMINATE,
         obligation: '',
-        evaluation_cacheable: undefined
+        evaluation_cacheable: undefined,
+        operation_status: {
+          code: 200,
+          message: 'success'
+        }
       };
     }
 
     let decision: Decision;
-
     decision = Decision[effect.effect] || Decision.INDETERMINATE;
 
     this.logger.silly('Access response is', decision);
     return {
       decision,
       obligation: '',
-      evaluation_cacheable: effect.evaluation_cacheable
+      evaluation_cacheable: effect.evaluation_cacheable,
+      operation_status: {
+        code: 200,
+        message: 'success'
+      }
     };
   }
 
-  async whatIsAllowed(request: Request): Promise<PolicySetRQ[]> {
+  async whatIsAllowed(request: Request): Promise<ReverseQueryResponse> {
     let policySets: PolicySetRQ[] = [];
     let context = request.context;
     if (context && context.subject && context.subject.token) {
-      const user = await this.userService.findByToken({ token: context.subject.token });
-      if (user && user.data) {
-        request.context.subject.id = user.data.id;
-        request.context.subject.tokens = user.data.tokens;
-        request.context.subject.role_associations = user.data.role_associations;
+      const subject = await this.userService.findByToken({ token: context.subject.token });
+      if (subject && subject.payload) {
+        request.context.subject.id = subject.payload.id;
+        request.context.subject.tokens = subject.payload.tokens;
+        request.context.subject.role_associations = subject.payload.role_associations;
       }
     }
     for (let [, value] of this.policySets) {
@@ -268,7 +293,12 @@ export class AccessController {
         }
       }
     }
-    return policySets;
+    return {
+      policy_sets: policySets, operation_status: {
+        code: 200,
+        message: 'success'
+      }
+    };
   }
 
   /**
