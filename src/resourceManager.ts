@@ -17,7 +17,9 @@ const marshallResource = (resource: any, resourceName: string): any => {
   switch (resourceName) {
     case 'policy_set':
       marshalled = _.assign(marshalled, _.pick(resource, ['target']));
-      marshalled.combiningAlgorithm = resource.combining_algorithm;
+      if (!_.isEmpty(resource)) {
+        marshalled.combiningAlgorithm = resource.combining_algorithm;
+      }
       marshalled.combinables = new Map<string, core.Policy>();
       break;
     case 'policy':
@@ -27,7 +29,7 @@ const marshallResource = (resource: any, resourceName: string): any => {
       break;
     case 'rule':
       marshalled = _.assign(marshalled, _.pick(resource, ['target', 'effect', 'condition']));
-      if (!_.isEmpty(resource.context_query)
+      if (!_.isEmpty(resource) && !_.isEmpty(resource.context_query)
         && !_.isEmpty(resource.context_query.query)) {
         marshalled.contextQuery = resource.context_query;
       }
