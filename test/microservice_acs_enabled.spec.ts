@@ -93,8 +93,8 @@ const startGrpcMockServer = async (rules: ServerRule[]) => {
     },
     rules
   });
-  mockServer.listen('0.0.0.0:50052');
-  logger.info('Identity Server started on port 50052');
+  mockServer.listen('0.0.0.0:50051');
+  logger.info('Identity Server started on port 50051');
 };
 
 const stopGrpcMockServer = async () => {

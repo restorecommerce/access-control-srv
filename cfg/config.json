@@ -418,7 +418,7 @@
       }
     },
     "user": {
-      "address": "localhost:50052",
+      "address": "localhost:50051",
       "proto": {
         "protoRoot": "node_modules/@restorecommerce/protos/",
         "protoPath": "io/restorecommerce/user.proto",
