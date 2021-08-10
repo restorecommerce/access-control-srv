@@ -1,3 +1,11 @@
+## 0.2.0 (August 10th, 2021)
+
+- latest grpc-client
+- migraged kafka-client to kafkajs
+- chassis-srv using the latest grpc-js and protobufdef loader
+- filter changes (removed google.protobuf.struct completely and defined nested proto structure)
+- added status object to each item and also overall operation_status.
+
 ## 0.1.22 (July 26th, 2021)
 
 - added `skipACL` attribute to support not to make ACL check if this attribute is set in rule
