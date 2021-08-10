@@ -94,7 +94,7 @@ export class Worker {
     let userService;
     const grpcIDSConfig = this.cfg.get('client:user');
     if (grpcIDSConfig) {
-      const idsClient = new GrpcClient(grpcIDSConfig, logger);
+      const idsClient = new GrpcClient(grpcIDSConfig, this.logger);
       userService = idsClient.user;
     }
     this.accessController = new core.AccessController(this.logger,
