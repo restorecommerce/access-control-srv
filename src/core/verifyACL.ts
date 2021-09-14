@@ -144,6 +144,7 @@ export const verifyACLList = async (ruleTarget: Target,
 
       // verify each of targetInstance is under subjectInstances
       // if action is create / modify then only verify the HR scopes (if not direct match should be done)
+      let validatedACLInstances: string[] = [];
       if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
         (actionObj[0].value === urns.get('create'))) {
         const hierarchical_scopes = context.subject.hierarchical_scopes;
@@ -156,8 +157,9 @@ export const verifyACLList = async (ruleTarget: Target,
               if (eligibleOrgScopes.includes(targetInstance)) {
                 logger.debug(`ACL instance ${targetInstance} is valid`);
                 validTargetInstances = true;
+                validatedACLInstances.push(targetInstance);
                 continue;
-              } else {
+              } else if(!validatedACLInstances.includes(targetInstance)) {
                 logger.info(`ACL instance ${targetInstance} cannot be assigned by subject ${context.subject.id}
                     as subject does not have permissions`);
                 validTargetInstances = false;
