@@ -1,3 +1,7 @@
+## 0.2.3 (September 21st, 2021)
+
+- up RC dependencies
+
 ## 0.2.2 (September 14th, 2021)
 
 - fix ACL bug to keep track of already validated traget instances
