@@ -594,14 +594,14 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     const policySets = new Map<string, core.PolicySet>();
 
     for (let item of items) {
-      if (!item.policies) {
-        this.logger.warn(`No policies were found for policy set ${item.name}`);
+      if (!item?.payload?.policies) {
+        this.logger.warn(`No policies were found for policy set ${item.payload.name}`);
         continue;
       }
 
-      const policySet: core.PolicySet = marshallResource(item, 'policy_set');
+      const policySet: core.PolicySet = marshallResource(item.payload, 'policy_set');
 
-      _.forEach(item.policies, (policyID) => {
+      _.forEach(item.payload.policies, (policyID) => {
         if (policies.has(policyID)) {
           policySet.combinables.set(policyID, policies.get(policyID));
         } else {
