@@ -1,3 +1,7 @@
+## 0.2.4 (September 27th, 2021)
+
+- fix load policy sets
+
 ## 0.2.3 (September 21st, 2021)
 
 - up RC dependencies
