@@ -1,3 +1,7 @@
+## 0.2.5 (October 7th, 2021)
+
+- updated protos (includes `acl` property for ACL validation)
+
 ## 0.2.4 (September 27th, 2021)
 
 - fix load policy sets
