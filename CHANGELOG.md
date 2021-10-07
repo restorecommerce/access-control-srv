@@ -1,3 +1,7 @@
+## 0.2.6 (October 7th, 2021)
+
+- updated acs-client
+
 ## 0.2.5 (October 7th, 2021)
 
 - updated protos (includes `acl` property for ACL validation)
