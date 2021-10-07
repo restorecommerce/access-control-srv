@@ -129,12 +129,16 @@ export class AccessController {
             }
 
             else {
+              let evaluationCacheableRule = true;
               for (let [, rule] of policy.combinables) {
                 if (!rule) {
                   this.logger.debug('Rule Object not set');
                   continue;
                 }
                 let evaluation_cacheable = rule.evaluation_cacheable;
+                if (!evaluation_cacheable) {
+                  evaluationCacheableRule = false;
+                }
                 // if rule has not target it should be always applied inside the policy scope
                 this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
                 let matches = !rule.target || await this.targetMatches(rule.target, request, 'isAllowed', true);
@@ -187,6 +191,9 @@ export class AccessController {
                   }
 
                   if (matches) {
+                    if (!evaluationCacheableRule) {
+                      evaluation_cacheable = evaluationCacheableRule;
+                    }
                     ruleEffects.push({ effect: rule.effect, evaluation_cacheable });
                   }
                 }
