@@ -569,11 +569,13 @@ describe('Testing access control core', () => {
           getAllAddresses: {
             details: [
               {
-                country_id: 'Germany'
+                payload: {
+                  country_id: 'Germany'
+                }
               }
-            ], error: {
-              code: [],
-              message: []
+            ], operation_status: {
+              code: 200,
+              message: 'success'
             }
           }
         }
@@ -600,12 +602,14 @@ describe('Testing access control core', () => {
           getAllAddresses: {
             details: [
               {
-                country_id: 'Finland'
+                payload: {
+                  country_id: 'Finland'
+                }
               }
             ],
-            error: {
-              code: [],
-              message: []
+            operation_status: {
+              code: 200,
+              message: 'success'
             }
           }
         }

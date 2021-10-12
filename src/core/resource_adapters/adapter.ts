@@ -5,6 +5,9 @@ export interface ResourceAdapter {
 }
 
 export interface QueryResult {
-  errors?: any;
+  operation_status?: {
+    code?: number;
+    message?: string;
+  };
   details?: any[];
 }

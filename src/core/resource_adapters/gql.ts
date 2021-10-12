@@ -23,34 +23,39 @@ export class GraphQLAdapter implements ResourceAdapter {
   async query(contextQuery: ContextQuery, request: Request): Promise<any[]> {
     const filters = _.cloneDeep(contextQuery.filters);
     const resources = request.target.resources;
-    const queryFilters = [];
-    for (let filter of filters) {
-      // search for property in resources
-      if (!filter.value.match(/urn:*#*/)) {
-        throw new Error('Invalid property name specified for resource adapter filter');
-      }
-      const split = filter.value.split('#');
-      const entity = split[0];
-      const property = split[1];
+    let queryFilters = [];
+    for (let filtersObj of filters) {
+      for (let filter of filtersObj.filter) {
+        // search for property in resources
+        if (!filter.value.match(/urn:*#*/)) {
+          throw new Error('Invalid property name specified for resource adapter filter');
+        }
+        const split = filter.value.split('#');
+        const entity = split[0];
+        const property = split[1];
 
-      let match = false;
-      for (let resourceAttribute of resources) {
-        if (resourceAttribute.id == 'urn:restorecommerce:acs:names:model:entity' && resourceAttribute.value == entity) {
-          match = true;
-        } else if (resourceAttribute.id == 'urn:oasis:names:tc:xacml:1.0:resource:resource-id' && match) {
-          const resourceID = resourceAttribute.value;
-          const resource = _.find(request.context.resources, r => r.id == resourceID);
-          filter.value = _.get(resource, property);
+        let match = false;
+        for (let resourceAttribute of resources) {
+          if (resourceAttribute.id == 'urn:restorecommerce:acs:names:model:entity' && resourceAttribute.value == entity) {
+            match = true;
+          } else if (resourceAttribute.id == 'urn:oasis:names:tc:xacml:1.0:resource:resource-id' && match) {
+            const resourceID = resourceAttribute.value;
+            const resource = _.find(request.context.resources, r => r.id == resourceID);
+            filter.value = _.get(resource, property);
 
-          queryFilters.push(filter);
-          match = false;
+            queryFilters.push(filter);
+            match = false;
+          }
         }
       }
     }
 
+    let filtersArr = [];
     if (_.isEmpty(queryFilters)) {
       this.logger.warn('No filter provided for GQL adapter query; skipping');
       return null;
+    } else {
+      filtersArr = [{ filter: queryFilters }];
     }
 
     const query = contextQuery.query;
@@ -65,16 +70,16 @@ export class GraphQLAdapter implements ResourceAdapter {
     } catch (err) {
       throw new Error('Error occured creating graphql client');
     }
-    const response = await client.query({ query: gql`${query}`, variables: { filter: queryFilters } });
+    const response = await client.query({ query: gql`${query}`, variables: { filters: filtersArr } });
     if (_.isEmpty(response)) {
       throw new errors.UnexpectedContextQueryResponse('Empty response');
     }
 
     const queryName = _.keys(response.data)[0];
     const result: QueryResult = response.data[queryName];
-    if (!_.isEmpty(result.errors)) {
-      this.logger.error('Context query result contains errors:', { errors: result.errors });
-      throw new errors.UnexpectedContextQueryResponse(result.errors);
+    if (result?.operation_status?.code && result.operation_status.code != 200) {
+      this.logger.error('Context query result contains errors', result.operation_status);
+      throw new errors.UnexpectedContextQueryResponse(result.operation_status.message);
     }
 
     return result.details || [];

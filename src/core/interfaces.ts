@@ -39,8 +39,12 @@ export interface Target {
 }
 
 export interface ContextQuery {
-  filters: GQLFilter[];
+  filters: GQLFilterArr[];
   query: string;
+}
+
+interface GQLFilterArr {
+  filter: GQLFilter[];
 }
 
 export interface EffectEvaluation {

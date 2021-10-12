@@ -28,21 +28,24 @@ policy_sets:
             context_query:
               # use `address_id` property from any provided Location
               filters:
-                - field: id
-                  operation: eq
-                  value: urn:restorecommerce:acs:model:location.Location#address
-              query: 'query getAllAddresses ($filter: [FilterOpts]) {
-                        getAllAddresses (filter: $filter) {
+                - filter:
+                  - field: id
+                    operation: eq
+                    value: urn:restorecommerce:acs:model:location.Location#address
+              query: 'query getAllAddresses ($filters: [FilterOpts]) {
+                        getAllAddresses (filters: $filters) {
                           details {
-                            country_id
-                          }, error {
+                            payload {
+                              country_id
+                            }
+                          }, operation_status {
                             code, message
                           }
                         }
                       }'
             # match if location has a German address
             condition: 'context._queryResult.find((address) => {
-                if (address.country_id != "Germany") {
+                if (address.payload.country_id != "Germany") {
                   return true;
                 }
               }) == null;'
