@@ -1,3 +1,7 @@
+## 0.2.7 (October 12th, 2021)
+
+- fixed context query filters
+
 ## 0.2.6 (October 7th, 2021)
 
 - updated acs-client
