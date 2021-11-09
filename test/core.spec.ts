@@ -435,6 +435,20 @@ describe('Testing access control core', () => {
       });
       await requestAndValidate(ac, request, core.Decision.PERMIT);
     });
+    it('should PERMIT a read by a SimpleUser for both Location and Organization', async () => {
+      request = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
+        resourceID: ['Location 1', 'Organization 1'],
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      await requestAndValidate(ac, request, core.Decision.PERMIT);
+    });
     it('should DENY a modify by a SimpleUser', async () => {
       request = testUtils.buildRequest({
         subjectID: 'Alice',

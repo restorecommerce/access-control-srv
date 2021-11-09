@@ -10,7 +10,7 @@ export { formatTarget };
  *
  * @param opts
  */
-export function buildRequest(opts: RequestOpts): core.Request {
+export const buildRequest = (opts: RequestOpts): core.Request => {
 
   let subject: core.Attribute[] = [];
   let resources: core.Attribute[] = [];
@@ -44,24 +44,47 @@ export function buildRequest(opts: RequestOpts): core.Request {
     resources = resources.concat([
       {
         id: 'urn:restorecommerce:acs:names:operation',
-        value: opts.resourceType
+        value: opts.resourceType as string
       }
     ]);
   } else {
-    resources = resources.concat([
-      {
-        id: 'urn:restorecommerce:acs:names:model:entity',
-        value: opts.resourceType
-      },
-      {
-        id: 'urn:restorecommerce:acs:names:model:property',
-        value: opts.resourceProperty
-      },
-      {
-        id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
-        value: opts.resourceID
-      },
-    ]);
+    if (typeof opts.resourceType === 'string') {
+      resources = resources.concat([
+        {
+          id: 'urn:restorecommerce:acs:names:model:entity',
+          value: opts.resourceType as string
+        },
+        {
+          id: 'urn:restorecommerce:acs:names:model:property',
+          value: opts.resourceProperty
+        },
+        {
+          id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
+          value: opts.resourceID as string
+        },
+      ]);
+    } else {
+      for (let i = 0; i < opts.resourceType.length; i++) {
+        let resourceID;
+        if (opts.resourceID && opts.resourceID[i]) {
+          resourceID = opts.resourceID[i];
+        }
+        resources = resources.concat([
+          {
+            id: 'urn:restorecommerce:acs:names:model:entity',
+            value: opts.resourceType[i]
+          },
+          {
+            id: 'urn:restorecommerce:acs:names:model:property',
+            value: opts.resourceProperty
+          },
+          {
+            id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
+            value: resourceID
+          },
+        ]);
+      }
+    }
   }
 
   action.push({
@@ -74,9 +97,9 @@ export function buildRequest(opts: RequestOpts): core.Request {
     let aclInstances = [];
     opts.aclInstances.forEach(aclInstance => {
       aclInstances.push({
-        id: "urn:restorecommerce:acs:names:aclInstance",
+        id: 'urn:restorecommerce:acs:names:aclInstance',
         value: aclInstance
-      })
+      });
     });
     acl = [
       {
@@ -90,15 +113,15 @@ export function buildRequest(opts: RequestOpts): core.Request {
     let orgInstances = [], subjectInstances = [];
     opts.orgInstances.forEach(orgInstance => {
       orgInstances.push({
-        id: "urn:restorecommerce:acs:names:aclInstance",
+        id: 'urn:restorecommerce:acs:names:aclInstance',
         value: orgInstance
-      })
+      });
     });
     opts.subjectInstances.forEach(subjectInstance => {
       subjectInstances.push({
-        id: "urn:restorecommerce:acs:names:aclInstance",
+        id: 'urn:restorecommerce:acs:names:aclInstance',
         value: subjectInstance
-      })
+      });
     });
     acl = [
       {
@@ -117,6 +140,50 @@ export function buildRequest(opts: RequestOpts): core.Request {
       }];
   }
 
+  let ctxResources = [];
+
+  if (typeof opts.resourceType === 'string') {
+    ctxResources = [{
+      id: opts.resourceID as string,
+      meta: {
+        created: Date.now(), modified: Date.now(),
+        acl,
+        owner: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
+          {
+            id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+            value: opts.ownerIndicatoryEntity
+          }, {
+            id: 'urn:restorecommerce:acs:names:ownerInstance',
+            value: opts.ownerInstance
+          }
+        ] : []
+      }
+    }];
+  } else {
+    for (let i = 0; i < opts.resourceType.length; i++) {
+      let resourceID;
+      if (opts.resourceID && opts.resourceID[i]) {
+        resourceID = opts.resourceID[i];
+      }
+      ctxResources.push({
+        id: resourceID,
+        meta: {
+          created: Date.now(), modified: Date.now(),
+          acl,
+          owner: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
+            {
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: opts.ownerIndicatoryEntity
+            }, {
+              id: 'urn:restorecommerce:acs:names:ownerInstance',
+              value: opts.ownerInstance
+            }
+          ] : []
+        }
+      });
+    }
+  }
+
   return {
     target: {
       subject,
@@ -124,24 +191,7 @@ export function buildRequest(opts: RequestOpts): core.Request {
       action
     },
     context: {
-      resources: [
-        {
-          id: opts.resourceID,
-          meta: {
-            created: Date.now(), modified: Date.now(),
-            acl,
-            owner: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
-              {
-                id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-                value: opts.ownerIndicatoryEntity
-              }, {
-                id: 'urn:restorecommerce:acs:names:ownerInstance',
-                value: opts.ownerInstance
-              }
-            ] : []
-          }
-        }
-      ],
+      resources: ctxResources,
       subject: {
         id: opts.subjectID,
         role_associations: opts.subjectRole && opts.roleScopingEntity && opts.roleScopingInstance ? [
@@ -183,9 +233,9 @@ export function buildRequest(opts: RequestOpts): core.Request {
       }
     }
   };
-}
+};
 
-export function marshallYamlPolicies(yamlPolicies: any): any {
+export const marshallYamlPolicies = (yamlPolicies: any): any => {
   const policySets = [];
   const policies = [];
   const rules = [];
@@ -223,7 +273,7 @@ export function marshallYamlPolicies(yamlPolicies: any): any {
   return {
     policySets, policies, rules
   };
-}
+};
 
 
 export interface RequestOpts {
@@ -233,9 +283,9 @@ export interface RequestOpts {
   roleScopingInstance?: string;
   targetScopingInstance?: string;
   actionType?: string;
-  resourceID?: string;
+  resourceID?: string | string[];
   resourceProperty?: string;
-  resourceType: string;
+  resourceType: string | string[];
   ownerIndicatoryEntity?: string;
   ownerInstance?: string;
   aclIndicatoryEntity?: string;
@@ -245,20 +295,20 @@ export interface RequestOpts {
   subjectInstances?: string[];
 }
 
-export function marshallProtobufAny(object: any): any {
+export const marshallProtobufAny = (object: any): any => {
   return {
     type_url: '',
     value: Buffer.from(JSON.stringify(object))
   };
-}
+};
 
-// gRPC requests
-export function marshallRequest(request: core.Request): void {
+export const marshallRequest = (request: core.Request): void => {
   request.context.resources = request.context.resources.map(marshallProtobufAny);
   request.context.subject = marshallProtobufAny(request.context.subject || []);
-}
+};
 
-export function populate(accessController: core.AccessController, filepath: string): core.AccessController {
+
+export const populate = (accessController: core.AccessController, filepath: string): core.AccessController => {
   const rawObject = yaml.load(fs.readFileSync(filepath));
   const policySets = rawObject.policy_sets;
 
@@ -325,4 +375,4 @@ export function populate(accessController: core.AccessController, filepath: stri
   }
 
   return accessController;
-}
+};

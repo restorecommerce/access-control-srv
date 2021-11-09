@@ -11,7 +11,7 @@
         rules:
           - id: ruleAA1
             name: Rule AA1
-            descripton: A rule targeting a 'read' action by a SimpleUser
+            descripton: A rule targeting a 'read' action by a SimpleUser for Location resource
             target:
               subject:
                 - id: urn:restorecommerce:acs:names:role
@@ -27,7 +27,7 @@
             effect: PERMIT
           - id: ruleAA2
             name: Rule AA2
-            descripton: A rule targeting 'modify' action by an Admin
+            descripton: A rule targeting 'modify' action by an Admin for Location resource
             target:
               subject:
                 - id: urn:restorecommerce:acs:names:role
@@ -47,7 +47,7 @@
             effect: DENY
           - id: ruleAA4
             name: Rule AA4
-            descripton: A rule targeting a 'execute' action by a Admin
+            descripton: A rule targeting a 'execute' action by a Admin for mutation.executeTestMutation
             target:
               subject:
                 - id: urn:restorecommerce:acs:names:role
@@ -61,3 +61,32 @@
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:execute
             effect: PERMIT
+      - id: policyB
+        name: Policy B
+        description: Policy targeting Organization resource scoped roles
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        target:
+          resources:
+            - id: urn:restorecommerce:acs:names:model:entity
+              value: urn:restorecommerce:acs:model:organization.Organization
+        rules:
+          - id: ruleAA5
+            name: Rule AA5
+            descripton: A rule targeting a 'read' action by a SimpleUser for Organization read
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: ruleAA6
+            name: Fallback rule
+            description: Always deny
+            effect: DENY
