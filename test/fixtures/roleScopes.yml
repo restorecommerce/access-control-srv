@@ -2,7 +2,7 @@
   - id: policySetA
     name: Policy set A
     description: A policy set
-    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides
     policies:
       - id: policyA
         name: Policy A

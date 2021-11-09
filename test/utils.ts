@@ -176,7 +176,7 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
               value: opts.ownerIndicatoryEntity
             }, {
               id: 'urn:restorecommerce:acs:names:ownerInstance',
-              value: opts.ownerInstance
+              value: opts.ownerInstance[i]
             }
           ] : []
         }
@@ -287,7 +287,7 @@ export interface RequestOpts {
   resourceProperty?: string;
   resourceType: string | string[];
   ownerIndicatoryEntity?: string;
-  ownerInstance?: string;
+  ownerInstance?: string | string [];
   aclIndicatoryEntity?: string;
   aclInstances?: string[];
   multipleAclIndicatoryEntity?: string[],
