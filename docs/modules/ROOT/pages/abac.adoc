@@ -188,38 +188,38 @@ request:
     action:
       - id: urn:oasis:names:tc:xacml:1.0:action:action-id
         value: urn:restorecommerce:acs:names:action:read
-    context:
-      subject:
-        id: Alice
-        name: Alice
-        role_associations:
-          - role: admin
-          attributes: # a list of attributes associated with the role
-            - id: urn:restorecommerce:acs:names:roleScopingEntity
-              value: urn:restorecommerce:model:organization.Organization
-            - id: urn:restorecommerce:acs:names:roleScopeInstance
-              value: OrgA
-        hierarchical_scope: # sub-tree of the scoping entity
-          - id: orgA
-            children:
-              - id: orgB
-      resources:
-        - id: deviceX
-          name: Device X
-          description: A simple device
-          meta:
-          created: <timestamp>
-          modified: <timestamp>
-          modified_by: RandomUser
-          owner:
-            - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-              value: urn:restorecommerce:model:organization.Organization
-            - id: urn:restorecommerce:acs:names:ownerInstance
-              value: OrgB
-            - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-              value: urn:restorecommerce:model:user.User
-            - id: urn:restorecommerce:acs:names:ownerInstance
-              value: RandomUser
+  context:
+    subject:
+      id: Alice
+      name: Alice
+      role_associations:
+        - role: admin
+        attributes: # a list of attributes associated with the role
+          - id: urn:restorecommerce:acs:names:roleScopingEntity
+            value: urn:restorecommerce:model:organization.Organization
+          - id: urn:restorecommerce:acs:names:roleScopeInstance
+            value: OrgA
+      hierarchical_scope: # sub-tree of the scoping entity
+        - id: orgA
+          children:
+            - id: orgB
+    resources:
+      - id: deviceX
+        name: Device X
+        description: A simple device
+        meta:
+        created: <timestamp>
+        modified: <timestamp>
+        modified_by: RandomUser
+        owner:
+          - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+            value: urn:restorecommerce:model:organization.Organization
+          - id: urn:restorecommerce:acs:names:ownerInstance
+            value: OrgB
+          - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+            value: urn:restorecommerce:model:user.User
+          - id: urn:restorecommerce:acs:names:ownerInstance
+            value: RandomUser
 ----
 
 Policy set:
