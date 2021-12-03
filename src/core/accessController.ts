@@ -117,7 +117,7 @@ export class AccessController {
           const ruleEffects: EffectEvaluation[] = [];
           if ((!!policy.target && exactMatch && await this.targetMatches(policy.target, request))
             // regex match
-            || (!!policy.target && !exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', true))
+            || (!!policy.target && !exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', [], true))
             || !policy.target) {
 
             const rules: Map<string, Rule> = policy.combinables;
@@ -141,7 +141,7 @@ export class AccessController {
                 }
                 // if rule has not target it should be always applied inside the policy scope
                 this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
-                let matches = !rule.target || await this.targetMatches(rule.target, request, 'isAllowed', true);
+                let matches = !rule.target || await this.targetMatches(rule.target, request, 'isAllowed', [], true);
 
                 if (matches) {
                   this.logger.verbose(`Checking rule ${rule.name}`);
@@ -271,9 +271,10 @@ export class AccessController {
             this.logger.debug('Policy Object not set');
             continue;
           }
+          let maskPropertyList = [];
           if (_.isEmpty(policy.target)
             || (exactMatch && await this.targetMatches(policy.target, request))
-            || (!exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', true))) {
+            || (!exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', maskPropertyList, true))) {
             policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect', 'evaluation_cacheable']));
             policyRQ.rules = [];
 
@@ -285,7 +286,7 @@ export class AccessController {
                 continue;
               }
               let ruleRQ: RuleRQ;
-              if (_.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', true)) {
+              if (_.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', maskPropertyList, true)) {
                 ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
                 policyRQ.rules.push(ruleRQ);
               }
@@ -308,84 +309,115 @@ export class AccessController {
     };
   }
 
+  private async resourceAttributesMatch(ruleAttributes: Attribute[],
+    requestAttributes: Attribute[], maskPropertyList: string[], operation: string,
+    regexMatch?: boolean): Promise<boolean> {
+    const entityURN = this.urns.get('entity');
+    const propertyURN = this.urns.get('property');
+    let entityMatch = false;
+    let propertyMatch = false;
+    for (let requestAttribute of requestAttributes) {
+      propertyMatch = false;
+      for (let ruleAttribute of ruleAttributes) {
+        // direct match for attribute values
+        if (!regexMatch) {
+          if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN
+            && requestAttribute.value === ruleAttribute.value) {
+            // entity match
+            entityMatch = true;
+          } else if (entityMatch && requestAttribute.id === propertyURN &&
+            ruleAttribute.id === propertyURN) {
+            // if match for request attribute is not found in rule attribute, Deny for isAllowed
+            // and add properties to maskPropertyList for WhatIsAllowed
+            if (ruleAttribute.value === requestAttribute.value) {
+              propertyMatch = true;
+            }
+          }
+        } else if (regexMatch) {
+          // regex match for attribute values
+          if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN) {
+            // rule entity, get ruleNS and entityRegexValue for rule
+            const value = ruleAttribute.value;
+            let pattern = value.substring(value.lastIndexOf(':') + 1);
+            let nsEntityArray = pattern.split('.');
+            // firstElement could be either entity or namespace
+            let nsOrEntity = nsEntityArray[0];
+            let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
+            let reqNS, ruleNS;
+            if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
+              // rule name space is present
+              ruleNS = nsOrEntity.toUpperCase();
+            }
+
+            // request entity, get reqNS and requestEntityValue for request
+            let reqValue = requestAttribute.value;
+            const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
+            const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
+            // verify namespace before entity name
+            if (reqAttributeNS != ruleAttributeNS) {
+              entityMatch = false;
+            }
+            let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
+            let reqNSEntityArray = reqPattern.split('.');
+            // firstElement could be either entity or namespace
+            let reqNSOrEntity = reqNSEntityArray[0];
+            let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
+            if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
+              // request name space is present
+              reqNS = reqNSOrEntity.toUpperCase();
+            }
+
+            if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
+              const reExp = new RegExp(entityRegexValue);
+              if (requestEntityValue.match(reExp)) {
+                entityMatch = true;
+              }
+            }
+          } else if (entityMatch && requestAttribute.id === propertyURN && ruleAttribute.id === propertyURN) {
+            // check for matching URN property value
+            const rulePropertyValue = ruleAttribute.value.substring(ruleAttribute.value.lastIndexOf('#') + 1);
+            const requestPropertyValue = requestAttribute.value.substring(requestAttribute.value.lastIndexOf('#') + 1);
+            if (rulePropertyValue === requestPropertyValue) {
+              propertyMatch = true;
+            }
+          }
+        }
+      }
+
+      // if there is no entity match return
+      if (!entityMatch) {
+        return false;
+      }
+
+      // if no match is found for the request attribute property in rule ==> this implies this is
+      // an additional property in request which should be denied or masked
+      if (operation === 'isAllowed' && requestAttribute.id === propertyURN && !propertyMatch) {
+        return false;
+      }
+      if (operation === 'whatIsAllowed' && requestAttribute.id === propertyURN && !propertyMatch) {
+        // urn:restorecommerce:model:User#password ==> password
+        let propertyValue = requestAttribute.value.substring(requestAttribute.value.lastIndexOf('#') + 1);
+        maskPropertyList.push(propertyValue);
+      }
+    }
+    return true;
+  }
+
   /**
  * Check if a request's target matches a rule, policy or policy set's target.
  * @param targetA
  * @param targetB
  */
   private async targetMatches(ruleTarget: Target, request: Request,
-    operation: AccessControlOperation = 'isAllowed', regexMatch?: boolean): Promise<boolean> {
+    operation: AccessControlOperation = 'isAllowed', maskPropertyList?: string[], regexMatch?: boolean): Promise<boolean> {
     const requestTarget = request.target;
     const subMatch = await this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request);
-    const subMatches = (operation == 'whatIsAllowed' && _.isEmpty(requestTarget.subject))
-      || subMatch;
-
-    const match = subMatches && this.attributesMatch(ruleTarget.action, requestTarget.action);
+    const match = subMatch && this.attributesMatch(ruleTarget.action, requestTarget.action);
     if (!match) {
       return false;
     }
-    switch (operation) {
-      case 'whatIsAllowed':
-        // only searching for entity types on the rule target
-        // WhatIsAllowed is not designed to match resource instances
-        const urn = this.urns.get('entity');
-        for (let attribute of ruleTarget.resources) {
-          if (attribute.id == urn) {
-            let found = false;
-            for (let reqAttribute of requestTarget.resources) {
-              if (reqAttribute.id == urn && reqAttribute.value == attribute.value) {
-                found = true;
-                break;
-              } else if (regexMatch && reqAttribute.id == urn) {
-                // rule entity
-                const value = attribute.value;
-                let pattern = value.substring(value.lastIndexOf(':') + 1);
-                let nsEntityArray = pattern.split('.');
-                // firstElement could be either entity or namespace
-                let nsOrEntity = nsEntityArray[0];
-                let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
-                let reqNS, ruleNS;
-                if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
-                  // rule name space is present
-                  ruleNS = nsOrEntity.toUpperCase();
-                }
-                // request entity
-                let reqValue = reqAttribute.value;
-                const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
-                const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
-                // verify namespace before entity name
-                if (reqAttributeNS != ruleAttributeNS) {
-                  return false;
-                }
-                let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
-                let reqNSEntityArray = reqPattern.split('.');
-                // firstElement could be either entity or namespace
-                let reqNSOrEntity = reqNSEntityArray[0];
-                let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
-                if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
-                  // request name space is present
-                  reqNS = reqNSOrEntity.toUpperCase();
-                }
-
-                if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
-                  const reExp = new RegExp(entityRegexValue);
-                  if (requestEntityValue.match(reExp)) {
-                    return true;
-                  }
-                }
-              }
-            }
-
-            if (!found) {
-              return false;
-            }
-          }
-        }
-        return true;
-      case 'isAllowed':
-      default:
-        return this.attributesMatch(ruleTarget.resources, requestTarget.resources, regexMatch);
-    }
+    return this.resourceAttributesMatch(ruleTarget.resources,
+      requestTarget.resources, maskPropertyList, operation, regexMatch);
   }
 
   /**
@@ -395,9 +427,7 @@ export class AccessController {
    * @param ruleAttributes
    * @param requestAttributes
    */
-  private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[],
-    regexMatch?: boolean): boolean {
-
+  private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[]): boolean {
     for (let attribute of ruleAttributes) {
       const id = attribute.id;
       const value = attribute.value;
@@ -405,43 +435,6 @@ export class AccessController {
         // return requestAttribute.id == id && requestAttribute.value == value;
         if (requestAttribute.id == id && requestAttribute.value == value) {
           return true;
-        } else if (regexMatch && requestAttribute.id == id) {
-          // rule entity
-          let pattern = value.substring(value.lastIndexOf(':') + 1);
-          let nsEntityArray = pattern.split('.');
-          // firstElement could be either entity or namespace
-          let nsOrEntity = nsEntityArray[0];
-          let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
-          let reqNS, ruleNS;
-          if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
-            // rule name space is present
-            ruleNS = nsOrEntity.toUpperCase();
-          }
-
-          // request entity
-          let reqValue = requestAttribute.value;
-          const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
-          const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
-          // verify namespace before entity name
-          if (reqAttributeNS != ruleAttributeNS) {
-            return false;
-          }
-          let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
-          let reqNSEntityArray = reqPattern.split('.');
-          // firstElement could be either entity or namespace
-          let reqNSOrEntity = reqNSEntityArray[0];
-          let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
-          if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
-            // request name space is present
-            reqNS = reqNSOrEntity.toUpperCase();
-          }
-
-          if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
-            const reExp = new RegExp(entityRegexValue);
-            if (requestEntityValue.match(reExp)) {
-              return true;
-            }
-          }
         } else {
           return false;
         }
@@ -451,7 +444,6 @@ export class AccessController {
         return false;
       }
     }
-
     return true;
   }
 
