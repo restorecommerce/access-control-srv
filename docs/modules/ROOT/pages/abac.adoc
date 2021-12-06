@@ -102,7 +102,7 @@ as demanding such evaluation would require a replication of this functionality a
     value:     ex: <organization identifier>
 - resource
   # To identify a domain model type
-  - id         ex: urn:restorecommerce:acs:names:model:entity
+  - id         ex: maskedProperty
   - value      ex: urn:restorecommerce:model:user.User
 
   # To identify a single resource by its ID
@@ -123,31 +123,45 @@ as demanding such evaluation would require a replication of this functionality a
 [source,yml]
 ----
 - decision: PERMIT | DENY | NOT-APPLICABLE | INDETERMINATE
-- obligation: [environment]
+- obligation: [obligation]
 ----
 
 === `PolicySetList`
 
 [source,yml]
 ----
-- policy_sets List of applicable policy sets containing only the applicable policies and rules
+- policy_sets: List of applicable policy sets containing only the applicable policies and rules
+- obligation: [obligation]
 ----
 
-=== `environment`
+=== Obligations
 
-An array of all environment properties along with their values (if applicable)
+==== `obligation`
+
+An array of obligation attributes along with their values (if applicable)
 that are spcified in the rules that have matched. For example:
 
 [source,yml]
 ----
-environment:
-  - id: urn:restorecommerce:acs:names:environment:autenticationMaxAge
-    value: 600
+obligation:
+  - id: urn:restorecommerce:acs:names:model:entity
+    value: ...
+    attribute:
+    - id: urn:restorecommerce:acs:names:obligation:maskedProperty
+      value: urn:restorecommerce:acs:model:user.User#password
+    - id: urn:restorecommerce:acs:names:obligation:maskedProperty
+      value: urn:restorecommerce:acs:model:user.User#roleassociations
 ----
 
-==== `urn:restorecommerce:acs:names:environment:autenticationMaxAge`
+==== URNs.
+
+`urn:restorecommerce:acs:names:obligation:autenticationMaxAge`
 
 The property allows the rule author specify the maximum time in seconds since the last authentication of the subject has been performed. This rule requres the property `lastLogin` with an ISO data-time string as value to be present in the `context`.
+
+`urn:restorecommerce:acs:names:obligation:maskedProperty`
+
+The property is automatically added as obligation for all properties of an entity that a subject cannot access with the requested action. It is only added if property level access is requested and defined on the rule or policy level.
 
 [#advanced_concepts]
 == Advanced Concepts
@@ -429,7 +443,7 @@ The URNs enumerated here are understood and used by the ACS.
 * `urn:restorecommerce:acs:names:action:delete` Delete access
 * `urn:restorecommerce:acs:names:action:execute` Execute access
 * `urn:restorecommerce:acs:names:action:drop` Drop access
-* `urn:restorecommerce:acs:names:environment:autenticationMaxAge` Maximum time in seconds since the last authentication of the subject has been performed.
+* `urn:restorecommerce:acs:names:obligation:autenticationMaxAge` Maximum time in seconds since the last authentication of the subject has been performed.
 * `urn:restorecommerce:acs:names:aclIndicatoryEntity` Specify the entity which indicates the access control list
 * `urn:restorecommerce:acs:names:aclInstance` Specify an actaul instance of an access control list
 * `urn:restorecommerce:acs:names:skipACL` Specify if ACL check should be skipped `true` (if the property is not configured by default ACL check is done)
