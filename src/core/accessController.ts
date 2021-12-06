@@ -322,16 +322,18 @@ export class AccessController {
   }
 
   private resourceAttributesMatch(ruleAttributes: Attribute[],
-    requestAttributes: Attribute[], maskPropertyList: string[], operation: string,
+    requestAttributes: Attribute[], maskPropertyList: Attribute[], operation: string,
     regexMatch?: boolean): boolean {
     const entityURN = this.urns.get('entity');
     const propertyURN = this.urns.get('property');
+    const maskedPropertyURN = this.urns.get('maskedProperty');
     const operationURN = this.urns.get('operation');
     let entityMatch = false;
     let propertyMatch = false;
     let rulePropertiesExist = false;
     let operationMatch = false;
-    // if there are no resources defined in rule or policy
+    let requestEntityURN = '';
+    // if there are no resources defined in rule or policy, return as resources match
     if (_.isEmpty(ruleAttributes)) {
       return true;
     }
@@ -347,6 +349,7 @@ export class AccessController {
             && requestAttribute.value === ruleAttribute.value) {
             // entity match
             entityMatch = true;
+            requestEntityURN = requestAttribute.value;
           } else if (requestAttribute.id === operationURN && ruleAttribute.id === operationURN
             && requestAttribute.value === ruleAttribute.value) {
             operationMatch = true;
@@ -376,6 +379,7 @@ export class AccessController {
 
             // request entity, get reqNS and requestEntityValue for request
             let reqValue = requestAttribute.value;
+            requestEntityURN = reqValue;
             const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
             const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
             // verify namespace before entity name
@@ -414,10 +418,17 @@ export class AccessController {
       if (operation === 'isAllowed' && requestAttribute.id === propertyURN && entityMatch && rulePropertiesExist && !propertyMatch) {
         return false;
       }
+      // TODO generate maskPropertyList based on the rule PERMIT / DENY, below change works
+      // only for PERMIT rule with attributes (it adds additional attributes requested to maskPropertyList)
       if (operation === 'whatIsAllowed' && requestAttribute.id === propertyURN && entityMatch && rulePropertiesExist && !propertyMatch) {
-        // urn:restorecommerce:model:User#password ==> password
-        let propertyValue = requestAttribute.value.substring(requestAttribute.value.lastIndexOf('#') + 1);
-        maskPropertyList.push(propertyValue);
+        // since there can be multiple rules for same entity below check is to find if maskPropertyList already
+        // contains the entityValue from previous matching rule
+        let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
+        if(!maskPropExists) {
+          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: requestAttribute.value }] });
+        } else {
+          maskPropExists.attribute.push({ id: maskedPropertyURN, value: requestAttribute.value });
+        }
       }
     }
     // if there is no entity or no operation match return false
@@ -433,7 +444,7 @@ export class AccessController {
  * @param targetB
  */
   private async targetMatches(ruleTarget: Target, request: Request,
-    operation: AccessControlOperation = 'isAllowed', maskPropertyList?: string[], regexMatch?: boolean): Promise<boolean> {
+    operation: AccessControlOperation = 'isAllowed', maskPropertyList?: Attribute[], regexMatch?: boolean): Promise<boolean> {
     const requestTarget = request.target;
     const subMatch = await this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request);
     const match = subMatch && this.attributesMatch(ruleTarget.action, requestTarget.action);

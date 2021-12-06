@@ -393,7 +393,8 @@
       "organization": "urn:restorecommerce:acs:model:organization.Organization",
       "aclIndicatoryEntity": "urn:restorecommerce:acs:names:aclIndicatoryEntity",
       "aclInstance": "urn:restorecommerce:acs:names:aclInstance",
-      "skipACL": "urn:restorecommerce:acs:names:skipACL"
+      "skipACL": "urn:restorecommerce:acs:names:skipACL",
+      "maskedProperty": "urn:restorecommerce:acs:names:obligation:maskedProperty"
     },
     "cache": {
       "host": "localhost",
