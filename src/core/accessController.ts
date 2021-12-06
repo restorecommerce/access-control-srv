@@ -3,7 +3,7 @@ import * as nodeEval from 'node-eval';
 import {
   Rule, Policy, PolicySet, Request, Response,
   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
-  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation, ReverseQueryResponse
+  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation, ReverseQueryResponse, Obligation
 } from './interfaces';
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
@@ -81,6 +81,7 @@ export class AccessController {
     }
 
     let effect: EffectEvaluation;
+    let obligation: Attribute[] = [];
     let context = request.context;
     if (!context) {
       (context as any) = {};
@@ -97,12 +98,24 @@ export class AccessController {
       const policySet: PolicySet = value;
       let policyEffects: EffectEvaluation[] = [];
 
-      if ((!!policySet.target && await this.targetMatches(policySet.target, request))
+      // policyEffect needed to evalute if the properties should be PERMIT / DENY
+      let policyEffect: Effect;
+      if ((!!policySet.target && await this.targetMatches(policySet.target, request, 'isAllowed', obligation))
         || !policySet.target) {
         let exactMatch = false;
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
-          if (!!policy.target && await this.targetMatches(policy.target, request)) {
+          if (policy.effect) {
+            policyEffect = policy.effect;
+          } else if (policy.combiningAlgorithm) {
+            const method = this.combiningAlgorithms.get(policy.combiningAlgorithm);
+            if (method === 'permitOverrides') {
+              policyEffect = Effect.PERMIT;
+            } else if (method === 'denyOverrides') {
+              policyEffect = Effect.DENY;
+            }
+          }
+          if (!!policy.target && await this.targetMatches(policy.target, request, 'isAllowed', obligation, policyEffect)) {
             exactMatch = true;
             break;
           }
@@ -115,9 +128,9 @@ export class AccessController {
             continue;
           }
           const ruleEffects: EffectEvaluation[] = [];
-          if ((!!policy.target && exactMatch && await this.targetMatches(policy.target, request))
+          if ((!!policy.target && exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', obligation, policyEffect))
             // regex match
-            || (!!policy.target && !exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', [], true))
+            || (!!policy.target && !exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', obligation, policyEffect, true))
             || !policy.target) {
 
             const rules: Map<string, Rule> = policy.combinables;
@@ -141,11 +154,11 @@ export class AccessController {
                 }
                 // if rule has not target it should be always applied inside the policy scope
                 this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
-                let matches = !rule.target || await this.targetMatches(rule.target, request);
+                let matches = !rule.target || await this.targetMatches(rule.target, request, 'isAllowed', obligation, rule.effect);
 
                 // check for regex if there is no direct match
                 if (!matches) {
-                  matches = await this.targetMatches(rule.target, request, 'isAllowed', [], true);
+                  matches = await this.targetMatches(rule.target, request, 'isAllowed', obligation, rule.effect, true);
                 }
 
                 if (matches) {
@@ -256,15 +269,27 @@ export class AccessController {
         request.context.subject.role_associations = subject.payload.role_associations;
       }
     }
+    let obligation: Attribute[] = [];
     for (let [, value] of this.policySets) {
       let pSet: PolicySetRQ;
-      if (_.isEmpty(value.target) || await this.targetMatches(value.target, request)) {
+      if (_.isEmpty(value.target) || await this.targetMatches(value.target, request, 'whatIsAllowed', obligation)) {
         pSet = _.merge({}, { combining_algorithm: value.combiningAlgorithm }, _.pick(value, ['id', 'target', 'effect']));
         pSet.policies = [];
 
         let exactMatch = false;
+        let policyEffect: Effect;
         for (let [, policy] of value.combinables) {
-          if (!!policy.target && await this.targetMatches(policy.target, request)) {
+          if (policy.effect) {
+            policyEffect = policy.effect;
+          } else if (policy.combiningAlgorithm) {
+            const method = this.combiningAlgorithms.get(policy.combiningAlgorithm);
+            if (method === 'permitOverrides') {
+              policyEffect = Effect.PERMIT;
+            } else if (method === 'denyOverrides') {
+              policyEffect = Effect.DENY;
+            }
+          }
+          if (!!policy.target && await this.targetMatches(policy.target, request, 'whatIsAllowed', obligation, policyEffect)) {
             exactMatch = true;
             break;
           }
@@ -278,8 +303,8 @@ export class AccessController {
           }
           let maskPropertyList = [];
           if (_.isEmpty(policy.target)
-            || (exactMatch && await this.targetMatches(policy.target, request))
-            || (!exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', maskPropertyList, true))) {
+            || (exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', obligation, policyEffect))
+            || (!exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', obligation, policyEffect, true))) {
             policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect', 'evaluation_cacheable']));
             policyRQ.rules = [];
 
@@ -292,10 +317,10 @@ export class AccessController {
               }
               let ruleRQ: RuleRQ;
 
-              let matches = _.isEmpty(rule.target) || await this.targetMatches(rule.target, request);
+              let matches = _.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', obligation, rule.effect);
               // check for regex if there is no direct match
               if (!matches) {
-                matches = await this.targetMatches(rule.target, request, 'whatIsAllowed', maskPropertyList, true);
+                matches = await this.targetMatches(rule.target, request, 'whatIsAllowed', obligation, rule.effect, true);
               }
 
               if (_.isEmpty(rule.target) || matches) {
@@ -322,8 +347,8 @@ export class AccessController {
   }
 
   private resourceAttributesMatch(ruleAttributes: Attribute[],
-    requestAttributes: Attribute[], maskPropertyList: Attribute[], operation: string,
-    regexMatch?: boolean): boolean {
+    requestAttributes: Attribute[], operation: AccessControlOperation,
+    maskPropertyList: Attribute[], effect: Effect, regexMatch?: boolean): boolean {
     const entityURN = this.urns.get('entity');
     const propertyURN = this.urns.get('property');
     const maskedPropertyURN = this.urns.get('maskedProperty');
@@ -336,6 +361,9 @@ export class AccessController {
     // if there are no resources defined in rule or policy, return as resources match
     if (_.isEmpty(ruleAttributes)) {
       return true;
+    }
+    if (!maskPropertyList) {
+      maskPropertyList = [];
     }
     for (let requestAttribute of requestAttributes) {
       propertyMatch = false;
@@ -415,16 +443,37 @@ export class AccessController {
 
       // if no match is found for the request attribute property in rule ==> this implies this is
       // an additional property in request which should be denied or masked
-      if (operation === 'isAllowed' && requestAttribute.id === propertyURN && entityMatch && rulePropertiesExist && !propertyMatch) {
+      if (operation === 'isAllowed' && effect === Effect.PERMIT && requestAttribute.id === propertyURN
+        && entityMatch && rulePropertiesExist && !propertyMatch) {
         return false;
       }
-      // TODO generate maskPropertyList based on the rule PERMIT / DENY, below change works
-      // only for PERMIT rule with attributes (it adds additional attributes requested to maskPropertyList)
-      if (operation === 'whatIsAllowed' && requestAttribute.id === propertyURN && entityMatch && rulePropertiesExist && !propertyMatch) {
+
+      // for isAllowed if decision is deny and if the property exists and propertyMatch to true, then return false
+      if (operation === 'isAllowed' && effect === Effect.DENY && requestAttribute.id === propertyURN
+        && entityMatch && rulePropertiesExist && propertyMatch) {
+        return false;
+      }
+
+      if (operation === 'whatIsAllowed' && effect === Effect.PERMIT && requestAttribute.id === propertyURN
+        && entityMatch && rulePropertiesExist && !propertyMatch) {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
         let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
-        if(!maskPropExists) {
+        if (!maskPropExists) {
+          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: requestAttribute.value }] });
+        } else {
+          maskPropExists.attribute.push({ id: maskedPropertyURN, value: requestAttribute.value });
+        }
+      }
+
+      // for whatIsAllowed if decision is deny and propertyMatch to true it implies
+      // subject does not have access to the ruleAttribute.value add it to the maksPropertyList
+      if (operation === 'whatIsAllowed' && effect === Effect.DENY && requestAttribute.id === propertyURN
+        && entityMatch && rulePropertiesExist && propertyMatch) {
+        // since there can be multiple rules for same entity below check is to find if maskPropertyList already
+        // contains the entityValue from previous matching rule
+        let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
+        if (!maskPropExists) {
           maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: requestAttribute.value }] });
         } else {
           maskPropExists.attribute.push({ id: maskedPropertyURN, value: requestAttribute.value });
@@ -444,7 +493,8 @@ export class AccessController {
  * @param targetB
  */
   private async targetMatches(ruleTarget: Target, request: Request,
-    operation: AccessControlOperation = 'isAllowed', maskPropertyList?: Attribute[], regexMatch?: boolean): Promise<boolean> {
+    operation: AccessControlOperation = 'isAllowed', maskPropertyList: Attribute[],
+    effect: Effect = Effect.PERMIT, regexMatch?: boolean): Promise<boolean> {
     const requestTarget = request.target;
     const subMatch = await this.checkSubjectMatches(ruleTarget.subject, requestTarget.subject, request);
     const match = subMatch && this.attributesMatch(ruleTarget.action, requestTarget.action);
@@ -452,7 +502,7 @@ export class AccessController {
       return false;
     }
     return this.resourceAttributesMatch(ruleTarget.resources,
-      requestTarget.resources, maskPropertyList, operation, regexMatch);;
+      requestTarget.resources, operation, maskPropertyList, effect, regexMatch);;
   }
 
   /**

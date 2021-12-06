@@ -52,6 +52,10 @@ export interface EffectEvaluation {
   evaluation_cacheable: boolean;
 }
 
+export interface Obligation {
+  obligation?: Attribute[];
+}
+
 export enum Effect {
   PERMIT = 'PERMIT',
   DENY = 'DENY'
