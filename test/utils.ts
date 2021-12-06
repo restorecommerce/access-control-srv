@@ -55,14 +55,16 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
           value: opts.resourceType as string
         },
         {
-          id: 'urn:restorecommerce:acs:names:model:property',
-          value: opts.resourceProperty
-        },
-        {
           id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
           value: opts.resourceID as string
         },
       ]);
+      if(opts.resourceProperty) {
+        resources = resources.concat([{
+          id: 'urn:restorecommerce:acs:names:model:property',
+          value: opts.resourceProperty
+        }]);
+      }
     } else {
       for (let i = 0; i < opts.resourceType.length; i++) {
         let resourceID;
@@ -75,14 +77,16 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
             value: opts.resourceType[i]
           },
           {
-            id: 'urn:restorecommerce:acs:names:model:property',
-            value: opts.resourceProperty
-          },
-          {
             id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
             value: resourceID
           },
         ]);
+        if(opts.resourceProperty) {
+          resources = resources.concat([{
+            id: 'urn:restorecommerce:acs:names:model:property',
+            value: opts.resourceProperty
+          }]);
+        }
       }
     }
   }

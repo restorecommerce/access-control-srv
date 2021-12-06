@@ -141,7 +141,12 @@ export class AccessController {
                 }
                 // if rule has not target it should be always applied inside the policy scope
                 this.logger.verbose(`Checking rule target and request target for ${rule.name}`);
-                let matches = !rule.target || await this.targetMatches(rule.target, request, 'isAllowed', [], true);
+                let matches = !rule.target || await this.targetMatches(rule.target, request);
+
+                // check for regex if there is no direct match
+                if (!matches) {
+                  matches = await this.targetMatches(rule.target, request, 'isAllowed', [], true);
+                }
 
                 if (matches) {
                   this.logger.verbose(`Checking rule ${rule.name}`);
@@ -286,7 +291,14 @@ export class AccessController {
                 continue;
               }
               let ruleRQ: RuleRQ;
-              if (_.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', maskPropertyList, true)) {
+
+              let matches = _.isEmpty(rule.target) || await this.targetMatches(rule.target, request);
+              // check for regex if there is no direct match
+              if (!matches) {
+                matches = await this.targetMatches(rule.target, request, 'whatIsAllowed', maskPropertyList, true);
+              }
+
+              if (_.isEmpty(rule.target) || matches) {
                 ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
                 policyRQ.rules.push(ruleRQ);
               }
@@ -309,22 +321,35 @@ export class AccessController {
     };
   }
 
-  private async resourceAttributesMatch(ruleAttributes: Attribute[],
+  private resourceAttributesMatch(ruleAttributes: Attribute[],
     requestAttributes: Attribute[], maskPropertyList: string[], operation: string,
-    regexMatch?: boolean): Promise<boolean> {
+    regexMatch?: boolean): boolean {
     const entityURN = this.urns.get('entity');
     const propertyURN = this.urns.get('property');
+    const operationURN = this.urns.get('operation');
     let entityMatch = false;
     let propertyMatch = false;
+    let rulePropertiesExist = false;
+    let operationMatch = false;
+    // if there are no resources defined in rule or policy
+    if (_.isEmpty(ruleAttributes)) {
+      return true;
+    }
     for (let requestAttribute of requestAttributes) {
       propertyMatch = false;
       for (let ruleAttribute of ruleAttributes) {
+        if (ruleAttribute.id === propertyURN) {
+          rulePropertiesExist = true;
+        }
         // direct match for attribute values
         if (!regexMatch) {
           if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN
             && requestAttribute.value === ruleAttribute.value) {
             // entity match
             entityMatch = true;
+          } else if (requestAttribute.id === operationURN && ruleAttribute.id === operationURN
+            && requestAttribute.value === ruleAttribute.value) {
+            operationMatch = true;
           } else if (entityMatch && requestAttribute.id === propertyURN &&
             ruleAttribute.id === propertyURN) {
             // if match for request attribute is not found in rule attribute, Deny for isAllowed
@@ -384,21 +409,20 @@ export class AccessController {
         }
       }
 
-      // if there is no entity match return
-      if (!entityMatch) {
-        return false;
-      }
-
       // if no match is found for the request attribute property in rule ==> this implies this is
       // an additional property in request which should be denied or masked
-      if (operation === 'isAllowed' && requestAttribute.id === propertyURN && !propertyMatch) {
+      if (operation === 'isAllowed' && requestAttribute.id === propertyURN && entityMatch && rulePropertiesExist && !propertyMatch) {
         return false;
       }
-      if (operation === 'whatIsAllowed' && requestAttribute.id === propertyURN && !propertyMatch) {
+      if (operation === 'whatIsAllowed' && requestAttribute.id === propertyURN && entityMatch && rulePropertiesExist && !propertyMatch) {
         // urn:restorecommerce:model:User#password ==> password
         let propertyValue = requestAttribute.value.substring(requestAttribute.value.lastIndexOf('#') + 1);
         maskPropertyList.push(propertyValue);
       }
+    }
+    // if there is no entity or no operation match return false
+    if (!entityMatch && !operationMatch) {
+      return false;
     }
     return true;
   }
@@ -417,7 +441,7 @@ export class AccessController {
       return false;
     }
     return this.resourceAttributesMatch(ruleTarget.resources,
-      requestTarget.resources, maskPropertyList, operation, regexMatch);
+      requestTarget.resources, maskPropertyList, operation, regexMatch);;
   }
 
   /**
