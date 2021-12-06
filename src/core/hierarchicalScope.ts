@@ -56,29 +56,50 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
 
       let entitiesMatch = false;
       // iterating request resources to filter all resources of a given type
-      for (let reqAttribute of reqTarget.resources) {
-        if (reqAttribute.id == attribute.id && reqAttribute.value == currentResourceEntity) {
+      for (let requestAttribute of reqTarget.resources) {
+        if (requestAttribute.id == attribute.id && requestAttribute.value == currentResourceEntity) {
           entitiesMatch = true; // a resource entity that matches the request and the rule's target
-        } else if (reqAttribute.id == attribute.id) {
-          // Add Regex matching and set entitiesMatch to true
-          let pattern = currentResourceEntity.substring(currentResourceEntity.lastIndexOf(':') + 1);
-          // let regexValue = pattern.split('.')[0];
-          // get Entity name last element
-          let regexValue = pattern.split(/[.]+/).pop();
-          const reqValue = reqAttribute.value;
+        } else if (requestAttribute.id == attribute.id) {
+          // rule entity, get ruleNS and entityRegexValue for rule
+          const value = currentResourceEntity;
+          let pattern = value.substring(value.lastIndexOf(':') + 1);
+          let nsEntityArray = pattern.split('.');
+          // firstElement could be either entity or namespace
+          let nsOrEntity = nsEntityArray[0];
+          let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
+          let reqNS, ruleNS;
+          if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
+            // rule name space is present
+            ruleNS = nsOrEntity.toUpperCase();
+          }
+
+          // request entity, get reqNS and requestEntityValue for request
+          let reqValue = requestAttribute.value;
           const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
-          const ruleAttributeNS = currentResourceEntity.substring(0, currentResourceEntity.lastIndexOf(':'));
+          const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
           // verify namespace before entity name
           if (reqAttributeNS != ruleAttributeNS) {
-            return false;
+            entitiesMatch = false;
           }
-          const reExp = new RegExp(regexValue);
-          if (reqAttribute.value.match(reExp)) {
-            entitiesMatch = true;
+          let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
+          let reqNSEntityArray = reqPattern.split('.');
+          // firstElement could be either entity or namespace
+          let reqNSOrEntity = reqNSEntityArray[0];
+          let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
+          if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
+            // request name space is present
+            reqNS = reqNSOrEntity.toUpperCase();
+          }
+
+          if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
+            const reExp = new RegExp(entityRegexValue);
+            if (requestEntityValue.match(reExp)) {
+              entitiesMatch = true;
+            }
           }
         }
-        else if (reqAttribute.id == urns.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
-          const instanceID = reqAttribute.value;
+        else if (requestAttribute.id == urns.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
+          const instanceID = requestAttribute.value;
           // found resource instance ID, iterating through the context to check if owner entities match the scoping entities
           let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
           // ctxResource = ctxResource.instance;
@@ -132,7 +153,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
             let meta;
             if (ctxResources[0]?.instance) {
               meta = ctxResources[0]?.instance?.meta;
-            } else if(ctxResources[0]?.meta) {
+            } else if (ctxResources[0]?.meta) {
               meta = ctxResources[0].meta;
             }
 
