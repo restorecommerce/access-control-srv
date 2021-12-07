@@ -130,6 +130,7 @@ describe('testing access control', () => {
       this.timeout(5000);
       await truncate();
     });
+    // READ - isAllowed
     it('should PERMIT Reading Location with id and name properties', async () => {
       const accessRequest = testUtils.buildRequest({
         subjectID: 'Alice',
@@ -205,6 +206,94 @@ describe('testing access control', () => {
         resourceType: 'urn:restorecommerce:acs:model:location.Location',
         resourceID: 'Bob',
         actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.DENY);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    // modify - isAllowed
+    it('should PERMIT Modifying Location with id and name properties', async () => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name'],
+        resourceID: 'Bob',
+        actionType: 'urn:restorecommerce:acs:names:action:modify',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.PERMIT);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    it('should PERMIT modifying Location with id property', async () => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id'],
+        resourceID: 'Bob',
+        actionType: 'urn:restorecommerce:acs:names:action:modify',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.PERMIT);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    it('should DENY modifying Location with id, name and description (description property not allowed) properties', async () => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name', 'urn:restorecommerce:acs:model:location.Location#description'],
+        resourceID: 'Bob',
+        actionType: 'urn:restorecommerce:acs:names:action:modify',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.DENY);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    it('should DENY modifying Location when no properties are provided at all (since the properties are defined on Rule)', async () => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceID: 'Bob',
+        actionType: 'urn:restorecommerce:acs:names:action:modify',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
       });
