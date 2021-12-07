@@ -463,6 +463,9 @@ export class AccessController {
 
       if (operation === 'whatIsAllowed' && effect === Effect.PERMIT && (requestAttribute.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && !propertyMatch) {
+        if (!requestPropertiesExist) {
+          return false; // since its not possible to evaluate what properties subject would read
+        }
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
         let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
@@ -477,6 +480,9 @@ export class AccessController {
       // subject does not have access to the ruleAttribute.value add it to the maksPropertyList
       if (operation === 'whatIsAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && propertyMatch) {
+        if (!requestPropertiesExist) {
+          return false; // since its not possible to evaluate what properties subject would read
+        }
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
         let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
