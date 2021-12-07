@@ -453,7 +453,9 @@
         "read": "urn:restorecommerce:acs:names:action:read",
         "delete": "urn:restorecommerce:acs:names:action:delete",
         "user": "urn:restorecommerce:acs:model:user.User",
-        "skipACL": "urn:restorecommerce:acs:names:skipACL"
+        "skipACL": "urn:restorecommerce:acs:names:skipACL",
+        "property": "urn:restorecommerce:acs:names:model:property",
+        "maskedProperty": "urn:restorecommerce:acs:names:obligation:maskedProperty"
       },
       "combiningAlgorithms": [
         {

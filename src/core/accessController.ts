@@ -502,7 +502,7 @@ export class AccessController {
       return false;
     }
     return this.resourceAttributesMatch(ruleTarget.resources,
-      requestTarget.resources, operation, maskPropertyList, effect, regexMatch);;
+      requestTarget.resources, operation, maskPropertyList, effect, regexMatch);
   }
 
   /**

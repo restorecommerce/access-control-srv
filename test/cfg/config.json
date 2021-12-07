@@ -388,7 +388,9 @@
         "read": "urn:restorecommerce:acs:names:action:read",
         "modify": "urn:restorecommerce:acs:names:action:modify",
         "delete": "urn:restorecommerce:acs:names:action:delete",
-        "user": "urn:restorecommerce:acs:model:user.User"
+        "user": "urn:restorecommerce:acs:model:user.User",
+        "property": "urn:restorecommerce:acs:names:model:property",
+        "maskedProperty": "urn:restorecommerce:acs:names:obligation:maskedProperty"
       },
       "combiningAlgorithms": [
         {
@@ -431,7 +433,7 @@
   "logger": {
     "console": {
       "handleExceptions": false,
-      "level": "crit",
+      "level": "silly",
       "colorize": true,
       "prettyPrint": true
     }
