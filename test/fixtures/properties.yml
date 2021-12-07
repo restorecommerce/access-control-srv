@@ -1,0 +1,108 @@
+  policy_sets:
+  - id: policySet
+    name: Global policy set containing 2 policies
+    description: A policy set
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides
+    policies:
+      - id: LocationPolicy
+        name: Location Policy
+        description: Policy with two rules targeting scoped roles
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        rules:
+          - id: ruleAA1
+            name: Rule AA1
+            descripton: A rule targeting a 'read' action by a SimpleUser for Location resource
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:location.Location
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:location.Location#id
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:location.Location#name
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: ruleAA2
+            name: Rule AA2
+            descripton: A rule targeting 'modify' action by a SimpleUser for Location resource
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:location.Location
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:location.Location#id
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:location.Location#name
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: PERMIT
+          - id: ruleAA3
+            name: Fallback rule
+            description: Always deny
+            effect: DENY
+      - id: OrganizationPolicy
+        name: Organization Policy
+        description: Policy targeting Organization resource scoped roles
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        target:
+          resources:
+            - id: urn:restorecommerce:acs:names:model:entity
+              value: urn:restorecommerce:acs:model:organization.Organization
+        rules:
+          - id: ruleAA4
+            name: Rule AA4
+            descripton: A rule targeting a 'read' action by a SimpleUser for Organization read
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:organization.Organization#id
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:organization.Organization#name
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:read
+            effect: PERMIT
+          - id: ruleAA5
+            name: Rule AA5
+            descripton: A rule targeting a 'modify' action by a SimpleUser for Organization read
+            target:
+              subject:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:model:entity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:organization.Organization#id
+                - id: urn:restorecommerce:acs:names:model:property
+                  value: urn:restorecommerce:acs:model:organization.Organization#name
+              action:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: PERMIT
+          - id: ruleAA6
+            name: Fallback rule
+            description: Always deny
+            effect: DENY

@@ -59,11 +59,18 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
           value: opts.resourceID as string
         },
       ]);
-      if(opts.resourceProperty) {
+      if(opts.resourceProperty && typeof opts.resourceProperty === 'string') {
         resources = resources.concat([{
           id: 'urn:restorecommerce:acs:names:model:property',
           value: opts.resourceProperty
         }]);
+      } else if (opts.resourceProperty && _.isArray(opts.resourceProperty)) {
+        for (let resourceProperty of opts.resourceProperty) {
+          resources = resources.concat([{
+            id: 'urn:restorecommerce:acs:names:model:property',
+            value: resourceProperty
+          }]);
+        }
       }
     } else {
       for (let i = 0; i < opts.resourceType.length; i++) {
@@ -81,11 +88,18 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
             value: resourceID
           },
         ]);
-        if(opts.resourceProperty) {
+        if(opts.resourceProperty && typeof opts.resourceProperty === 'string') {
           resources = resources.concat([{
             id: 'urn:restorecommerce:acs:names:model:property',
             value: opts.resourceProperty
           }]);
+        } else if (opts.resourceProperty && _.isArray(opts.resourceProperty)) {
+          for (let resourceProperty of opts.resourceProperty) {
+            resources = resources.concat([{
+              id: 'urn:restorecommerce:acs:names:model:property',
+              value: resourceProperty
+            }]);
+          }
         }
       }
     }
@@ -288,7 +302,7 @@ export interface RequestOpts {
   targetScopingInstance?: string;
   actionType?: string;
   resourceID?: string | string[];
-  resourceProperty?: string;
+  resourceProperty?: string | string[];
   resourceType: string | string[];
   ownerIndicatoryEntity?: string;
   ownerInstance?: string | string [];
