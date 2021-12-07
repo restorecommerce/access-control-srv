@@ -65,7 +65,7 @@ export class AccessControlService {
       this.logger.error('Error evaluating isAllowed request', { error: err.message });
       return {
         decision: core.Decision.DENY,
-        obligation: '',
+        obligation: [],
         operation_status: {
           code: err.code,
           message: err.message

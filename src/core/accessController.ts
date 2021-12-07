@@ -72,7 +72,7 @@ export class AccessController {
       this.logger.silly('Access request had no target. Skipping request.');
       return {
         decision: Decision.DENY,
-        obligation: '',
+        obligation: [],
         operation_status: {
           code: 400,
           message: 'Access request had no target. Skipping request'
@@ -177,7 +177,7 @@ export class AccessController {
                         if (_.isNil(context)) {
                           return {  // deny by default
                             decision: Decision.DENY,
-                            obligation: '',
+                            obligation,
                             evaluation_cacheable,
                             operation_status: {
                               code: 200,
@@ -194,7 +194,7 @@ export class AccessController {
                     this.logger.error('Caught an exception while applying rule condition to request: ', err);
                     return {  // if an exception is caught deny by default
                       decision: Decision.DENY,
-                      obligation: '',
+                      obligation,
                       evaluation_cacheable,
                       operation_status: {
                         code: err.code ? err.code : 500,
@@ -234,7 +234,7 @@ export class AccessController {
       this.logger.silly('Access response is INDETERMINATE');
       return {
         decision: Decision.INDETERMINATE,
-        obligation: '',
+        obligation,
         evaluation_cacheable: undefined,
         operation_status: {
           code: 200,
@@ -249,7 +249,7 @@ export class AccessController {
     this.logger.silly('Access response is', decision);
     return {
       decision,
-      obligation: '',
+      obligation,
       evaluation_cacheable: effect.evaluation_cacheable,
       operation_status: {
         code: 200,
@@ -339,7 +339,7 @@ export class AccessController {
       }
     }
     return {
-      policy_sets: policySets, operation_status: {
+      policy_sets: policySets, obligation, operation_status: {
         code: 200,
         message: 'success'
       }
@@ -356,6 +356,7 @@ export class AccessController {
     let entityMatch = false;
     let propertyMatch = false;
     let rulePropertiesExist = false;
+    let requestPropertiesExist = false;
     let operationMatch = false;
     let requestEntityURN = '';
     // if there are no resources defined in rule or policy, return as resources match
@@ -364,6 +365,11 @@ export class AccessController {
     }
     if (!maskPropertyList) {
       maskPropertyList = [];
+    }
+    for (let reqAttr of requestAttributes) {
+      if (reqAttr.id === propertyURN) {
+        requestPropertiesExist = true;
+      }
     }
     for (let requestAttribute of requestAttributes) {
       propertyMatch = false;
@@ -443,18 +449,19 @@ export class AccessController {
 
       // if no match is found for the request attribute property in rule ==> this implies this is
       // an additional property in request which should be denied or masked
-      if (operation === 'isAllowed' && effect === Effect.PERMIT && requestAttribute.id === propertyURN
+      if (operation === 'isAllowed' && effect === Effect.PERMIT && (requestAttribute.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && !propertyMatch) {
         return false;
       }
 
-      // for isAllowed if decision is deny and if the property exists and propertyMatch to true, then return false
-      if (operation === 'isAllowed' && effect === Effect.DENY && requestAttribute.id === propertyURN
+      // for isAllowed if decision is deny and if the property exists in request and propertyMatch to true, then return false
+      // as this property should not be allowed to read / modify
+      if (operation === 'isAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && propertyMatch) {
         return false;
       }
 
-      if (operation === 'whatIsAllowed' && effect === Effect.PERMIT && requestAttribute.id === propertyURN
+      if (operation === 'whatIsAllowed' && effect === Effect.PERMIT && (requestAttribute.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && !propertyMatch) {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
@@ -468,7 +475,7 @@ export class AccessController {
 
       // for whatIsAllowed if decision is deny and propertyMatch to true it implies
       // subject does not have access to the ruleAttribute.value add it to the maksPropertyList
-      if (operation === 'whatIsAllowed' && effect === Effect.DENY && requestAttribute.id === propertyURN
+      if (operation === 'whatIsAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && propertyMatch) {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule

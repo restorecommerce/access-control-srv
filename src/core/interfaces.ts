@@ -135,8 +135,8 @@ export interface ResourceOwnerAttributes {
 
 export interface Response {
   decision: Decision;
-  obligation: string;
   evaluation_cacheable?: boolean;
+  obligation?: Attribute[];
   operation_status: {
     code: number;
     message: string;
@@ -161,6 +161,7 @@ export interface GQLFilter {
 
 export interface ReverseQueryResponse {
   policy_sets: PolicySetRQ [];
+  obligation?: Attribute[];
   operation_status: {
     code: number;
     message: string;
