@@ -602,6 +602,88 @@ describe('testing access control', () => {
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
+    it('should PERMIT for AdminUser reading Location resource with id, name and description properties', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'AdminUser',
+        resourceID: 'Bob',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name', 'urn:restorecommerce:acs:model:location.Location#description'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.PERMIT);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    it('should PERMIT for AdminUser reading Location resource with out any properties specified in request', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'AdminUser',
+        resourceID: 'Bob',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.PERMIT);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    it('should PERMIT for AdminUser modifying Location resource with id, name and description properties', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'AdminUser',
+        resourceID: 'Bob',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name', 'urn:restorecommerce:acs:model:location.Location#description'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:modify',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.PERMIT);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    it('should PERMIT for AdminUser modifying Location resource with out any properties specified in request', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'AdminUser',
+        resourceID: 'Bob',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:modify',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.PERMIT);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
   });
 
   describe('testing whatIsAllowed with multiple rules to mask property', () => {
@@ -710,6 +792,47 @@ describe('testing access control', () => {
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
       result.policy_sets[0].policies[0].rules[1].id.should.equal('ruleAA2');
+    });
+    it('should return empty obligation for AdminUser and filtered rules for Location resource request reading for id, name and description', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'AdminUser',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name', 'urn:restorecommerce:acs:model:location.Location#description'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.whatIsAllowed(accessRequest);
+      should.exist(result);
+      // validate obligation
+      result.obligation.should.be.empty();
+      // validate 2 rules
+      result.policy_sets[0].policies[0].rules.should.be.length(1);
+      result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA3');
+    });
+    it('should return empty obligation for AdminUser and filtered rules for Location resource with empty properties in request', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'AdminUser',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.whatIsAllowed(accessRequest);
+      should.exist(result);
+      // validate obligation
+      result.obligation.should.be.empty();
+      // validate 2 rules
+      result.policy_sets[0].policies[0].rules.should.be.length(1);
+      result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA3');
     });
   });
 });
