@@ -359,6 +359,7 @@ export class AccessController {
     let requestPropertiesExist = false;
     let operationMatch = false;
     let requestEntityURN = '';
+    let skipDenyRule = true;
     // if there are no resources defined in rule or policy, return as resources match
     if (_.isEmpty(ruleAttributes)) {
       return true;
@@ -447,6 +448,11 @@ export class AccessController {
         }
       }
 
+      if (operation === 'isAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
+        && entityMatch && rulePropertiesExist && propertyMatch) {
+        skipDenyRule = false; // Deny effect rule to be skipped only if the propertyMatch and effect is DENY
+      }
+
       // if no match is found for the request attribute property in rule ==> this implies this is
       // an additional property in request which should be denied or masked
       if (operation === 'isAllowed' && effect === Effect.PERMIT && (requestAttribute.id === propertyURN || !requestPropertiesExist)
@@ -454,13 +460,8 @@ export class AccessController {
         return false;
       }
 
-      // for isAllowed if decision is deny and if the property exists in request and propertyMatch to true, then return false
-      // as this property should not be allowed to read / modify
-      if (operation === 'isAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
-        && entityMatch && rulePropertiesExist && propertyMatch) {
-        return false;
-      }
-
+      // for whatIsAllowed if decision is PERMIT and propertyMatch to false it implies
+      // subject has requested additional properties requestAttribute.value add it to the maksPropertyList
       if (operation === 'whatIsAllowed' && effect === Effect.PERMIT && (requestAttribute.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && !propertyMatch) {
         if (!requestPropertiesExist) {
@@ -477,7 +478,7 @@ export class AccessController {
       }
 
       // for whatIsAllowed if decision is deny and propertyMatch to true it implies
-      // subject does not have access to the ruleAttribute.value add it to the maksPropertyList
+      // subject does not have access to the requestAttribute.value add it to the maksPropertyList
       if (operation === 'whatIsAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && propertyMatch) {
         if (!requestPropertiesExist) {
@@ -493,6 +494,11 @@ export class AccessController {
         }
       }
     }
+
+    if (skipDenyRule && rulePropertiesExist && effect === Effect.DENY && operation === 'isAllowed' && !propertyMatch) {
+      return false;
+    }
+
     // if there is no entity or no operation match return false
     if (!entityMatch && !operationMatch) {
       return false;

@@ -361,12 +361,12 @@ describe('testing access control', () => {
       // validate obligation
       result.obligation.should.be.empty();
     });
-    it('should return obligation (for desciption properties) along with filtered rules for Location resource with id and name properties', async (): Promise<void> => {
+    it('should return obligation (for description properties) along with filtered rules for Location resource with id and name properties', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
         subjectID: 'Alice',
         subjectRole: 'SimpleUser',
         resourceType: 'urn:restorecommerce:acs:model:location.Location',
-        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name', 'urn:restorecommerce:acs:model:location.Location#properties'],
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name', 'urn:restorecommerce:acs:model:location.Location#description'],
         roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         roleScopingInstance: 'SuperOrg1',
         actionType: 'urn:restorecommerce:acs:names:action:read',
@@ -381,7 +381,7 @@ describe('testing access control', () => {
       result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
       result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
       result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#properties');
+      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
     });
     it('should return only DENY rule for Location resource with out any properties in request', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
@@ -505,6 +505,167 @@ describe('testing access control', () => {
       validateWhatIsAllowedLocationResponse(result, true);
       // validate obligation
       result.obligation.should.be.empty();
+    });
+  });
+
+  describe('testing isAllowed with multiple rules to mask property', () => {
+    before(async () => {
+      // disable authorization
+      cfg.set('authorization:enabled', false);
+      cfg.set('authorization:enforce', false);
+      updateConfig(cfg);
+      await create('./test/fixtures/multiple_rules_with_properties.yml');
+    });
+    after(async () => {
+      await truncate();
+    });
+    it('should DENY for reading Location resource with id, name and description properties (description Deny rule)', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        resourceID: 'Bob',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name', 'urn:restorecommerce:acs:model:location.Location#description'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.DENY);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    it('should DENY for reading Location resource with description property (description Deny rule)', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        resourceID: 'Bob',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#description'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.DENY);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+    it('should PERMIT for reading Location resource with id and name property', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        resourceID: 'Bob',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(core.Decision.PERMIT);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+  });
+
+  describe('testing whatIsAllowed with multiple rules to mask property', () => {
+    before(async () => {
+      // disable authorization
+      cfg.set('authorization:enabled', false);
+      cfg.set('authorization:enforce', false);
+      updateConfig(cfg);
+      await create('./test/fixtures/multiple_rules_with_properties.yml');
+    });
+    after(async () => {
+      await truncate();
+    });
+    it('should return obligation for description and filtered rules for Location resource request reading for id, name and description', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name', 'urn:restorecommerce:acs:model:location.Location#description'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.whatIsAllowed(accessRequest);
+      should.exist(result);
+      // validate obligation
+      result.obligation.should.be.length(1);
+      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
+      // validate 2 rules
+      result.policy_sets[0].policies[0].rules.should.be.length(2);
+      result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
+      result.policy_sets[0].policies[0].rules[1].id.should.equal('ruleAA2');
+    });
+    it('should return obligation for description and filtered rules for Location resource request reading for description', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#description'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.whatIsAllowed(accessRequest);
+      // validate obligation
+      result.obligation.should.be.length(1);
+      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
+      // validate 2 rules
+      result.policy_sets[0].policies[0].rules.should.be.length(2);
+      result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
+      result.policy_sets[0].policies[0].rules[1].id.should.equal('ruleAA2');
+    });
+    it('should return empty obligation for description and filtered rules for Location resource request reading for id and name', async (): Promise<void> => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceProperty: ['urn:restorecommerce:acs:model:location.Location#id', 'urn:restorecommerce:acs:model:location.Location#name'],
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'SuperOrg1',
+        actionType: 'urn:restorecommerce:acs:names:action:read',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org1'
+      });
+      testUtils.marshallRequest(accessRequest);
+      const result = await accessControlService.whatIsAllowed(accessRequest);
+      // validate obligation
+      result.obligation.should.be.empty();
+      // validate 2 rules
+      result.policy_sets[0].policies[0].rules.should.be.length(2);
+      result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
+      result.policy_sets[0].policies[0].rules[1].id.should.equal('ruleAA2');
     });
   });
 });
