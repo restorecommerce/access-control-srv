@@ -392,10 +392,19 @@ export class AccessController {
             operationMatch = true;
           } else if (entityMatch && requestAttribute.id === propertyURN &&
             ruleAttribute.id === propertyURN) {
-            // if match for request attribute is not found in rule attribute, Deny for isAllowed
-            // and add properties to maskPropertyList for WhatIsAllowed
-            if (ruleAttribute.value === requestAttribute.value) {
-              propertyMatch = true;
+            // check if requestEntityURNs entityName is part in the ruleAttribute property
+            // if so check the rule attribute value and request attribute value, if not set property match for
+            // this request property as true as it does not belong to this rule (since for multiple entities request
+            // its possible that there could be properties from other entities)
+            const entityName = requestEntityURN.substring(requestEntityURN.lastIndexOf(':') + 1);
+            if (requestAttribute.value.indexOf(entityName) > -1) {
+              // if match for request attribute is not found in rule attribute, Deny for isAllowed
+              // and add properties to maskPropertyList for WhatIsAllowed
+              if (ruleAttribute.value === requestAttribute.value) {
+                propertyMatch = true;
+              }
+            } else {
+              propertyMatch = true; // the requested entity property does not belong to this rule
             }
           }
         } else if (regexMatch) {

@@ -59,7 +59,7 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
           value: opts.resourceID as string
         },
       ]);
-      if(opts.resourceProperty && typeof opts.resourceProperty === 'string') {
+      if (opts.resourceProperty && typeof opts.resourceProperty === 'string') {
         resources = resources.concat([{
           id: 'urn:restorecommerce:acs:names:model:property',
           value: opts.resourceProperty
@@ -88,17 +88,30 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
             value: resourceID
           },
         ]);
-        if(opts.resourceProperty && typeof opts.resourceProperty === 'string') {
+        if (opts.resourceProperty && typeof opts.resourceProperty === 'string') {
           resources = resources.concat([{
             id: 'urn:restorecommerce:acs:names:model:property',
             value: opts.resourceProperty
           }]);
         } else if (opts.resourceProperty && _.isArray(opts.resourceProperty)) {
           for (let resourceProperty of opts.resourceProperty) {
-            resources = resources.concat([{
-              id: 'urn:restorecommerce:acs:names:model:property',
-              value: resourceProperty
-            }]);
+            if (typeof resourceProperty === 'string') {
+              resources = resources.concat([{
+                id: 'urn:restorecommerce:acs:names:model:property',
+                value: resourceProperty
+              }]);
+            } else if (_.isArray(resourceProperty)) {
+              // TODO add only specific resource prop types related
+              const entityName = opts.resourceType[i].substring(opts.resourceType[i].lastIndexOf(':') + 1);
+              for (let resProp of resourceProperty) {
+                if (resProp.indexOf(entityName) > -1) {
+                  resources = resources.concat([{
+                    id: 'urn:restorecommerce:acs:names:model:property',
+                    value: resProp
+                  }]);
+                }
+              }
+            }
           }
         }
       }
@@ -302,10 +315,10 @@ export interface RequestOpts {
   targetScopingInstance?: string;
   actionType?: string;
   resourceID?: string | string[];
-  resourceProperty?: string | string[];
+  resourceProperty?: any;
   resourceType: string | string[];
   ownerIndicatoryEntity?: string;
-  ownerInstance?: string | string [];
+  ownerInstance?: string | string[];
   aclIndicatoryEntity?: string;
   aclInstances?: string[];
   multipleAclIndicatoryEntity?: string[],
