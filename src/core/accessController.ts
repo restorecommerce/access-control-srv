@@ -360,6 +360,7 @@ export class AccessController {
     let operationMatch = false;
     let requestEntityURN = '';
     let skipDenyRule = true;
+    let rulePropertyValue = '';
     // if there are no resources defined in rule or policy, return as resources match
     if (_.isEmpty(ruleAttributes)) {
       return true;
@@ -377,6 +378,7 @@ export class AccessController {
       for (let ruleAttribute of ruleAttributes) {
         if (ruleAttribute.id === propertyURN) {
           rulePropertiesExist = true;
+          rulePropertyValue = ruleAttribute.value;
         }
         // direct match for attribute values
         if (!regexMatch) {
@@ -470,32 +472,40 @@ export class AccessController {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
         let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
+        const maskProperty = requestAttribute.value ? requestAttribute.value : rulePropertyValue; // for masking if no request properties are specified
+        if (maskProperty.indexOf('#') <= -1) { // validate maskPropertyURN value
+          continue;
+        }
         if (!maskPropExists) {
-          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: requestAttribute.value }] });
+          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: maskProperty }] });
         } else {
-          maskPropExists.attribute.push({ id: maskedPropertyURN, value: requestAttribute.value });
+          maskPropExists.attribute.push({ id: maskedPropertyURN, value: maskProperty });
         }
       }
 
       // for whatIsAllowed if decision is deny and propertyMatch to true it implies
       // subject does not have access to the requestAttribute.value add it to the maksPropertyList
+      // last condition (propertyMatch || !requestPropertiesExist) -> is to match Deny rule when user does not provide any req props
       if (operation === 'whatIsAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
-        && entityMatch && rulePropertiesExist && propertyMatch) {
-        if (!requestPropertiesExist) {
-          return false; // since its not possible to evaluate what properties subject would read
-        }
+        && entityMatch && rulePropertiesExist && (propertyMatch || !requestPropertiesExist)) {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
-        let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
+        const maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
+        const maskProperty = requestAttribute.value ? requestAttribute.value : rulePropertyValue; // for masking if no request properties are specified
+        if (maskProperty.indexOf('#') <= -1) { // validate maskPropertyURN value
+          continue;
+        }
         if (!maskPropExists) {
-          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: requestAttribute.value }] });
+          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: maskProperty }] });
         } else {
-          maskPropExists.attribute.push({ id: maskedPropertyURN, value: requestAttribute.value });
+          maskPropExists.attribute.push({ id: maskedPropertyURN, value: maskProperty });
         }
       }
     }
 
-    if (skipDenyRule && rulePropertiesExist && effect === Effect.DENY && operation === 'isAllowed' && !propertyMatch) {
+    // skip deny rule property is effective only if ruleProps exist and requestProps exist
+    if (skipDenyRule && rulePropertiesExist && requestPropertiesExist && effect === Effect.DENY &&
+      operation === 'isAllowed' && !propertyMatch) {
       return false;
     }
 
