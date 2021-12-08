@@ -403,7 +403,7 @@ export class AccessController {
               if (ruleAttribute.value === requestAttribute.value) {
                 propertyMatch = true;
               }
-            } else {
+            } else if (effect === Effect.PERMIT) { // set propertyMatch to true only when rule is Permit and request does not belong to this rule
               propertyMatch = true; // the requested entity property does not belong to this rule
             }
           }
@@ -481,7 +481,13 @@ export class AccessController {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
         let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
-        const maskProperty = requestAttribute.value ? requestAttribute.value : rulePropertyValue; // for masking if no request properties are specified
+        let maskProperty;
+        // for masking if no request properties are specified
+        if(requestPropertiesExist && requestAttribute.value) {
+          maskProperty = requestAttribute.value;
+        } else if (!requestPropertiesExist) {
+          maskProperty = rulePropertyValue;
+        }
         if (maskProperty.indexOf('#') <= -1) { // validate maskPropertyURN value
           continue;
         }
@@ -500,7 +506,13 @@ export class AccessController {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
         const maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
-        const maskProperty = requestAttribute.value ? requestAttribute.value : rulePropertyValue; // for masking if no request properties are specified
+        let maskProperty;
+        // for masking if no request properties are specified
+        if(requestPropertiesExist && requestAttribute.value) {
+          maskProperty = requestAttribute.value;
+        } else if (!requestPropertiesExist) {
+          maskProperty = rulePropertyValue;
+        }
         if (maskProperty.indexOf('#') <= -1) { // validate maskPropertyURN value
           continue;
         }
