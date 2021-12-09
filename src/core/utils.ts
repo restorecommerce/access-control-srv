@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { AccessController } from './accessController';
 import * as interfaces from './interfaces';
-import { Subject, AuthZAction, Decision, accessRequest, PolicySetRQ, DecisionResponse } from '@restorecommerce/acs-client';
+import { Subject, AuthZAction, Decision, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse } from '@restorecommerce/acs-client';
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { GrpcClient } from '@restorecommerce/grpc-client';
@@ -154,7 +154,12 @@ const getUserServiceClient = async () => {
     const cfg = createServiceConfig(process.cwd());
     // identity-srv client to resolve subject ID by token
     const grpcIDSConfig = cfg.get('client:user');
-    const logger = createLogger(cfg.get('logger'));
+    const loggerCfg = cfg.get('logger');
+    loggerCfg.esTransformer = (msg) => {
+      msg.fields = JSON.stringify(msg.fields);
+      return msg;
+    };
+    const logger = createLogger(loggerCfg);
     if (grpcIDSConfig) {
       const idsClient = new GrpcClient(grpcIDSConfig, logger);
       idsClientInstance = idsClient.user;
@@ -162,6 +167,35 @@ const getUserServiceClient = async () => {
   }
   return idsClientInstance;
 };
+
+export interface Resource {
+  resource: string;
+  id?: string | string[]; // for what is allowed operation id is not mandatory
+  property?: string[];
+}
+
+export interface Attribute {
+  id: string;
+  value: string;
+  attribute: Attribute[];
+}
+
+export interface CtxResource {
+  id: string;
+  meta: {
+    created?: number;
+    modified?: number;
+    modified_by?: string;
+    owner: Attribute[]; // id and owner is mandatory in ctx resource other attributes are optional
+  };
+  [key: string]: any;
+}
+
+export interface GQLClientContext {
+  // if subject is missing by default it will be treated as unauthenticated subject
+  subject?: Subject;
+  resources?: CtxResource[];
+}
 
 /**
  * Perform an access request using inputs from a GQL request
@@ -172,10 +206,9 @@ const getUserServiceClient = async () => {
  * @param entity The entity type to check access against
  */
 /* eslint-disable prefer-arrow-functions/prefer-arrow-functions */
-export async function checkAccessRequest(subject: Subject, resources: any, action: AuthZAction,
-  entity: string, service: any, resourceNameSpace?: string): Promise<DecisionResponse | ReadPolicyResponse> {
-  let authZ = service.authZ;
-  let data = _.cloneDeep(resources);
+export async function checkAccessRequest(ctx: GQLClientContext, resource: Resource[], action: AuthZAction,
+  operation: Operation): Promise<DecisionResponse | ReadPolicyResponse> {
+  let subject = ctx.subject;
   // resolve subject id using findByToken api and update subject with id
   let dbSubject;
   if (subject && subject.token) {
@@ -187,47 +220,22 @@ export async function checkAccessRequest(subject: Subject, resources: any, actio
       }
     }
   }
-  if (!_.isArray(resources) && action != AuthZAction.READ) {
-    data = [resources];
-  } else if (action === AuthZAction.READ) {
-    data.args = resources;
-    data.entity = entity;
-  }
 
-  let result: DecisionResponse | ReadPolicyResponse;
+  let result: DecisionResponse | PolicySetRQResponse;
   try {
-    result = await accessRequest(subject, data, action, authZ, entity, resourceNameSpace);
+    result = await accessRequest(subject, resource, action, ctx, operation);
   } catch (err) {
     return {
       decision: Decision.DENY,
+      obligation: [],
       operation_status: {
         code: err.code || 500,
         message: err.details || err.message,
       }
     };
   }
-  if (result && (result as ReadPolicyResponse).policy_sets) {
-    let custom_queries = data.args.custom_queries;
-    let custom_arguments = data.args.custom_arguments;
-    (result as ReadPolicyResponse).filters = data.args.filters;
-    (result as ReadPolicyResponse).custom_query_args = { custom_queries, custom_arguments };
-    return result as ReadPolicyResponse;
-  } else {
-    return result as DecisionResponse;
-  }
+  return result;
 }
-
-export const getSubject = async (call: any, service: any) => {
-  let subject = call.request.subject;
-  if (!subject) {
-    subject = {};
-  }
-  let api_key = call.request.api_key;
-  if (api_key) {
-    subject = { api_key };
-  }
-  return subject;
-};
 
 /**
  * reads meta data from DB and updates owner information in resource if action is UPDATE / DELETE
@@ -236,7 +244,7 @@ export const getSubject = async (call: any, service: any) => {
  * @param action resource action
  */
 export async function createMetadata(resources: any,
-  action: string, subject: Subject, service: any, cb: any): Promise<any> {
+  action: string, subject: Subject, service: any): Promise<any> {
   let orgOwnerAttributes = [];
   if (resources && !_.isArray(resources)) {
     resources = [resources];

@@ -55,7 +55,12 @@ export class Worker {
   authZ: ACSAuthZ;
   async start(cfg?: any, logger?: any): Promise<any> {
     this.cfg = cfg || await chassis.config.get();
-    this.logger = logger || createLogger(this.cfg.get('logger'));
+    const loggerCfg = this.cfg.get('logger');
+    loggerCfg.esTransformer = (msg) => {
+      msg.fields = JSON.stringify(msg.fields);
+      return msg;
+    };
+    this.logger = logger || createLogger(loggerCfg);
 
     this.logger.info('Starting access control service');
     const server = new chassis.Server(this.cfg.get('server'), this.logger);  // gRPC server
