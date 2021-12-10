@@ -1,3 +1,7 @@
+## 0.2.10 (December 10th, 2021)
+
+- fixed custom args response
+
 ## 0.2.9 (December 10th, 2021)
 
 - Added typing

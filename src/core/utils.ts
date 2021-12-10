@@ -209,7 +209,7 @@ export interface GQLClientContext {
  */
 /* eslint-disable prefer-arrow-functions/prefer-arrow-functions */
 export async function checkAccessRequest(ctx: GQLClientContext, resource: Resource[], action: AuthZAction,
-  operation: Operation): Promise<DecisionResponse | ReadPolicyResponse> {
+  operation: Operation): Promise<DecisionResponse | PolicySetRQResponse> {
   let subject = ctx.subject;
   // resolve subject id using findByToken api and update subject with id
   let dbSubject;

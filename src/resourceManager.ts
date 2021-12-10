@@ -1,10 +1,9 @@
 import * as _ from 'lodash';
 import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce/resource-base-interface';
 import { Topic, Events } from '@restorecommerce/kafka-client';
-
 import * as core from './core';
-import { createMetadata, AccessResponse, checkAccessRequest, ReadPolicyResponse } from './core/utils';
-import { AuthZAction, Operation, Decision, ACSAuthZ, DecisionResponse } from '@restorecommerce/acs-client';
+import { createMetadata, checkAccessRequest } from './core/utils';
+import { AuthZAction, Operation, Decision, ACSAuthZ, DecisionResponse, PolicySetRQResponse } from '@restorecommerce/acs-client';
 import { RedisClient } from 'redis';
 
 export interface IAccessControlResourceService<T> {
@@ -158,7 +157,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
   async read(call: any, ctx: any): Promise<any> {
     const readRequest = call.request;
     let subject = call.request.subject;;
-    let acsResponse: ReadPolicyResponse;
+    let acsResponse: PolicySetRQResponse;
     try {
       ctx.subject = subject;
       ctx.resources = [];
@@ -176,9 +175,9 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     if (acsResponse.decision != Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    if (acsResponse?.custom_query_args?.custom_queries) {
-      readRequest.custom_queries = acsResponse.custom_query_args.custom_queries;
-      readRequest.custom_arguments = acsResponse.custom_query_args.custom_arguments;
+    if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
+      readRequest.custom_queries = acsResponse.custom_query_args[0].custom_queries;
+      readRequest.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }
     const result = await super.read({ request: readRequest });
     return result;
@@ -398,7 +397,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   async read(call: any, ctx: any): Promise<any> {
     const readRequest = call.request;
     let subject = call.request.subject;
-    let acsResponse: ReadPolicyResponse;
+    let acsResponse: PolicySetRQResponse;
     try {
       ctx.subject = subject;
       ctx.resources = [];
@@ -416,9 +415,9 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     if (acsResponse.decision != Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    if (acsResponse?.custom_query_args?.custom_queries) {
-      readRequest.custom_queries = acsResponse.custom_query_args.custom_queries;
-      readRequest.custom_arguments = acsResponse.custom_query_args.custom_arguments;
+    if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
+      readRequest.custom_queries = acsResponse.custom_query_args[0].custom_queries;
+      readRequest.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }
     const result = await super.read({ request: readRequest });
     return result;
@@ -810,7 +809,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
   async read(call: any, ctx: any): Promise<any> {
     const readRequest = call.request;
     let subject = call.request.subject;
-    let acsResponse: ReadPolicyResponse;
+    let acsResponse: PolicySetRQResponse;
     try {
       ctx.subject = subject;
       ctx.resources = [];
@@ -828,9 +827,9 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     if (acsResponse.decision != Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    if (acsResponse?.custom_query_args?.custom_queries) {
-      readRequest.custom_queries = acsResponse.custom_query_args.custom_queries;
-      readRequest.custom_arguments = acsResponse.custom_query_args.custom_arguments;
+    if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
+      readRequest.custom_queries = acsResponse.custom_query_args[0].custom_queries;
+      readRequest.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }
     const result = await super.read({ request: readRequest });
     return result;
