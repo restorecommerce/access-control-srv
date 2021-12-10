@@ -164,7 +164,8 @@ and responses are a `io.restorecommerce.access_control.Response` message.
 |==============================================================================================================================================
 | Field | Type | Label | Description
 | decision | `io.restorecommerce.access_control.Decision` | required | Access decision; possible values are `PERMIT`, `DENY` and `INDETERMINATE`
-| obligation | string | optional | Obligation attached to decision
+| obligation | https://github.com/restorecommerce/libs/blob/master/packages/protos/io/restorecommerce/attribute.proto#L5[`io.restorecommerce.attribute.Attribute [ ]`] | optional | list of Obligation attached to decision
+| operation_status | https://github.com/restorecommerce/libs/blob/master/packages/protos/io/restorecommerce/status.proto#L23[`io.restorecommerce.status.OperationStatus`] | required | operation status code and message |
 |==============================================================================================================================================
 
 [#api_what_is_allowed]
@@ -196,6 +197,8 @@ If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[
 |==============================================================================================================================================
 | Field | Type | Label | Description
 | policy_sets | `io.restorecommerce.policy_set.PolicySetRQ` | required | List of applicable policy sets
+| obligation | https://github.com/restorecommerce/libs/blob/master/packages/protos/io/restorecommerce/attribute.proto#L5[`io.restorecommerce.attribute.Attribute [ ]`] | optional | list of Obligation attached to rules / policies
+| operation_status | https://github.com/restorecommerce/libs/blob/master/packages/protos/io/restorecommerce/status.proto#L23[`io.restorecommerce.status.OperationStatus`] | required | operation status code and message |
 |==============================================================================================================================================
 
 `io.restorecommerce.policy_set.PolicySetRQ`
