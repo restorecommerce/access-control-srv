@@ -1,3 +1,7 @@
+## 0.2.9 (December 10th, 2021)
+
+- Added typing
+
 ## 0.2.8 (December 10th, 2021)
 
 - Added Obligation (Attribute []) for both isAllowed and whatIsAllowed response

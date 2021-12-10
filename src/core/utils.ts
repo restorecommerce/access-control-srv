@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { AccessController } from './accessController';
 import * as interfaces from './interfaces';
-import { Subject, AuthZAction, Decision, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse } from '@restorecommerce/acs-client';
+import { Subject, AuthZAction, Decision, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse, Obligation } from '@restorecommerce/acs-client';
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { GrpcClient } from '@restorecommerce/grpc-client';
@@ -126,6 +126,7 @@ export interface Response {
 export interface AccessResponse {
   decision: Decision;
   response?: Response;
+  obligation?: Obligation[];
   operation_status: {
     code: number;
     message: string;
