@@ -20,6 +20,8 @@ policy_sets:
                 subject:
                   - id: urn:restorecommerce:acs:names:role
                     value: admin-r-id
+                  - id: urn:restorecommerce:acs:names:roleScopingEntity
+                    value: urn:restorecommerce:acs:model:organization.Organization
                 resources:
                   - id: urn:restorecommerce:acs:names:model:entity
                     value: urn:restorecommerce:acs:model:rule.Rule

@@ -285,15 +285,17 @@ export async function createMetadata(resources: any,
           } else {
             ownerAttributes = resource.meta.owner;
           }
-          ownerAttributes.push(
-            {
-              id: urns.ownerIndicatoryEntity,
-              value: urns.user
-            },
-            {
-              id: urns.ownerInstance,
-              value: subject.id
-            });
+          if (subject && subject.id) {
+            ownerAttributes.push(
+              {
+                id: urns.ownerIndicatoryEntity,
+                value: urns.user
+              },
+              {
+                id: urns.ownerInstance,
+                value: subject.id
+              });
+          }
           resource.meta.owner = ownerAttributes;
         }
       } else if (action === AuthZAction.CREATE) {
@@ -306,15 +308,17 @@ export async function createMetadata(resources: any,
         } else {
           ownerAttributes = resource.meta.owner;
         }
-        ownerAttributes.push(
-          {
-            id: urns.ownerIndicatoryEntity,
-            value: urns.user
-          },
-          {
-            id: urns.ownerInstance,
-            value: subject.id
-          });
+        if (subject && subject.id) {
+          ownerAttributes.push(
+            {
+              id: urns.ownerIndicatoryEntity,
+              value: urns.user
+            },
+            {
+              id: urns.ownerInstance,
+              value: subject.id
+            });
+        }
         resource.meta.owner = ownerAttributes;
       }
     }
