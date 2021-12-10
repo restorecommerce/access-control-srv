@@ -1,3 +1,9 @@
+## 0.2.8 (December 10th, 2021)
+
+- Added Obligation (Attribute []) for both isAllowed and whatIsAllowed response
+- Added properties match for Target resources (for both isAllowed and whatIsAllowed), for isAllowed there will be a DENY if properties mismatch and
+  for whatIsAllowed the masked properties are set in Obligation
+
 ## 0.2.7 (October 12th, 2021)
 
 - fixed context query filters
