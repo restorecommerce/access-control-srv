@@ -8,6 +8,7 @@ import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { GrpcClient } from '@restorecommerce/grpc-client';
 import { FilterOp } from '@restorecommerce/resource-base-interface/lib/core/interfaces';
+import * as uuid from 'uuid';
 
 
 export const formatTarget = (target: any): interfaces.Target => {
@@ -274,8 +275,16 @@ export async function createMetadata(resources: any,
         if (result.items.length === 1) {
           let item = result.items[0].payload;
           resource.meta.owner = item.meta.owner;
-        } else if (result.items.length === 0 && !resource.meta.owner) {
-          let ownerAttributes = _.cloneDeep(orgOwnerAttributes);
+        } else if (result.items.length === 0) {
+          if (_.isEmpty(resource.id)) {
+            resource.id = uuid.v4().replace(/-/g, '');
+          }
+          let ownerAttributes;
+          if (!resource.meta.owner) {
+            ownerAttributes = _.cloneDeep(orgOwnerAttributes);
+          } else {
+            ownerAttributes = resource.meta.owner;
+          }
           ownerAttributes.push(
             {
               id: urns.ownerIndicatoryEntity,
@@ -283,12 +292,20 @@ export async function createMetadata(resources: any,
             },
             {
               id: urns.ownerInstance,
-              value: resource.id
+              value: subject.id
             });
           resource.meta.owner = ownerAttributes;
         }
-      } else if (action === AuthZAction.CREATE && !resource.meta.owner) {
-        let ownerAttributes = _.cloneDeep(orgOwnerAttributes);
+      } else if (action === AuthZAction.CREATE) {
+        if (_.isEmpty(resource.id)) {
+          resource.id = uuid.v4().replace(/-/g, '');
+        }
+        let ownerAttributes;
+        if (!resource.meta.owner) {
+          ownerAttributes = _.cloneDeep(orgOwnerAttributes);
+        } else {
+          ownerAttributes = resource.meta.owner;
+        }
         ownerAttributes.push(
           {
             id: urns.ownerIndicatoryEntity,
@@ -296,7 +313,7 @@ export async function createMetadata(resources: any,
           },
           {
             id: urns.ownerInstance,
-            value: resource.id
+            value: subject.id
           });
         resource.meta.owner = ownerAttributes;
       }

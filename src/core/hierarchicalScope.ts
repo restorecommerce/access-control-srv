@@ -140,7 +140,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
             logger.debug('Resource of targeted entity was not provided in context');
             return false; // resource of targeted entity was not provided in context
           }
-          entitiesMatch = false;
+          // entitiesMatch = false;
         }
       }
     } else if (attribute.id === urns.get('operation')) {
@@ -280,11 +280,12 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               getAllValues(node, eligibleOrgScopes);
               if (entities) {
                 for (let [entity, instances] of entities) {
-                  if (_.find(instances, (i) => {
-                    if (eligibleOrgScopes.indexOf(i) > -1) {
-                      return true;
+                  for (let instance of instances) {
+                    if(eligibleOrgScopes.indexOf(instance) > -1) {
+                      instances = instances.filter(e => e != instance);
                     }
-                  })) {
+                  }
+                  if (instances.length === 0) {
                     entities.delete(entity);
                     break;
                   }
