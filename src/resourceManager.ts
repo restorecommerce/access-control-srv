@@ -119,6 +119,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: items.map(item => item.id) }], AuthZAction.CREATE,
@@ -159,6 +160,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     let subject = call.request.subject;;
     let acsResponse: PolicySetRQResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = [];
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule' }], AuthZAction.READ,
@@ -191,6 +193,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: items.map(item => item.id) }], AuthZAction.MODIFY,
@@ -207,7 +210,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     if (acsResponse.decision != Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.update(call, context);
+    const result = await super.update(call, ctx);
     return result;
   }
 
@@ -219,6 +222,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: items.map(item => item.id) }], AuthZAction.MODIFY,
@@ -235,7 +239,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     if (acsResponse.decision != Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.upsert(call, context);
+    const result = await super.upsert(call, ctx);
     return result;
   }
 
@@ -263,6 +267,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = resources;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: ruleIDs }], action,
@@ -279,7 +284,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     if (acsResponse.decision != Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    deleteResponse = await super.delete(call, context);
+    deleteResponse = await super.delete(call, ctx);
     if (call.request.ids) {
       for (let id of call.request.ids) {
         for (let [, policySet] of _accessController.policySets) {
@@ -334,6 +339,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.CREATE,
@@ -350,7 +356,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     if (acsResponse.decision != Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.create(call, context);
+    const result = await super.create(call, ctx);
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result && result.items) {
@@ -399,6 +405,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     let subject = call.request.subject;
     let acsResponse: PolicySetRQResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = [];
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy' }], AuthZAction.READ,
@@ -431,6 +438,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.MODIFY,
@@ -459,6 +467,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.MODIFY,
@@ -540,6 +549,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = resources;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: policyIDs }], action,
@@ -650,6 +660,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.CREATE,
@@ -696,6 +707,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.MODIFY,
@@ -778,6 +790,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = resources;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: policySetIDs }], action,
@@ -811,6 +824,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     let subject = call.request.subject;
     let acsResponse: PolicySetRQResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = [];
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set' }], AuthZAction.READ,
@@ -843,6 +857,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 
     let acsResponse: DecisionResponse;
     try {
+      if (!ctx) { ctx = {}; };
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.MODIFY,
