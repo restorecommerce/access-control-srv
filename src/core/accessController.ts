@@ -121,6 +121,22 @@ export class AccessController {
           }
         }
 
+        // if there are multiple entities in the request.target.resources
+        // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
+        // to ensure there is an exact policy entity match for each of the requested entity
+        if (request?.target?.resources && exactMatch) {
+          let noOfEntities = 0;
+          const entityURN = this.urns.get('entity');
+          for (let resourceAttribute of request.target.resources) {
+            if (resourceAttribute.id === entityURN) {
+              noOfEntities = +1;
+            }
+          }
+          if (noOfEntities > 1) {
+            exactMatch = this.checkMultipleEntitiesMatch(value, request, obligation);
+          }
+        }
+
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
           if (!policy) {
@@ -295,6 +311,22 @@ export class AccessController {
           }
         }
 
+        // if there are multiple entities in the request.target.resources
+        // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
+        // to ensure there is an exact policy entity match for each of the requested entity
+        if (request?.target?.resources && exactMatch) {
+          let noOfEntities = 0;
+          const entityURN = this.urns.get('entity');
+          for (let resourceAttribute of request.target.resources) {
+            if (resourceAttribute.id === entityURN) {
+              noOfEntities = noOfEntities + 1;
+            }
+          }
+          if (noOfEntities > 1) {
+            exactMatch = this.checkMultipleEntitiesMatch(value, request, obligation);
+          }
+        }
+
         for (let [, policy] of value.combinables) {
           let policyRQ: PolicyRQ;
           if (!policy) {
@@ -346,6 +378,43 @@ export class AccessController {
     };
   }
 
+  private checkMultipleEntitiesMatch(policySet: PolicySet, request: Request, obligation: Attribute[]) {
+    let multipleEntitiesMatch = false;
+    let exactMatch = true;
+    // iterate and find for each of the exact mathing resource attribute
+    const entityURN = this.urns.get('entity');
+    for (let requestAttributeObj of request.target.resources) {
+      if (requestAttributeObj.id === entityURN) {
+        multipleEntitiesMatch = false;
+        for (let [, policyValue] of policySet.combinables) {
+          const policy: Policy = policyValue;
+          let policyEffect: Effect;
+          if (policy.effect) {
+            policyEffect = policy.effect;
+          } else if (policy.combiningAlgorithm) {
+            const method = this.combiningAlgorithms.get(policy.combiningAlgorithm);
+            if (method === 'permitOverrides') {
+              policyEffect = Effect.PERMIT;
+            } else if (method === 'denyOverrides') {
+              policyEffect = Effect.DENY;
+            }
+          }
+          let policyTargetResources = policy?.target?.resources;
+          if (policyTargetResources && policyTargetResources.length > 0) {
+            if (this.resourceAttributesMatch(policyTargetResources, [requestAttributeObj], 'isAllowed', obligation, policyEffect)) {
+              multipleEntitiesMatch = true;
+            }
+          }
+        }
+        if (!multipleEntitiesMatch) {
+          exactMatch = false; // reset exact match even if one of the multiple entities exact match is not found
+          break;
+        }
+      }
+    }
+    return exactMatch;
+  }
+
   private resourceAttributesMatch(ruleAttributes: Attribute[],
     requestAttributes: Attribute[], operation: AccessControlOperation,
     maskPropertyList: Attribute[], effect: Effect, regexMatch?: boolean): boolean {
@@ -382,15 +451,11 @@ export class AccessController {
         }
         // direct match for attribute values
         if (!regexMatch) {
-          if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN) {
-            if (requestAttribute.value === ruleAttribute.value) {
-              // entity match
-              entityMatch = true;
-              requestEntityURN = requestAttribute.value;
-            } else if (entityMatch && requestAttribute.value != ruleAttribute.value) {
-              // multiple entities are present, reset the previous match
-              entityMatch = false;
-            }
+          if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN
+            && requestAttribute.value === ruleAttribute.value) {
+            // entity match
+            entityMatch = true;
+            requestEntityURN = requestAttribute.value;
           } else if (requestAttribute.id === operationURN && ruleAttribute.id === operationURN
             && requestAttribute.value === ruleAttribute.value) {
             operationMatch = true;
