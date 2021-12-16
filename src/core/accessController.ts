@@ -382,11 +382,15 @@ export class AccessController {
         }
         // direct match for attribute values
         if (!regexMatch) {
-          if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN
-            && requestAttribute.value === ruleAttribute.value) {
-            // entity match
-            entityMatch = true;
-            requestEntityURN = requestAttribute.value;
+          if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN) {
+            if (requestAttribute.value === ruleAttribute.value) {
+              // entity match
+              entityMatch = true;
+              requestEntityURN = requestAttribute.value;
+            } else if (entityMatch && requestAttribute.value != ruleAttribute.value) {
+              // multiple entities are present, reset the previous match
+              entityMatch = false;
+            }
           } else if (requestAttribute.id === operationURN && ruleAttribute.id === operationURN
             && requestAttribute.value === ruleAttribute.value) {
             operationMatch = true;
@@ -483,7 +487,7 @@ export class AccessController {
         let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
         let maskProperty;
         // for masking if no request properties are specified
-        if(requestPropertiesExist && requestAttribute.value) {
+        if (requestPropertiesExist && requestAttribute.value) {
           maskProperty = requestAttribute.value;
         } else if (!requestPropertiesExist) {
           maskProperty = rulePropertyValue;
@@ -508,7 +512,7 @@ export class AccessController {
         const maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
         let maskProperty;
         // for masking if no request properties are specified
-        if(requestPropertiesExist && requestAttribute.value) {
+        if (requestPropertiesExist && requestAttribute.value) {
           maskProperty = requestAttribute.value;
         } else if (!requestPropertiesExist) {
           maskProperty = rulePropertyValue;
