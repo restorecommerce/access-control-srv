@@ -1,5 +1,5 @@
 import * as mocha from 'mocha';
-import * as nock from 'nock';
+import nock from 'nock';
 import * as should from 'should';
 
 import * as core from '../src/core';

@@ -4,7 +4,7 @@ import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
 import { AccessControlCommandInterface, AccessControlService } from './accessControlService';
 import { ResourceManager } from './resourceManager';
-import * as Redis from 'ioredis';
+import Redis from 'ioredis';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base';
 
 import * as core from './core';
@@ -108,7 +108,7 @@ export class Worker {
     // resources
     const db = await chassis.database.get(this.cfg.get('database:main'), this.logger);
     // init ACS cache
-    initializeCache();
+    await initializeCache();
     // init AuthZ
     this.authZ = await initAuthZ(this.cfg) as ACSAuthZ;
     const resourceManager = new ResourceManager(this.cfg, this.logger, events, db,
@@ -172,7 +172,7 @@ export class Worker {
             try {
               redisSub = await that.accessController.getRedisKey(redisSubKey);
               if (_.isEmpty(redisSub)) {
-                that.accessController.setRedisKey(redisSubKey, JSON.stringify(subject.payload));
+                await that.accessController.setRedisKey(redisSubKey, JSON.stringify(subject.payload));
               }
             } catch (err) {
               this.logger.error('Error retrieving Subject from redis in acs-srv');

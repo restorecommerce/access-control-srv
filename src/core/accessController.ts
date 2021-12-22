@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import * as nodeEval from 'node-eval';
+import nodeEval from 'node-eval';
 import {
   Rule, Policy, PolicySet, Request, Response,
   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
@@ -9,7 +9,7 @@ import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
 import { checkHierarchicalScope } from './hierarchicalScope';
 import { Logger } from 'winston';
-import * as Redis from 'ioredis';
+import Redis from 'ioredis';
 import { Topic } from '@restorecommerce/kafka-client';
 import { verifyACLList } from './verifyACL';
 

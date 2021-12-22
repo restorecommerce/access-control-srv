@@ -3,7 +3,7 @@ import { Logger } from 'winston';
 
 import { Target, Request, Attribute, AccessController } from '.';
 import { Resource } from './interfaces';
-import * as traverse from 'traverse';
+import traverse from 'traverse';
 import { getAllValues } from './utils';
 
 export const verifyACLList = async (ruleTarget: Target,

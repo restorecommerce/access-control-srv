@@ -4,7 +4,7 @@ import { Events } from '@restorecommerce/kafka-client';
 
 import { CommandInterface } from '@restorecommerce/chassis-srv';
 import { ResourceManager } from './resourceManager';
-import * as Redis from 'ioredis';
+import Redis from 'ioredis';
 
 import * as core from './core';
 import { ReverseQueryResponse } from './core/interfaces';
@@ -134,7 +134,7 @@ export class AccessControlCommandInterface extends CommandInterface {
     const result = await super.restore(payload);
 
     this.accessControlService.clearPolicies();
-    this.accessControlService.loadPolicies();
+    await this.accessControlService.loadPolicies();
     return result;
   }
 

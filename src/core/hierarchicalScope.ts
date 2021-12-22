@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import * as traverse from 'traverse';
+import traverse from 'traverse';
 import { Logger } from 'winston';
 
 import { Target, Request, Attribute, AccessController } from '.';
