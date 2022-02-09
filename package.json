@@ -23,7 +23,7 @@
     "@restorecommerce/grpc-client": "^0.2.14",
     "@restorecommerce/kafka-client": "^0.2.29",
     "@restorecommerce/logger": "^0.11.3",
-    "@restorecommerce/protos": "^0.4.11",
+    "@restorecommerce/protos": "^0.6.0",
     "@restorecommerce/resource-base-interface": "^0.2.2",
     "@restorecommerce/service-config": "^0.4.23",
     "apollo-boost": "^0.4.9",
