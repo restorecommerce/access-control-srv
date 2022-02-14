@@ -53,6 +53,7 @@ export class Worker {
   accessController: core.AccessController;
   redisClient: RedisClientType<any, any>;
   authZ: ACSAuthZ;
+  offsetStore: chassis.OffsetStore;
   async start(cfg?: any, logger?: any): Promise<any> {
     this.cfg = cfg || await chassis.config.get();
     const loggerCfg = this.cfg.get('logger');
@@ -88,6 +89,7 @@ export class Worker {
     const hierarchicalScopesResponse = 'hierarchicalScopesResponse';
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
+    this.offsetStore = new chassis.OffsetStore(events, cfg, logger);
 
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');
@@ -287,7 +289,7 @@ export class Worker {
     for (let topicLabel in kafkaConfig.topics) {
       const topicCfg = kafkaConfig.topics[topicLabel];
       const topic = await events.topic(topicCfg.topic);
-
+      const offSetValue = await this.offsetStore.getOffset(topicCfg.topic);
       if (topicCfg.events) {
         for (let eventName of topicCfg.events) {
           await topic.on(eventName, eventListener);
@@ -301,6 +303,8 @@ export class Worker {
   async stop(): Promise<void> {
     await this.events.stop();
     await this.server.stop();
+    await this.offsetStore.stop();
+    await this.redisClient.quit();
   }
 }
 
