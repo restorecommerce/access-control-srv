@@ -191,6 +191,7 @@
           "localhost:29092"
         ]
       },
+      "latestOffset": false,
       "healthCheckCommand": {
         "protos": [
           "io/restorecommerce/commandinterface.proto"

@@ -4,7 +4,7 @@ import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
 import { AccessControlCommandInterface, AccessControlService } from './accessControlService';
 import { ResourceManager } from './resourceManager';
-import Redis from 'ioredis';
+import { createClient, RedisClientType } from 'redis';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base';
 
 import * as core from './core';
@@ -51,7 +51,7 @@ export class Worker {
   events: Events;
   commandInterface: AccessControlCommandInterface;
   accessController: core.AccessController;
-  redisClient: Redis;
+  redisClient: RedisClientType<any, any>;
   authZ: ACSAuthZ;
   async start(cfg?: any, logger?: any): Promise<any> {
     this.cfg = cfg || await chassis.config.get();
@@ -91,8 +91,10 @@ export class Worker {
 
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');
-    redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
-    this.redisClient = new Redis(redisConfig);
+    redisConfig.database = this.cfg.get('redis:db-indexes:db-subject');
+    this.redisClient = createClient(redisConfig);
+    this.redisClient.on('error', (err) => logger.error('Redis Client Error', err));
+    await this.redisClient.connect();
 
     const userTopic = await events.topic(kafkaConfig.topics['user'].topic);
     // instantiate IDS client

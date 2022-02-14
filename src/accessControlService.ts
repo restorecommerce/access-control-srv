@@ -4,7 +4,7 @@ import { Events } from '@restorecommerce/kafka-client';
 
 import { CommandInterface } from '@restorecommerce/chassis-srv';
 import { ResourceManager } from './resourceManager';
-import Redis from 'ioredis';
+import { RedisClientType } from 'redis';
 
 import * as core from './core';
 import { ReverseQueryResponse } from './core/interfaces';
@@ -125,7 +125,7 @@ export class AccessControlService {
 export class AccessControlCommandInterface extends CommandInterface {
   accessControlService: AccessControlService;
   constructor(server: Server, cfg: any, logger: any, events: Events,
-    accessControlService: AccessControlService, redisClient: Redis) {
+    accessControlService: AccessControlService, redisClient: RedisClientType<any, any>) {
     super(server, cfg, logger, events, redisClient);
     this.accessControlService = accessControlService;
   }

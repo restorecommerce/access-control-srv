@@ -4,7 +4,7 @@ import { Topic, Events } from '@restorecommerce/kafka-client';
 import * as core from './core';
 import { createMetadata, checkAccessRequest } from './core/utils';
 import { AuthZAction, Operation, Decision, ACSAuthZ, DecisionResponse, PolicySetRQResponse } from '@restorecommerce/acs-client';
-import { RedisClient } from 'redis';
+import { RedisClientType } from 'redis';
 
 export interface IAccessControlResourceService<T> {
   load(): Promise<Map<string, T>>;
@@ -59,10 +59,10 @@ let policySetService: PolicySetService,
 */
 export class RuleService extends ServiceBase implements IAccessControlResourceService<core.Rule> {
   cfg: any;
-  redisClient: RedisClient;
+  redisClient: RedisClientType<any, any>;
   authZ: ACSAuthZ;
   constructor(logger: any, policyTopic: Topic, db: any, cfg: any,
-    redisClient: RedisClient, authZ: ACSAuthZ) {
+    redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
     super('rule', policyTopic, logger, new ResourcesAPIBase(db, 'rules'), true);
     this.cfg = cfg;
     this.redisClient = redisClient;
@@ -313,10 +313,10 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 export class PolicyService extends ServiceBase implements IAccessControlResourceService<core.Policy> {
   ruleService: RuleService;
   cfg: any;
-  redisClient: RedisClient;
+  redisClient: RedisClientType<any, any>;
   authZ: ACSAuthZ;
   constructor(logger: any, db: any, policyTopic: Topic, rulesTopic: Topic, cfg: any,
-    redisClient: RedisClient, authZ: ACSAuthZ) {
+    redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
     super('policy', policyTopic, logger, new ResourcesAPIBase(db, 'policies'), true);
     this.ruleService = new RuleService(this.logger, rulesTopic, db, cfg, redisClient, authZ);
     this.cfg = cfg;
@@ -588,10 +588,10 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
 
 export class PolicySetService extends ServiceBase implements IAccessControlResourceService<core.PolicySet> {
   cfg: any;
-  redisClient: RedisClient;
+  redisClient: RedisClientType<any, any>;
   authZ: ACSAuthZ;
   constructor(logger: any, db: any, policySetTopic: Topic, cfg: any,
-    redisClient: RedisClient, authZ: ACSAuthZ) {
+    redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
     super('policy_set', policySetTopic, logger, new ResourcesAPIBase(db, 'policy_sets'), true);
     this.cfg = cfg;
     this.redisClient = redisClient;
@@ -885,11 +885,11 @@ export class ResourceManager {
   logger: any;
   events: any;
   db: any;
-  redisClient: any;
+  redisClient: RedisClientType<any, any>;
   authZ: any;
 
   constructor(cfg: any, logger: any, events: Events, db: any,
-    accessController: core.AccessController, redisClient: RedisClient, authZ: ACSAuthZ) {
+    accessController: core.AccessController, redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
     _accessController = accessController;
     this.cfg = cfg;
     this.logger = logger;

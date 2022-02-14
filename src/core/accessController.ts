@@ -9,7 +9,7 @@ import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
 import { checkHierarchicalScope } from './hierarchicalScope';
 import { Logger } from 'winston';
-import Redis from 'ioredis';
+import { createClient, RedisClientType } from 'redis';
 import { Topic } from '@restorecommerce/kafka-client';
 import { verifyACLList } from './verifyACL';
 
@@ -18,7 +18,7 @@ export class AccessController {
   combiningAlgorithms: Map<string, any>;
   urns: Map<string, string>;
   resourceAdapter: ResourceAdapter;
-  redisClient: Redis;
+  redisClient: RedisClientType<any, any>;
   userTopic: Topic;
   waiting: any[];
   cfg: any;
@@ -49,8 +49,12 @@ export class AccessController {
     }
     this.cfg = cfg;
     const redisConfig = this.cfg.get('redis');
-    redisConfig.db = this.cfg.get('redis:db-indexes:db-subject');
-    this.redisClient = new Redis(redisConfig);
+    redisConfig.database = this.cfg.get('redis:db-indexes:db-subject');
+    this.redisClient = createClient(redisConfig);
+    this.redisClient.on('error', (err) => logger.error('Redis Client Error', err));
+    this.redisClient.connect().then(data => logger.info('Redis client for subject cache connection successful')).catch(err => {
+      logger.error('Error creating redis client instance', err);
+    });
     this.userTopic = userTopic;
     this.waiting = [];
     this.userService = userService;
@@ -652,51 +656,27 @@ export class AccessController {
   }
 
   async getRedisKey(key: string): Promise<any> {
-    return new Promise((resolve: any, reject) => {
-      if (!key) {
-        this.logger.info('Key not defined');
-        return resolve();
-      }
-      this.redisClient.get(key, async (err, reply) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        if (reply) {
-          this.logger.debug('Found key in cache: ' + key);
-          resolve(JSON.parse(reply));
-          return;
-        }
-        if (!err && !reply) {
-          this.logger.info('Key does not exist', { key });
-          resolve();
-        }
-      });
-    });
+    if (!key) {
+      this.logger.info('Key not defined');
+      return;
+    }
+    const redisResponse = await this.redisClient.get(key);
+    if (!redisResponse) {
+      this.logger.info('Key does not exist', { key });
+      return;
+    }
+    if (redisResponse) {
+      this.logger.debug('Found key in cache: ' + key);
+      return JSON.parse(redisResponse);
+    }
   }
 
   async evictHRScopes(subID: string): Promise<void> {
     const key = `cache:${subID}:*`;
-    return new Promise((resolve, reject) => {
-      this.redisClient.keys(key, async (err, reply) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-
-        if (reply && reply.length) {
-          this.redisClient.del(reply, (err1) => {
-            if (err1) {
-              reject(err1);
-              return;
-            }
-            this.logger.debug('Evicted Subject cache: ' + key);
-            resolve();
-          });
-        }
-      });
-    });
+    const matchingKeys = await this.redisClient.keys(key);
+    await this.redisClient.del(matchingKeys);
+    this.logger.debug('Evicted Subject cache: ' + key);
+    return;
   }
 
   async setRedisKey(key: string, value: any): Promise<any> {
@@ -704,26 +684,7 @@ export class AccessController {
       this.logger.info(`Either key or value for redis set is not defined key: ${key} value: ${value}`);
       return;
     }
-    new Promise((resolve: any, reject) => {
-      this.redisClient.set(key, value, (err, res) => {
-        if (err) {
-          this.logger.error('Error writing to Subject cache:', err);
-          reject(err);
-          return;
-        }
-        if (res) {
-          this.logger.info(`Subject ${key} updated`);
-          resolve(value);
-          return;
-        }
-        if (!err && !res) {
-          this.logger.info('Key does not exist', { key });
-          resolve();
-        }
-      });
-    }).catch((err) => {
-      this.logger.error('Error updating Subject cache:', err);
-    });
+    return await this.redisClient.set(key, value);
   }
 
   async  createHRScope(context) {
