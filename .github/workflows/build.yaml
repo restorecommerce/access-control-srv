@@ -12,7 +12,7 @@ jobs:
       - name: Setup NodeJS
         uses: actions/setup-node@v1
         with:
-          node-version: '14.15'
+          node-version: '16.14.0'
 
       - name: Upgrade NPM
         run: npm i -g npm
@@ -33,7 +33,7 @@ jobs:
       - name: Setup NodeJS
         uses: actions/setup-node@v1
         with:
-          node-version: '14.15'
+          node-version: '16.14.0'
 
       - name: Upgrade NPM
         run: npm i -g npm
