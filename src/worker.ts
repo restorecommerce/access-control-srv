@@ -89,7 +89,7 @@ export class Worker {
     const hierarchicalScopesResponse = 'hierarchicalScopesResponse';
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
-    this.offsetStore = new chassis.OffsetStore(events, cfg, logger);
+    this.offsetStore = new chassis.OffsetStore(events, this.cfg, this.logger);
 
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');

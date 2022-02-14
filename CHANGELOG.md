@@ -1,3 +1,7 @@
+## 0.2.20 (February 14th, 2022)
+
+- fixed offset store
+
 ## 0.2.19 (February 14th, 2022)
 
 - updated redis url
