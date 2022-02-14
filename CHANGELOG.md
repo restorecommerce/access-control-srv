@@ -1,3 +1,12 @@
+## 0.2.18 (February 14th, 2022)
+
+- updated dependencies and migrated from ioredis to redis
+- added offset store support
+
+## 0.2.17 (February 9th, 2022)
+
+- updated protos
+
 ## 0.2.16 (December 22nd, 2021)
 
 - removed importHelpers flag from tsconfig
