@@ -1,6 +1,6 @@
 {
   "name": "@restorecommerce/access-control-srv",
-  "version": "0.2.21",
+  "version": "0.2.22",
   "description": "Access Control Service",
   "main": "lib/start.js",
   "author": "n-fuse GmbH",
@@ -17,7 +17,7 @@
     "service"
   ],
   "dependencies": {
-    "@restorecommerce/acs-client": "^0.6.12",
+    "@restorecommerce/acs-client": "^0.6.21",
     "@restorecommerce/chassis-srv": "^0.3.8",
     "@restorecommerce/cluster-service": "^0.1.11",
     "@restorecommerce/grpc-client": "^0.3.1",

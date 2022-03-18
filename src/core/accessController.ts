@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import nodeEval from 'node-eval';
 import {
   Rule, Policy, PolicySet, Request, Response,
   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
@@ -12,6 +11,7 @@ import { Logger } from 'winston';
 import { createClient, RedisClientType } from 'redis';
 import { Topic } from '@restorecommerce/kafka-client';
 import { verifyACLList } from './verifyACL';
+import { conditionMatches } from './utils';
 
 export class AccessController {
   policySets: Map<string, PolicySet>;
@@ -208,7 +208,7 @@ export class AccessController {
                       }
 
                       request.context = context || request.context;
-                      matches = this.conditionMatches(rule.condition, request);
+                      matches = conditionMatches(rule.condition, request);
                     }
                   } catch (err) {
                     this.logger.error('Caught an exception while applying rule condition to request: ', err);
@@ -894,11 +894,6 @@ export class AccessController {
     }
 
     throw new errors.InvalidCombiningAlgorithm(combiningAlgorithm);
-  }
-
-  private conditionMatches(condition: string, request: Request): boolean {
-    condition = condition.replace(/\\n/g, '\n');
-    return nodeEval(condition, 'condition.js', request);
   }
 
   // Combining algorithms

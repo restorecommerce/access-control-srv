@@ -9,6 +9,8 @@ import { createLogger } from '@restorecommerce/logger';
 import { GrpcClient } from '@restorecommerce/grpc-client';
 import { FilterOp } from '@restorecommerce/resource-base-interface/lib/core/interfaces';
 import * as uuid from 'uuid';
+import { Request } from './interfaces';
+import nodeEval from 'node-eval';
 
 
 export const formatTarget = (target: any): interfaces.Target => {
@@ -21,6 +23,16 @@ export const formatTarget = (target: any): interfaces.Target => {
     resources: target.resources ? target.resources : [],
     action: target.action ? target.action : []
   };
+};
+
+export const conditionMatches = (condition: string, request: Request): boolean => {
+  condition = condition.replace(/\\n/g, '\n');
+  let evalResult = nodeEval(condition, 'condition.js', request);
+  if (typeof evalResult === 'function') {
+    return evalResult(request);
+  } else {
+    return evalResult;
+  }
 };
 
 const loadPolicies = (document: any, accessController: AccessController): AccessController => {

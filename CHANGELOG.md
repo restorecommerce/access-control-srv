@@ -1,3 +1,7 @@
+## 0.2.22 (March 18th, 2022)
+
+- updated acs-client
+
 ## 0.2.21 (February 18th, 2022)
 
 - updated chassis-srv (includes fix for offset store config)
