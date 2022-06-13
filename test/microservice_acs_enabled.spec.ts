@@ -9,7 +9,9 @@ import { GrpcClient } from '@restorecommerce/grpc-client';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import { updateConfig } from '@restorecommerce/acs-client';
-import { createMockServer } from 'grpc-mock';
+import { GrpcMockServer, ProtoUtils } from '@alenon/grpc-mock-server';
+import * as proto_loader from '@grpc/proto-loader';
+import * as grpc from '@grpc/grpc-js';
 import { Topic, Events } from '@restorecommerce/kafka-client';
 
 let cfg: any;
@@ -19,7 +21,6 @@ let worker: Worker;
 let ruleService: any, policyService: any, policySetService: any;
 let accessControlService: any;
 let rules, policies, policySets;
-let mockServer: any;
 let userTopic: Topic;
 
 // Admin of mainOrg -> A -> B -> C
@@ -84,32 +85,142 @@ let testRule = [{
   }
 }];
 
-interface ServerRule {
+interface MethodWithOutput {
   method: string;
-  input: any;
   output: any;
-}
+};
+
+const PROTO_PATH = 'node_modules/@restorecommerce/protos/io/restorecommerce/user.proto';
+const PKG_NAME = 'io.restorecommerce.user';
+const SERVICE_NAME = 'Service';
+
+const pkgDef: grpc.GrpcObject = grpc.loadPackageDefinition(
+  proto_loader.loadSync(PROTO_PATH, {
+    includeDirs: ['node_modules/@restorecommerce/protos'],
+    keepCase: true,
+    longs: String,
+    enums: String,
+    defaults: true,
+    oneofs: true
+  })
+);
+
+const proto: any = ProtoUtils.getProtoFromPkgDefinition(
+  PKG_NAME,
+  pkgDef
+);
+
+const mockServer = new GrpcMockServer('localhost:50051');
+
+let adminSubject = {
+  id: 'admin_user_id',
+  scope: 'mainOrg',
+  token: 'admin_token',
+  role_associations: [
+    {
+      role: 'admin-r-id',
+      id: '',
+      attributes: [{
+        id: 'urn:restorecommerce:acs:names:roleScopingEntity',
+        value: 'urn:restorecommerce:acs:model:organization.Organization'
+      },
+      {
+        id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+        value: 'mainOrg'
+      }]
+    }
+  ],
+  tokens: [{ token: 'admin_token' }],
+  hierarchical_scopes: [
+    {
+      id: 'mainOrg',
+      role: 'admin-r-id',
+      children: [{
+        id: 'orgA',
+        children: [{
+          id: 'orgB',
+          children: [{
+            id: 'orgC'
+          }]
+        }]
+      }]
+    }
+  ]
+};
+
+let userSubject = {
+  id: 'user_id',
+  scope: 'orgC',
+  token: 'user_token',
+  role_associations: [
+    {
+      role: 'user-r-id',
+      id: '',
+      attributes: [{
+        id: 'urn:restorecommerce:acs:names:roleScopingEntity',
+        value: 'urn:restorecommerce:acs:model:organization.Organization'
+      },
+      {
+        id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+        value: 'mainOrg'
+      }]
+    }
+  ],
+  tokens: [{ token: 'user_token' }],
+  hierarchical_scopes: [
+    {
+      id: 'mainOrg',
+      role: 'admin-r-id',
+      children: [{
+        id: 'orgA',
+        children: [{
+          id: 'orgB',
+          children: [{
+            id: 'orgC'
+          }]
+        }]
+      }]
+    }
+  ]
+};
 
 // Mock server for ids - findByToken
-const startGrpcMockServer = async (rules: ServerRule[]) => {
-  // Create a mock ACS server to expose isAllowed and whatIsAllowed
-  mockServer = createMockServer({
-    protoPath: 'test/protos/io/restorecommerce/user.proto',
-    packageName: 'io.restorecommerce.user',
-    serviceName: 'Service',
-    options: {
-      keepCase: true
-    },
-    rules
-  });
-  mockServer.listen('0.0.0.0:50051');
-  logger.info('Identity Server started on port 50051');
+const startGrpcMockServer = async (methodWithOutput: MethodWithOutput[]) => {
+  // create mock implementation based on the method name and output
+  const implementations = {
+    findByToken: (call: any, callback: any) => {
+      if (call.request.token === 'admin_token') {
+        // admin user
+        callback(null, { payload: adminSubject, status: { code: 200, message: 'success' } });
+      } else if (call.request.token === 'user_token') {
+        // user
+        callback(null, { payload: userSubject, status: { code: 200, message: 'success' } });
+      }
+    }
+  };
+  try {
+    mockServer.addService(PROTO_PATH, PKG_NAME, SERVICE_NAME, implementations, {
+      includeDirs: ['node_modules/@restorecommerce/protos/'],
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true
+    });
+    await mockServer.start();
+    logger.info('Mock IDS Server started on port 50051');
+  } catch (err) {
+    logger.error('Error starting mock IDS server', err);
+  }
 };
 
 const stopGrpcMockServer = async () => {
-  await mockServer.close(() => {
-    logger.info('Server closed successfully');
-  });
+  try {
+    let t = await mockServer.stop();
+    logger.info('Mock IDS Server closed successfully');
+  } catch (err) {
+    console.log('Err stopping Mock server', err);
+  }
 };
 
 const setupService = async (): Promise<void> => {
@@ -160,7 +271,7 @@ const truncate = async (): Promise<void> => {
 };
 
 // mock to emit back hierarchicalScopesResponse
-const hrScopeReqListener = (msg) => {
+const hrScopeReqListener = async (msg) => {
   const token = msg.token.split(':')[0];
   if (token === 'admin_token') {
     const hrScopeResponse = {
@@ -168,14 +279,14 @@ const hrScopeReqListener = (msg) => {
       token: msg.token,
       hierarchical_scopes: subject.hierarchical_scopes
     };
-    userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
+    await userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
   } else if (token === 'user_token') {
     const hrScopeResponse = {
       subject_id: 'user_id',
       token: msg.token,
       hierarchical_scopes: subject.hierarchical_scopes
     };
-    userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
+    await userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
   }
 };
 
@@ -196,11 +307,9 @@ describe('testing microservice', () => {
       }, logger);
       await events.start();
       userTopic = await events.topic(cfg.get('events:kafka:topics:user:topic'));
-      userTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
+      await userTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
     });
     after(async () => {
-      // stop mock ids-srv
-      stopGrpcMockServer();
       await userTopic.removeAllListeners('hierarchicalScopesRequest');
       await truncate();
       await client.close();
@@ -208,6 +317,20 @@ describe('testing microservice', () => {
     });
     describe('testing create() operations', () => {
       it('it should insert default rules, policies and policy sets with ACS disabled', async () => {
+        const user = {
+          payload: {
+            id: 'admin_user_id',
+            tokens: [{ token: 'admin_token' }],
+            role_associations: subject.role_associations
+          },
+          status: {
+            code: 200,
+            message: 'success'
+          }
+        };
+        // start mock ids-srv needed for findByToken response and return subject
+        await startGrpcMockServer([{ method: 'findByToken', output: user }]);
+        await new Promise(r => setTimeout(r, 2000));
         // disable authorization
         cfg.set('authorization:enabled', false);
         cfg.set('authorization:enforce', false);
@@ -242,20 +365,6 @@ describe('testing microservice', () => {
       });
 
       it('should allow to create test rule with ACS enabled with valid scope in subject', async () => {
-        const user = {
-          payload: {
-            id: 'admin_user_id',
-            tokens: [{ token: 'admin_token' }],
-            role_associations: subject.role_associations
-          },
-          status: {
-            code: 200,
-            message: 'success'
-          }
-        };
-        // start mock ids-srv needed for findByToken response and return subject
-        await startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
-        await new Promise(r => setTimeout(r, 1000));
         // enable authorization
         cfg.set('authorization:enabled', true);
         cfg.set('authorization:enforce', true);
@@ -412,9 +521,6 @@ describe('testing microservice', () => {
             message: 'success'
           }
         };
-        stopGrpcMockServer();
-        // restart grpcMock with normal user id
-        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         const result = await ruleService.create({
           items: testRule,
           subject
@@ -437,9 +543,7 @@ describe('testing microservice', () => {
             role_associations: subject.role_associations
           }
         };
-        stopGrpcMockServer();
-        // restart grpcMock with admin user id
-        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
+        await new Promise(r => setTimeout(r, 2000));
         testRule[0].name = 'modified test rule for test entitiy';
         const result = await ruleService.update({
           items: testRule,
@@ -463,9 +567,6 @@ describe('testing microservice', () => {
             role_associations: subject.role_associations
           }
         };
-        stopGrpcMockServer();
-        // restart grpcMock with normal user id
-        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         testRule[0].name = 'new test rule for test entitiy';
         const result = await ruleService.update({
           items: testRule,
@@ -488,10 +589,6 @@ describe('testing microservice', () => {
             role_associations: subject.role_associations
           }
         };
-        stopGrpcMockServer();
-        // restart grpcMock with admin user id
-        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
-
         testRule[0].name = 'upserted test rule for test entitiy';
         const result = await ruleService.upsert({
           items: testRule,
@@ -516,9 +613,6 @@ describe('testing microservice', () => {
             role_associations: subject.role_associations
           }
         };
-        stopGrpcMockServer();
-        // restart grpcMock with normal user id
-        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         testRule[0].name = 'new test rule for test entitiy';
         const result = await ruleService.upsert({
           items: testRule,
@@ -554,9 +648,6 @@ describe('testing microservice', () => {
             role_associations: subject.role_associations
           }
         };
-        stopGrpcMockServer();
-        // restart grpcMock with admin user id
-        startGrpcMockServer([{ method: 'findByToken', input: '\{.*\:.*\}', output: user }]);
         const result = await ruleService.delete({
           ids: [testRule[0].id],
           subject

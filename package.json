@@ -39,6 +39,7 @@
     "traverse": "^0.6.6"
   },
   "devDependencies": {
+    "@alenon/grpc-mock-server": "^3.0.6",
     "@types/lodash": "^4.14.182",
     "@types/mocha": "^9.1.1",
     "@types/nock": "^11.1.0",
@@ -50,7 +51,7 @@
     "cross-env": "^7.0.3",
     "eslint": "^8.17.0",
     "eslint-plugin-prefer-arrow-functions": "^3.1.4",
-    "grpc-mock": "^0.7.0",
+    "@grpc/proto-loader": "^0.6.13",
     "mocha": "^10.0.0",
     "nock": "^13.2.6",
     "nodemon": "^2.0.16",
