@@ -214,15 +214,6 @@ const startGrpcMockServer = async (methodWithOutput: MethodWithOutput[]) => {
   }
 };
 
-const stopGrpcMockServer = async () => {
-  try {
-    let t = await mockServer.stop();
-    logger.info('Mock IDS Server closed successfully');
-  } catch (err) {
-    console.log('Err stopping Mock server', err);
-  }
-};
-
 const setupService = async (): Promise<void> => {
   cfg = createServiceConfig(process.cwd() + '/test');
   logger = createLogger(cfg.get('logger'));
