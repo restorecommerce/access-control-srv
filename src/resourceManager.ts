@@ -125,7 +125,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: items.map(item => item.id) }], AuthZAction.CREATE,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for create Rules', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -166,7 +166,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule' }], AuthZAction.READ,
         Operation.whatIsAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv:', err);
+      this.logger.error('Error occurred requesting access-control-srv for read Rules', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -199,7 +199,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for update Rules', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -228,7 +228,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for upsert Rules', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -273,7 +273,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: ruleIDs }], action,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv:', err);
+      this.logger.error('Error occurred requesting access-control-srv for delete Rules', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -345,7 +345,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.CREATE,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for create Policies', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -411,7 +411,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy' }], AuthZAction.READ,
         Operation.whatIsAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv:', err);
+      this.logger.error('Error occurred requesting access-control-srv for read Policies', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -444,7 +444,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for update Policies', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -473,7 +473,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for upsert Policies', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -555,7 +555,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: policyIDs }], action,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv:', err);
+      this.logger.error('Error occurred requesting access-control-srv for delete Policies', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -666,7 +666,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.CREATE,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for create PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -713,7 +713,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for update PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -796,7 +796,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: policySetIDs }], action,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv:', err);
+      this.logger.error('Error occurred requesting access-control-srv for delete PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -830,7 +830,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set' }], AuthZAction.READ,
         Operation.whatIsAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv:', err);
+      this.logger.error('Error occurred requesting access-control-srv for read PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -863,7 +863,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
     } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv', err);
+      this.logger.error('Error occurred requesting access-control-srv for upsert PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,

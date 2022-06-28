@@ -51,9 +51,9 @@ export class AccessController {
     const redisConfig = this.cfg.get('redis');
     redisConfig.database = this.cfg.get('redis:db-indexes:db-subject');
     this.redisClient = createClient(redisConfig);
-    this.redisClient.on('error', (err) => logger.error('Redis Client Error', err));
+    this.redisClient.on('error', (err) => logger.error('Redis Client Error', { code: err.code, message: err.message, stack: err.stack }));
     this.redisClient.connect().then(data => logger.info('Redis client for subject cache connection successful')).catch(err => {
-      logger.error('Error creating redis client instance', err);
+      logger.error('Error creating redis client instance', { code: err.code, message: err.message, stack: err.stack });
     });
     this.userTopic = userTopic;
     this.waiting = [];
@@ -211,7 +211,7 @@ export class AccessController {
                       matches = conditionMatches(rule.condition, request);
                     }
                   } catch (err) {
-                    this.logger.error('Caught an exception while applying rule condition to request: ', err);
+                    this.logger.error('Caught an exception while applying rule condition to request', { code: err.code, message: err.message, stack: err.stack });
                     return {  // if an exception is caught deny by default
                       decision: Decision.DENY,
                       obligation,

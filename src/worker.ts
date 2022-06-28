@@ -95,7 +95,7 @@ export class Worker {
     const redisConfig = this.cfg.get('redis');
     redisConfig.database = this.cfg.get('redis:db-indexes:db-subject');
     this.redisClient = createClient(redisConfig);
-    this.redisClient.on('error', (err) => logger.error('Redis Client Error', err));
+    this.redisClient.on('error', (err) => logger.error('Redis Client Error', { code: err.code, message: err.message, stack: err.stack }));
     await this.redisClient.connect();
 
     const userTopic = await events.topic(kafkaConfig.topics['user'].topic);

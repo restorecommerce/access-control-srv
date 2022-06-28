@@ -62,7 +62,7 @@ export class AccessControlService {
     try {
       return this.accessController.isAllowed(acsRequest);
     } catch (err) { // deny if any error occurs
-      this.logger.error('Error evaluating isAllowed request', { error: err.message });
+      this.logger.error('Error evaluating isAllowed request', { code: err.code, message: err.message, stack: err.stack });
       return {
         decision: core.Decision.DENY,
         obligation: [],
@@ -84,7 +84,7 @@ export class AccessControlService {
     try {
       whatisAllowedResponse = await this.accessController.whatIsAllowed(acsRequest);
     } catch (err) {
-      this.logger.error('Error evaluating whatIsAllowed request', { error: err.message });
+      this.logger.error('Error evaluating whatIsAllowed request', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
           code: err.code,
@@ -114,8 +114,7 @@ export class AccessControlService {
     try {
       return JSON.parse(object.value.toString());
     } catch (err) {
-      this.logger.error('Error unmarshalling object', err.message);
-      this.logger.verbose(err.stack);
+      this.logger.error('Error unmarshalling object', { code: err.code, message: err.message, stack: err.stack });
       throw err;
     }
   }
