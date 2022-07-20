@@ -1,3 +1,7 @@
+## 0.2.23 (July 20th, 2022)
+
+- fix for empty HR scope not to make HR scope request
+
 ## 0.2.22 (March 18th, 2022)
 
 - updated acs-client
