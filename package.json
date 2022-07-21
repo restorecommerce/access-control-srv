@@ -1,6 +1,6 @@
 {
   "name": "@restorecommerce/access-control-srv",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Access Control Service",
   "main": "lib/start.js",
   "author": "n-fuse GmbH",
