@@ -1,3 +1,7 @@
+## 0.3.4 (August 22nd, 2022)
+
+- add null check for redis key exist
+
 ## 0.3.3 (July 21st, 2022)
 
 - fix to emit HR scope request only if key does not exist (ex: for superadmin HR scope will be empty and to prevent calculation of HR scope every time)
