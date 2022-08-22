@@ -711,7 +711,10 @@ export class AccessController {
     } catch (err) {
       this.logger.info(`Subject or HR Scope not persisted in redis in acs`);
     }
-    let keyExist = await this.redisClient.exists(redisHRScopesKey);
+    let keyExist;
+    if (redisHRScopesKey) {
+      keyExist = await this.redisClient.exists(redisHRScopesKey);
+    }
     if (!keyExist) {
       const date = new Date().toISOString();
       const tokenDate = token + ':' + date;
