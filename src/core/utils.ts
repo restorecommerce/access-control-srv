@@ -3,10 +3,12 @@ import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { AccessController } from './accessController';
 import * as interfaces from './interfaces';
-import { Subject, AuthZAction, Decision, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse, Obligation } from '@restorecommerce/acs-client';
+import { AuthZAction, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse, Obligation } from '@restorecommerce/acs-client';
+import { Subject } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+import { Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
-import { GrpcClient } from '@restorecommerce/grpc-client';
+import { createClient, createChannel } from '@restorecommerce/grpc-client';
 import { FilterOp } from '@restorecommerce/resource-base-interface/lib/core/interfaces';
 import * as uuid from 'uuid';
 import { Request } from './interfaces';
@@ -136,7 +138,7 @@ export interface Response {
 }
 
 export interface AccessResponse {
-  decision: Decision;
+  decision: Response_Decision;
   response?: Response;
   obligation?: Obligation[];
   operation_status: {
@@ -240,7 +242,7 @@ export async function checkAccessRequest(ctx: GQLClientContext, resource: Resour
     result = await accessRequest(subject, resource, action, ctx, operation);
   } catch (err) {
     return {
-      decision: Decision.DENY,
+      decision: Response_Decision.DENY,
       obligation: [],
       operation_status: {
         code: err.code || 500,

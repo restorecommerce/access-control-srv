@@ -1,9 +1,18 @@
 import * as _ from 'lodash';
-import {
-  Rule, Policy, PolicySet, Request, Response,
-  Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
-  Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation, ReverseQueryResponse, Obligation
-} from './interfaces';
+// import {
+//   Rule, Policy, PolicySet, Request, Response,
+//   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
+//   Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation, ReverseQueryResponse, Obligation
+// } from './interfaces';
+
+import { CombiningAlgorithm, AccessControlConfiguration, EffectEvaluation, ContextWithSubResolved } from './interfaces';
+import { Request, Response, Response_Decision, ReverseQuery } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { Rule, RuleRQ, ContextQuery, Effect, Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { Policy, PolicyRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { PolicySet, PolicySetRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
+import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
 import { checkHierarchicalScope } from './hierarchicalScope';
@@ -75,7 +84,8 @@ export class AccessController {
     if (!request.target) {
       this.logger.silly('Access request had no target. Skipping request.');
       return {
-        decision: Decision.DENY,
+        decision: Response_Decision.DENY,
+        evaluation_cacheable: false, // typing for evaluation_cachecable expected so adding default false
         obligation: [],
         operation_status: {
           code: 400,
@@ -86,7 +96,7 @@ export class AccessController {
 
     let effect: EffectEvaluation;
     let obligation: Attribute[] = [];
-    let context = request.context;
+    let context = request.context as ContextWithSubResolved;
     if (!context) {
       (context as any) = {};
     }
@@ -196,7 +206,7 @@ export class AccessController {
 
                         if (_.isNil(context)) {
                           return {  // deny by default
-                            decision: Decision.DENY,
+                            decision: Response_Decision.DENY,
                             obligation,
                             evaluation_cacheable,
                             operation_status: {
@@ -213,7 +223,7 @@ export class AccessController {
                   } catch (err) {
                     this.logger.error('Caught an exception while applying rule condition to request', { code: err.code, message: err.message, stack: err.stack });
                     return {  // if an exception is caught deny by default
-                      decision: Decision.DENY,
+                      decision: Response_Decision.DENY,
                       obligation,
                       evaluation_cacheable,
                       operation_status: {
@@ -253,7 +263,7 @@ export class AccessController {
     if (!effect) {
       this.logger.silly('Access response is INDETERMINATE');
       return {
-        decision: Decision.INDETERMINATE,
+        decision: Response_Decision.INDETERMINATE,
         obligation,
         evaluation_cacheable: undefined,
         operation_status: {
@@ -263,8 +273,8 @@ export class AccessController {
       };
     }
 
-    let decision: Decision;
-    decision = Decision[effect.effect] || Decision.INDETERMINATE;
+    let decision: Response_Decision;
+    decision = Response_Decision[effect.effect] || Response_Decision.INDETERMINATE;
 
     this.logger.silly('Access response is', decision);
     return {
@@ -278,7 +288,7 @@ export class AccessController {
     };
   }
 
-  async whatIsAllowed(request: Request): Promise<ReverseQueryResponse> {
+  async whatIsAllowed(request: Request): Promise<ReverseQuery> {
     let policySets: PolicySetRQ[] = [];
     let context = request.context;
     if (context && context.subject && context.subject.token) {
