@@ -7,14 +7,18 @@ import { ResourceManager } from './resourceManager';
 import { RedisClientType } from 'redis';
 
 import * as core from './core';
-import { ReverseQueryResponse } from './core/interfaces';
+import { Logger } from 'winston';
+import { ServiceServiceImplementation as ACSServiceImplementation, ReverseQuery, Request, Response, DeepPartial, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { ServiceServiceImplementation as CommandInterfaceServiceImplementation } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
+import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { PolicySetWithCombinables } from './core/interfaces';
 
-export class AccessControlService {
+export class AccessControlService implements ACSServiceImplementation {
   cfg: any;
-  logger: any;
+  logger: Logger;
   resourceManager: ResourceManager;
   accessController: core.AccessController;
-  constructor(cfg: any, logger: any, resourceManager: ResourceManager, accessController: core.AccessController) {
+  constructor(cfg: any, logger: Logger, resourceManager: ResourceManager, accessController: core.AccessController) {
     this.cfg = cfg;
     this.logger = logger;
     this.resourceManager = resourceManager;
@@ -40,7 +44,7 @@ export class AccessControlService {
       case 'database':
         this.logger.silly('Loading policies from database....');
         const policySetService = this.resourceManager.getResourceService('policy_set');
-        const policySets: Map<string, core.PolicySet> = await policySetService.load() || new Map();
+        const policySets: Map<string, PolicySetWithCombinables> = await policySetService.load() || new Map();
         this.accessController.policySets = policySets;
         break;
     }
@@ -52,9 +56,8 @@ export class AccessControlService {
   /**
    * gRPC interface
    */
-  async isAllowed(call: any, context: any): Promise<core.Response> {
-    const request = call.request;
-    const acsRequest: core.Request = {
+  async isAllowed(request: Request, context: any): Promise<DeepPartial<Response>> {
+    const acsRequest: Request = {
       target: request.target,
       context: request.context ? this.unmarshallContext(request.context) : {}
     };
@@ -64,7 +67,7 @@ export class AccessControlService {
     } catch (err) { // deny if any error occurs
       this.logger.error('Error evaluating isAllowed request', { code: err.code, message: err.message, stack: err.stack });
       return {
-        decision: core.Decision.DENY,
+        decision: Response_Decision.DENY,
         obligation: [],
         operation_status: {
           code: err.code,
@@ -74,13 +77,12 @@ export class AccessControlService {
     }
   }
 
-  async whatIsAllowed(call: any, context: any): Promise<any> {
-    const request = call.request;
-    const acsRequest: core.Request = {
+  async whatIsAllowed(request: Request, context: any): Promise<DeepPartial<ReverseQuery>> {
+    const acsRequest: Request = {
       target: request.target,
       context: request.context ? this.unmarshallContext(request.context) : {}
     };
-    let whatisAllowedResponse: ReverseQueryResponse;
+    let whatisAllowedResponse: ReverseQuery;
     try {
       whatisAllowedResponse = await this.accessController.whatIsAllowed(acsRequest);
     } catch (err) {
@@ -121,9 +123,9 @@ export class AccessControlService {
 
 }
 
-export class AccessControlCommandInterface extends CommandInterface {
+export class AccessControlCommandInterface extends CommandInterface implements CommandInterfaceServiceImplementation {
   accessControlService: AccessControlService;
-  constructor(server: Server, cfg: any, logger: any, events: Events,
+  constructor(server: Server, cfg: any, logger: Logger, events: Events,
     accessControlService: AccessControlService, redisClient: RedisClientType<any, any>) {
     super(server, cfg, logger, events, redisClient);
     this.accessControlService = accessControlService;

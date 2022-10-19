@@ -2,8 +2,11 @@ import * as _ from 'lodash';
 import traverse from 'traverse';
 import { Logger } from 'winston';
 
-import { Target, Request, Attribute, AccessController } from '.';
-import { Resource } from './interfaces';
+import { AccessController } from '.';
+import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
+import { Resource, ContextWithSubResolved } from './interfaces';
 import { getAllValues } from './utils';
 
 export const checkHierarchicalScope = async (ruleTarget: Target,
@@ -40,7 +43,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
     return true; // no scoping entities specified in rule, request ignored
   }
 
-  let context = request.context;
+  let context = (request as any).context as ContextWithSubResolved;
   if (_.isEmpty(context)) {
     return false; // no context was provided, evaluation fails
   }

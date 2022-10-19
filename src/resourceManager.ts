@@ -3,8 +3,27 @@ import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce
 import { Topic, Events } from '@restorecommerce/kafka-client';
 import * as core from './core';
 import { createMetadata, checkAccessRequest } from './core/utils';
-import { AuthZAction, Operation, Decision, ACSAuthZ, DecisionResponse, PolicySetRQResponse } from '@restorecommerce/acs-client';
+import { AuthZAction, Operation, ACSAuthZ, DecisionResponse, PolicySetRQResponse } from '@restorecommerce/acs-client';
 import { RedisClientType } from 'redis';
+import { Logger } from 'winston';
+import {
+  Response_Decision
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import {
+  ServiceServiceImplementation as PolicySetServiceImplementation,
+  PolicySetList, PolicySetListResponse, PolicySet, PolicySetResponse
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import {
+  ServiceServiceImplementation as PolicyServiceImplementation,
+  PolicyList, PolicyListResponse, Policy
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import {
+  ServiceServiceImplementation as RuleServiceImplementation,
+  RuleList, RuleListResponse, Rule
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { ReadRequest, Filter_Operation, DeepPartial, DeleteRequest, DeleteResponse } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/resource_base';
+import { PolicyWithCombinables, PolicySetWithCombinables } from './core/interfaces';
+
 
 export interface IAccessControlResourceService<T> {
   load(): Promise<Map<string, T>>;
@@ -19,12 +38,12 @@ const marshallResource = (resource: any, resourceName: string): any => {
       if (!_.isEmpty(resource)) {
         marshalled.combiningAlgorithm = resource.combining_algorithm;
       }
-      marshalled.combinables = new Map<string, core.Policy>();
+      marshalled.combinables = new Map<string, Policy>();
       break;
     case 'policy':
       marshalled = _.assign(marshalled, _.pick(resource, ['target', 'effect']));
       marshalled.combiningAlgorithm = resource.combining_algorithm;
-      marshalled.combinables = new Map<string, core.Rule>();
+      marshalled.combinables = new Map<string, Rule>();
       break;
     case 'rule':
       marshalled = _.assign(marshalled, _.pick(resource, ['target', 'effect', 'condition']));
@@ -57,7 +76,7 @@ let policySetService: PolicySetService,
 /**
 * Rule resource service.
 */
-export class RuleService extends ServiceBase implements IAccessControlResourceService<core.Rule> {
+export class RuleService extends ServiceBase<RuleListResponse, RuleList> implements IAccessControlResourceService<Rule>, RuleServiceImplementation {
   cfg: any;
   redisClient: RedisClientType<any, any>;
   authZ: ACSAuthZ;
@@ -72,19 +91,15 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
   /**
    * Retrieve and unmarsall Rules data.
    */
-  async load(): Promise<Map<string, core.Rule>> {
+  async load(): Promise<Map<string, Rule>> {
     return this.getRules();
   }
 
-  async getRules(ruleIDs?: string[]): Promise<Map<string, core.Rule>> {
+  async getRules(ruleIDs?: string[]): Promise<Map<string, Rule>> {
     const filters = ruleIDs ? makeFilter(ruleIDs) : {};
-    const result = await super.read({
-      request: {
-        filters
-      }
-    }, {});
+    const result = await super.read(ReadRequest.fromPartial({ filters }), {});
 
-    const rules = new Map<string, core.Rule>();
+    const rules = new Map<string, Rule>();
     if (result && result.items) {
       _.forEach(result.items, (rule) => {
         if (!_.isEmpty(rule?.payload) && rule.payload && rule.payload.id) {
@@ -96,25 +111,25 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     return rules;
   }
 
-  async readMetaData(id?: string): Promise<any> {
-    let result = await super.read({
-      request: {
+  async readMetaData(id?: string): Promise<DeepPartial<RuleListResponse>> {
+    let result = await super.read(ReadRequest.fromPartial(
+      {
         filters: [{
           filter: [{
             field: 'id',
-            operation: FilterOperation.eq,
+            operation: Filter_Operation.eq,
             value: id
           }]
         }]
       }
-    });
+    ), {});
     return result;
   }
 
-  async create(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async create(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -134,17 +149,17 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       };
     }
 
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.create(call, ctx);
+    const result = await super.create(request, ctx);
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result && result.items) {
       for (let item of result.items) {
-        const rule: core.Rule = marshallResource(item.payload, 'rule');
+        const rule: Rule = marshallResource(item.payload, 'rule');
         for (let [, policySet] of policySets) {
-          for (let [, policy] of policySet.combinables) {
+          for (let [, policy] of (policySet).combinables) {
             if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
               _accessController.updateRule(policySet.id, policy.id, rule);
             }
@@ -155,9 +170,8 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
     return result;
   }
 
-  async read(call: any, ctx: any): Promise<any> {
-    const readRequest = call.request;
-    let subject = call.request.subject;;
+  async read(request: ReadRequest, ctx: any): Promise<DeepPartial<RuleListResponse>> {
+    let subject = request.subject;;
     let acsResponse: PolicySetRQResponse;
     try {
       if (!ctx) { ctx = {}; };
@@ -174,21 +188,21 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
     if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
-      readRequest.custom_queries = acsResponse.custom_query_args[0].custom_queries;
-      readRequest.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
+      request.custom_queries = acsResponse.custom_query_args[0].custom_queries;
+      request.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }
-    const result = await super.read({ request: readRequest });
+    const result = await super.read(request, ctx);
     return result;
   }
 
-  async update(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async update(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -207,17 +221,17 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.update(call, ctx);
+    const result = await super.update(request, ctx);
     return result;
   }
 
-  async upsert(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async upsert(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -236,17 +250,17 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.upsert(call, ctx);
+    const result = await super.upsert(request, ctx);
     return result;
   }
 
-  async delete(call: any, ctx: any): Promise<any> {
+  async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
     let resources = [];
-    let subject = call.request.subject;
-    let ruleIDs = call.request.ids;
+    let subject = request.subject;
+    let ruleIDs = request.ids;
     let action, deleteResponse;
     if (ruleIDs) {
       action = AuthZAction.DELETE;
@@ -260,9 +274,9 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
       Object.assign(resources, { id: ruleIDs });
       await createMetadata(resources, action, subject, this);
     }
-    if (call.request.collection) {
+    if (request.collection) {
       action = AuthZAction.DROP;
-      resources = [{ collection: call.request.collection }];
+      resources = [{ collection: request.collection }];
     }
 
     let acsResponse: DecisionResponse;
@@ -281,12 +295,12 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    deleteResponse = await super.delete(call, ctx);
-    if (call.request.ids) {
-      for (let id of call.request.ids) {
+    deleteResponse = await super.delete(request, ctx);
+    if (request.ids) {
+      for (let id of request.ids) {
         for (let [, policySet] of _accessController.policySets) {
           for (let [, policy] of policySet.combinables) {
             if (policy.combinables.has(id)) {
@@ -295,7 +309,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
           }
         }
       }
-    } else if (call.request.collection && call.request.collection === true) {
+    } else if (request.collection && request.collection === true) {
       for (let [, policySet] of _accessController.policySets) {
         for (let [, policy] of policySet.combinables) {
           policy.combinables = new Map();
@@ -310,7 +324,7 @@ export class RuleService extends ServiceBase implements IAccessControlResourceSe
 /**
  * Policy resource service.
  */
-export class PolicyService extends ServiceBase implements IAccessControlResourceService<core.Policy> {
+export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> implements IAccessControlResourceService<Policy>, PolicyServiceImplementation {
   ruleService: RuleService;
   cfg: any;
   redisClient: RedisClientType<any, any>;
@@ -327,14 +341,14 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   /**
    * Load rules/policies and map them,
    */
-  async load(): Promise<Map<string, core.Policy>> {
+  async load(): Promise<Map<string, PolicyWithCombinables>> {
     return this.getPolicies();
   }
 
-  async create(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async create(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -353,17 +367,17 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.create(call, ctx);
+    const result = await super.create(request, ctx);
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result && result.items) {
       for (let item of result.items) {
         for (let [, policySet] of policySets) {
           if (policySet.combinables.has(item.payload?.id)) {
-            const policy: core.Policy = marshallResource(item.payload, 'policy');
+            const policy: PolicyWithCombinables = marshallResource(item.payload, 'policy');
 
             if (_.has(item.payload, 'rules') && !_.isEmpty(item.payload.rules)) {
               policy.combinables = await ruleService.getRules(item.payload.rules);
@@ -385,24 +399,21 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     return result;
   }
 
-  async readMetaData(id?: string): Promise<any> {
-    let result = await super.read({
-      request: {
-        filters: [{
-          filter: [{
-            field: 'id',
-            operation: FilterOperation.eq,
-            value: id
-          }]
+  async readMetaData(id?: string): Promise<DeepPartial<PolicyListResponse>> {
+    let result = await super.read(ReadRequest.fromPartial({
+      filters: [{
+        filter: [{
+          field: 'id',
+          operation: Filter_Operation.eq,
+          value: id
         }]
-      }
-    });
+      }]
+    }), {});
     return result;
   }
 
-  async read(call: any, ctx: any): Promise<any> {
-    const readRequest = call.request;
-    let subject = call.request.subject;
+  async read(request: ReadRequest, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+    let subject = request.subject;
     let acsResponse: PolicySetRQResponse;
     try {
       if (!ctx) { ctx = {}; };
@@ -419,21 +430,21 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
     if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
-      readRequest.custom_queries = acsResponse.custom_query_args[0].custom_queries;
-      readRequest.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
+      request.custom_queries = acsResponse.custom_query_args[0].custom_queries;
+      request.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }
-    const result = await super.read({ request: readRequest });
+    const result = await super.read(request, ctx);
     return result;
   }
 
-  async update(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async update(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -452,17 +463,17 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.update(call, ctx);
+    const result = await super.update(request, ctx);
     return result;
   }
 
-  async upsert(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async upsert(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -481,25 +492,21 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.upsert(call, ctx);
+    const result = await super.upsert(request, ctx);
     return result;
   }
 
-  async getPolicies(policyIDs?: string[]): Promise<Map<string, core.Policy>> {
+  async getPolicies(policyIDs?: string[]): Promise<Map<string, PolicyWithCombinables>> {
     const filters = policyIDs ? makeFilter(policyIDs) : {};
-    const result = await super.read({
-      request: {
-        filters
-      }
-    }, {});
+    const result = await super.read(ReadRequest.fromPartial(filters), {});
 
-    const policies = new Map<string, core.Policy>();
+    const policies = new Map<string, PolicyWithCombinables>();
     if (result && result.items) {
       for (let i = 0; i < result.items.length; i += 1) {
-        const policy: core.Policy = marshallResource(result.items[i].payload, 'policy');
+        const policy: PolicyWithCombinables = marshallResource(result.items[i].payload, 'policy');
 
         if (!_.isEmpty(result.items[i]?.payload?.rules)) {
           policy.combinables = await this.ruleService.getRules(result.items[i].payload.rules);
@@ -525,10 +532,10 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
     return policies;
   }
 
-  async delete(call: any, ctx: any): Promise<any> {
+  async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
     let resources = [];
-    let subject = call.request.subject;
-    let policyIDs = call.request.ids;
+    let subject = request.subject;
+    let policyIDs = request.ids;
     let action, deleteResponse;
     if (policyIDs) {
       action = AuthZAction.DELETE;
@@ -542,9 +549,9 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
       Object.assign(resources, { id: policyIDs });
       await createMetadata(resources, action, subject, this);
     }
-    if (call.request.collection) {
+    if (request.collection) {
       action = AuthZAction.DROP;
-      resources = [{ collection: call.request.collection }];
+      resources = [{ collection: request.collection }];
     }
 
     let acsResponse: DecisionResponse;
@@ -563,20 +570,20 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    deleteResponse = await super.delete(call, ctx);
+    deleteResponse = await super.delete(request, ctx);
 
-    if (call.request.ids) {
-      for (let id of call.request.ids) {
+    if (request.ids) {
+      for (let id of request.ids) {
         for (let [, policySet] of _accessController.policySets) {
           if (policySet.combinables.has(id)) {
             _accessController.removePolicy(policySet.id, id);
           }
         }
       }
-    } else if (call.request.collection && call.request.collection === true) {
+    } else if (request.collection && request.collection === true) {
       for (let [, policySet] of _accessController.policySets) {
         policySet.combinables = new Map();
         _accessController.updatePolicySet(policySet);
@@ -586,7 +593,7 @@ export class PolicyService extends ServiceBase implements IAccessControlResource
   }
 }
 
-export class PolicySetService extends ServiceBase implements IAccessControlResourceService<core.PolicySet> {
+export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicySetList> implements IAccessControlResourceService<PolicySet>, PolicySetServiceImplementation {
   cfg: any;
   redisClient: RedisClientType<any, any>;
   authZ: ACSAuthZ;
@@ -598,28 +605,24 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     this.authZ = authZ;
   }
 
-  async readMetaData(id?: string): Promise<any> {
-    let result = await super.read({
-      request: {
-        filters: [{
-          filter: [{
-            field: 'id',
-            operation: FilterOperation.eq,
-            value: id
-          }]
+  async readMetaData(id?: string): Promise<DeepPartial<PolicySetListResponse>> {
+    let result = await super.read(ReadRequest.fromPartial({
+      filters: [{
+        filter: [{
+          field: 'id',
+          operation: Filter_Operation.eq,
+          value: id
         }]
-      }
-    });
+      }]
+    }), {});
     return result;
   }
 
   /**
    * Load policy sets and map them to policies.
    */
-  async load(): Promise<Map<string, core.PolicySet>> {
-    const data = await super.read({
-      request: {}
-    }, {});
+  async load(): Promise<Map<string, PolicySet>> {
+    const data = await super.read(ReadRequest.fromPartial({}), {});
 
     if (!data || !data.items || data.items.length == 0) {
       this.logger.warn('No policy sets retrieved from database');
@@ -628,7 +631,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 
     const items = data.items;
     const policies = await policyService.load();
-    const policySets = new Map<string, core.PolicySet>();
+    const policySets = new Map<string, PolicySet>();
 
     for (let item of items) {
       if (!item?.payload?.policies) {
@@ -636,7 +639,7 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         continue;
       }
 
-      const policySet: core.PolicySet = marshallResource(item.payload, 'policy_set');
+      const policySet: PolicySetWithCombinables = marshallResource(item.payload, 'policy_set');
 
       _.forEach(item.payload.policies, (policyID) => {
         if (policies.has(policyID)) {
@@ -652,10 +655,10 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     return policySets;
   }
 
-  async create(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async create(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -674,13 +677,13 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.create(call, ctx);
+    const result = await super.create(request, ctx);
     if (result && result.items) {
       for (let i = 0; i < result.items.length; i += 1) {
-        const policySet: core.PolicySet = marshallResource(result.items[i]?.payload, 'policy_set');
+        const policySet = marshallResource(result.items[i]?.payload, 'policy_set');
         const policyIDs = result.items[i]?.payload?.policies;
         if (!_.isEmpty(policyIDs)) {
           policySet.combinables = await policyService.getPolicies(policyIDs);
@@ -699,10 +702,10 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     return result;
   }
 
-  async update(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async update(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -721,13 +724,13 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.update(call, ctx);
+    const result = await super.update(request, ctx);
 
     // update in memory policies if no exception was thrown
-    for (let item of call.request.items) {
+    for (let item of request.items) {
       let policySet = _accessController.policySets.get(item.id);
       let policies = policySet.combinables;
 
@@ -766,10 +769,10 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
     return result;
   }
 
-  async delete(call: any, ctx: any): Promise<any> {
+  async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
     let resources = [];
-    let subject = call.request.subject;
-    let policySetIDs = call.request.ids;
+    let subject = request.subject;
+    let policySetIDs = request.ids;
     let action, deleteResponse;
     if (policySetIDs) {
       action = AuthZAction.DELETE;
@@ -783,9 +786,9 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
       Object.assign(resources, { id: policySetIDs });
       await createMetadata(resources, action, subject, this);
     }
-    if (call.request.collection) {
+    if (request.collection) {
       action = AuthZAction.DROP;
-      resources = [{ collection: call.request.collection }];
+      resources = [{ collection: request.collection }];
     }
 
     let acsResponse: DecisionResponse;
@@ -804,24 +807,23 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    deleteResponse = await super.delete(call, ctx);
+    deleteResponse = await super.delete(request, ctx);
 
-    if (call.request.ids) {
-      for (let id of call.request.ids) {
+    if (request.ids) {
+      for (let id of request.ids) {
         _accessController.removePolicySet(id);
       }
-    } else if (call.request.collection && call.request.collection == 'policy_set') {
+    } else if (request.collection && request.collection == true) {
       _accessController.clearPolicies();
     }
     return deleteResponse;
   }
 
-  async read(call: any, ctx: any): Promise<any> {
-    const readRequest = call.request;
-    let subject = call.request.subject;
+  async read(request: ReadRequest, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
+    let subject = request.subject;
     let acsResponse: PolicySetRQResponse;
     try {
       if (!ctx) { ctx = {}; };
@@ -838,21 +840,21 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
     if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
-      readRequest.custom_queries = acsResponse.custom_query_args[0].custom_queries;
-      readRequest.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
+      request.custom_queries = acsResponse.custom_query_args[0].custom_queries;
+      request.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }
-    const result = await super.read({ request: readRequest });
+    const result = await super.read(request, ctx);
     return result;
   }
 
-  async upsert(call: any, ctx: any): Promise<any> {
-    let subject = call.request.subject;
+  async upsert(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
+    let subject = request.subject;
     // update meta data for owner information
-    let items = call.request.items;
+    let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
 
     let acsResponse: DecisionResponse;
@@ -871,10 +873,10 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
         }
       };
     }
-    if (acsResponse.decision != Decision.PERMIT) {
+    if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.upsert(call, ctx);
+    const result = await super.upsert(request, ctx);
     return result;
   }
 }
@@ -882,13 +884,13 @@ export class PolicySetService extends ServiceBase implements IAccessControlResou
 export class ResourceManager {
 
   cfg: any;
-  logger: any;
-  events: any;
+  logger: Logger;
+  events: Events;
   db: any;
   redisClient: RedisClientType<any, any>;
   authZ: any;
 
-  constructor(cfg: any, logger: any, events: Events, db: any,
+  constructor(cfg: any, logger: Logger, events: Events, db: any,
     accessController: core.AccessController, redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
     _accessController = accessController;
     this.cfg = cfg;
@@ -910,7 +912,7 @@ export class ResourceManager {
     ruleService = new RuleService(this.logger, rulesTopic, this.db, this.cfg, this.redisClient, this.authZ);
   }
 
-  getResourceService(resource: string): IAccessControlResourceService<any> {
+  getResourceService(resource: string): RuleService | PolicyService | PolicySetService {
     switch (resource) {
       case 'policy_set':
         return policySetService;

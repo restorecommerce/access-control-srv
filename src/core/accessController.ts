@@ -5,13 +5,17 @@ import * as _ from 'lodash';
 //   Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation, ReverseQueryResponse, Obligation
 // } from './interfaces';
 
+import { PolicySetWithCombinables } from './interfaces';
 import { CombiningAlgorithm, AccessControlConfiguration, EffectEvaluation, ContextWithSubResolved } from './interfaces';
 import { Request, Response, Response_Decision, ReverseQuery } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { Rule, RuleRQ, ContextQuery, Effect, Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import { Policy, PolicyRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
-import { PolicySet, PolicySetRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { PolicySetRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
 import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+import {
+  ServiceClient as UserServiceClient
+} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
 
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
@@ -23,7 +27,7 @@ import { verifyACLList } from './verifyACL';
 import { conditionMatches } from './utils';
 
 export class AccessController {
-  policySets: Map<string, PolicySet>;
+  policySets: Map<string, PolicySetWithCombinables>;
   combiningAlgorithms: Map<string, any>;
   urns: Map<string, string>;
   resourceAdapter: ResourceAdapter;
@@ -31,10 +35,10 @@ export class AccessController {
   userTopic: Topic;
   waiting: any[];
   cfg: any;
-  userService: any;
+  userService: UserServiceClient;
   constructor(private logger: Logger, opts: AccessControlConfiguration,
-    userTopic: Topic, cfg: any, userService: any) {
-    this.policySets = new Map<string, PolicySet>();
+    userTopic: Topic, cfg: any, userService: UserServiceClient) {
+    this.policySets = new Map<string, PolicySetWithCombinables>();
     this.combiningAlgorithms = new Map<string, any>();
 
     logger.info('Parsing combining algorithms from access control configuration...');
@@ -96,16 +100,16 @@ export class AccessController {
 
     let effect: EffectEvaluation;
     let obligation: Attribute[] = [];
-    let context = request.context as ContextWithSubResolved;
+    let context = (request as any).context as ContextWithSubResolved;
     if (!context) {
       (context as any) = {};
     }
     if (context && context.subject && context.subject.token) {
       const subject = await this.userService.findByToken({ token: context.subject.token });
       if (subject && subject.payload) {
-        request.context.subject.id = subject.payload.id;
-        request.context.subject.tokens = subject.payload.tokens;
-        request.context.subject.role_associations = subject.payload.role_associations;
+        context.subject.id = subject.payload.id;
+        context.subject.tokens = subject.payload.tokens;
+        context.subject.role_associations = subject.payload.role_associations;
       }
     }
     for (let [, value] of this.policySets) {

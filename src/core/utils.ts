@@ -2,7 +2,6 @@ import * as _ from 'lodash';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
 import { AccessController } from './accessController';
-import * as interfaces from './interfaces';
 import { AuthZAction, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse, Obligation } from '@restorecommerce/acs-client';
 import { Subject } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
 import { Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
@@ -11,11 +10,19 @@ import { createLogger } from '@restorecommerce/logger';
 import { createClient, createChannel } from '@restorecommerce/grpc-client';
 import { FilterOp } from '@restorecommerce/resource-base-interface/lib/core/interfaces';
 import * as uuid from 'uuid';
-import { Request } from './interfaces';
 import nodeEval from 'node-eval';
+import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { Policy } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { Rule, Target, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import {
+  ServiceDefinition as UserServiceDefinition,
+  ServiceClient as UserServiceClient
+} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
+import { PolicySetWithCombinables, PolicyWithCombinables } from './interfaces';
 
 
-export const formatTarget = (target: any): interfaces.Target => {
+export const formatTarget = (target: any): Target => {
   if (!target) {
     return null;
   }
@@ -42,29 +49,31 @@ const loadPolicies = (document: any, accessController: AccessController): Access
 
   for (let policySetYaml of policySets) {
 
-    let policies = new Map<string, interfaces.Policy>();
+    let policies = new Map<string, PolicyWithCombinables>();
     for (let policyYaml of policySetYaml.policies) {
 
-      let rules = new Map<string, interfaces.Rule>();
+      let rules = new Map<string, Rule>();
       if (policyYaml.rules) {
         for (let ruleYaml of policyYaml.rules) {
           const ruleID = ruleYaml.id;
           const ruleName = ruleYaml.name;
           const ruleDescription: string = ruleYaml.description;
           const ruleTarget = formatTarget(ruleYaml.target);
+          const evaluationCacheable = ruleYaml.evaluation_cacheable;
 
-          const effect: interfaces.Effect = ruleYaml.effect;
+          const effect: Effect = ruleYaml.effect;
           const contextQuery = ruleYaml.context_query;  // may be null
           const condition = ruleYaml.condition; // JS code; may be null
 
-          const rule: interfaces.Rule = {
+          const rule: Rule = {
             id: ruleID,
             name: ruleName,
             description: ruleDescription,
             target: ruleTarget,
             effect,
-            contextQuery,
-            condition
+            context_query: contextQuery,
+            condition,
+            evaluation_cacheable: evaluationCacheable
           };
           rules.set(rule.id, rule);
         }
@@ -76,25 +85,29 @@ const loadPolicies = (document: any, accessController: AccessController): Access
       const policyCA = policyYaml.combining_algorithm;
       const policyEffect = policyYaml.effect;
       const policyTarget = formatTarget(policyYaml.target);
+      const evaluationCacheable = policyYaml.evaluation_cacheable;
 
-      const policy: interfaces.Policy = {
+      const policy: PolicyWithCombinables = {
         id: policyID,
         name: policyName,
         description: policyDescription,
-        combiningAlgorithm: policyCA,
+        combining_algorithm: policyCA,
         combinables: rules,
         effect: policyEffect,
-        target: policyTarget
+        target: policyTarget,
+        rules: [],
+        evaluation_cacheable: evaluationCacheable
       };
       policies.set(policy.id, policy);
     }
 
-    const policySet: interfaces.PolicySet = {
+    const policySet: PolicySetWithCombinables = {
       id: policySetYaml.id,
       name: policySetYaml.name,
       description: policySetYaml.description,
-      combiningAlgorithm: policySetYaml.combining_algorithm,
+      combining_algorithm: policySetYaml.combining_algorithm,
       combinables: policies,
+      policies: [],
       target: formatTarget(policySetYaml.target)
     };
 
@@ -164,7 +177,7 @@ export interface ReadPolicyResponse extends AccessResponse {
 }
 
 // Create a ids client instance
-let idsClientInstance;
+let idsClientInstance: UserServiceClient;
 const getUserServiceClient = async () => {
   if (!idsClientInstance) {
     const cfg = createServiceConfig(process.cwd());
@@ -177,8 +190,11 @@ const getUserServiceClient = async () => {
     };
     const logger = createLogger(loggerCfg);
     if (grpcIDSConfig) {
-      const idsClient = new GrpcClient(grpcIDSConfig, logger);
-      idsClientInstance = idsClient.user;
+      const channel = createChannel(grpcIDSConfig.address);
+      idsClientInstance = createClient({
+        ...grpcIDSConfig,
+        logger
+      }, UserServiceDefinition, channel);
     }
   }
   return idsClientInstance;

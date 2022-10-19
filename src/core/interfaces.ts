@@ -1,4 +1,6 @@
-import { Effect, Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { Effect, Rule } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { Policy } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
 import { Attribute, AttributeObj } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
 import { RoleAssociation as RoleAssociations, HierarchicalScope, Tokens } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
 
@@ -29,6 +31,14 @@ import { RoleAssociation as RoleAssociations, HierarchicalScope, Tokens } from '
 //   evaluation_cacheable?: boolean;
 // }
 // export interface PolicySet extends Combiner<Policy> { }
+
+export interface PolicyWithCombinables extends Policy {
+  combinables: Map<string, Rule>;
+}
+
+export interface PolicySetWithCombinables extends PolicySet {
+  combinables: Map<string, PolicyWithCombinables>;
+}
 
 // export interface Attribute {
 //   id: string;

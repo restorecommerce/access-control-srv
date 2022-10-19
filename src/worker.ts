@@ -1,7 +1,8 @@
 import * as _ from 'lodash';
 import * as chassis from '@restorecommerce/chassis-srv';
 import { createLogger } from '@restorecommerce/logger';
-import { Events } from '@restorecommerce/kafka-client';
+import { Logger } from 'winston';
+import { Events, registerProtoMeta } from '@restorecommerce/kafka-client';
 import { AccessControlCommandInterface, AccessControlService } from './accessControlService';
 import { ResourceManager } from './resourceManager';
 import { createClient, RedisClientType } from 'redis';
@@ -9,7 +10,36 @@ import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arang
 
 import * as core from './core';
 import { ACSAuthZ, initAuthZ, initializeCache } from '@restorecommerce/acs-client';
-import { GrpcClient } from '@restorecommerce/grpc-client';
+import { createChannel, createClient as grpcCreateClient } from '@restorecommerce/grpc-client';
+import {
+  ServiceDefinition as UserServiceDefinition,
+  ServiceClient as UserServiceClient, FindByTokenRequest
+} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
+import {
+  ServiceDefinition as RuleServiceDefinition,
+  protoMetadata as ruleMeta
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import {
+  ServiceDefinition as PolicyServiceDefinition,
+  protoMetadata as policyMeta
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import {
+  ServiceDefinition as PolicySetServiceDefinition,
+  protoMetadata as policySetMeta
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import {
+  ServiceDefinition as AccessControlServiceDefinition,
+  protoMetadata as accessControlMeta
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import {
+  ServiceDefinition as CommandInterfaceServiceDefinition,
+  protoMetadata as commandInterfaceMeta
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
+import { protoMetadata as reflectionMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/reflection/v1alpha/reflection';
+import {
+  HealthDefinition
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/health/v1/health';
+import { BindConfig } from '@restorecommerce/chassis-srv/lib/microservice/transport/provider/grpc';
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {
@@ -18,23 +48,20 @@ const capitalized = (collectionName: string): string => {
   return _.join(labels, '');
 };
 
+registerProtoMeta(ruleMeta, policyMeta, policySetMeta, accessControlMeta,
+  commandInterfaceMeta, reflectionMeta);
+
 /**
  * Generates Kafka configs for CRUD events.
  */
 const genEventsConfig = (collectionName: string, cfg: any): any => {
-  const pathPrefix = cfg.get('protosPathPrefix');
   const servicePrefix = cfg.get('protosServicePrefix');
-  const root = cfg.get('protosRoot');
 
   const crudEvents = ['Created', 'Modified', 'Deleted'];
 
   const kafkaCfg = cfg.get('events:kafka');
   for (let event of crudEvents) {
     kafkaCfg[`${collectionName}${event}`] = {
-      protos: [
-        `${pathPrefix}${collectionName}.proto`
-      ],
-      protoRoot: root,
       messageObject: `${servicePrefix}${collectionName}.${capitalized(collectionName)}`
     };
   }
@@ -46,7 +73,7 @@ const genEventsConfig = (collectionName: string, cfg: any): any => {
  */
 export class Worker {
   cfg: any;
-  logger: any;
+  logger: Logger;
   server: chassis.Server;
   events: Events;
   commandInterface: AccessControlCommandInterface;
@@ -100,11 +127,14 @@ export class Worker {
 
     const userTopic = await events.topic(kafkaConfig.topics['user'].topic);
     // instantiate IDS client
-    let userService;
+    let userService: UserServiceClient;
     const grpcIDSConfig = this.cfg.get('client:user');
     if (grpcIDSConfig) {
-      const idsClient = new GrpcClient(grpcIDSConfig, this.logger);
-      userService = idsClient.user;
+      const channel = createChannel(grpcIDSConfig.address);
+      userService = grpcCreateClient({
+        ...grpcIDSConfig,
+        logger
+      }, UserServiceDefinition, channel);
     }
     this.accessController = new core.AccessController(this.logger,
       this.cfg.get('policies:options'), userTopic, this.cfg, userService);
@@ -118,23 +148,40 @@ export class Worker {
     const resourceManager = new ResourceManager(this.cfg, this.logger, events, db,
       this.accessController, this.redisClient, this.authZ);
     await resourceManager.setup();
-
-    await server.bind('io-restorecommerce-policy-set-srv', resourceManager.getResourceService('policy_set'));
+    await server.bind('io-restorecommerce-policy-set-srv', {
+      service: PolicySetServiceDefinition,
+      implementation: resourceManager.getResourceService('policy_set')
+    } as BindConfig<PolicySetServiceDefinition>);
     // policy resource
-    await server.bind('io-restorecommerce-policy-srv', resourceManager.getResourceService('policy'));
+    await server.bind('io-restorecommerce-policy-srv', {
+      service: PolicyServiceDefinition,
+      implementation: resourceManager.getResourceService('policy')
+    } as BindConfig<PolicyServiceDefinition>);
     // policy resource
-    await server.bind('io-restorecommerce-rule-srv', resourceManager.getResourceService('rule'));
+    await server.bind('io-restorecommerce-rule-srv', {
+      service: RuleServiceDefinition,
+      implementation: resourceManager.getResourceService('rule')
+    } as BindConfig<RuleServiceDefinition>);
     // access control service
     const accessControlService = new AccessControlService(this.cfg, this.logger, resourceManager, this.accessController);
-    await server.bind('io-restorecommerce-access-control-srv', accessControlService);
+    await server.bind('io-restorecommerce-access-control-srv', {
+      service: AccessControlServiceDefinition,
+      implementation: accessControlService
+    } as BindConfig<AccessControlServiceDefinition>);
     // command interface
     this.commandInterface = new AccessControlCommandInterface(server, this.cfg,
       this.logger, events, accessControlService, this.redisClient);
-    await server.bind('io-restorecommerce-access-control-ci', this.commandInterface);
+    await server.bind('io-restorecommerce-access-control-ci', {
+      service: CommandInterfaceServiceDefinition,
+      implementation: this.commandInterface
+    } as BindConfig<CommandInterfaceServiceDefinition>);
 
-    await server.bind('grpc-health-v1', new chassis.Health(this.commandInterface, {
-      readiness: async () => !!await ((db as Arango).db).version()
-    }));
+    await server.bind('grpc-health-v1', {
+      service: HealthDefinition,
+      implementation: new chassis.Health(this.commandInterface, {
+        readiness: async () => !!await ((db as Arango).db).version()
+      })
+    } as BindConfig<HealthDefinition>);
 
     this.events = events;
     this.server = server;
@@ -160,7 +207,7 @@ export class Worker {
         let redisHRScopesKey;
         let subject;
         if (token) {
-          subject = await this.accessController.userService.findByToken({ token });
+          subject = await this.accessController.userService.findByToken(FindByTokenRequest.fromPartial({ token }));
           if (subject && subject.payload) {
             const tokens = subject.payload.tokens;
             const subID = subject.payload.id;

@@ -1,8 +1,11 @@
 import * as _ from 'lodash';
 import { Logger } from 'winston';
 
-import { Target, Request, Attribute, AccessController } from '.';
-import { Resource } from './interfaces';
+import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
+import { AccessController } from '.';
+import { Resource, ContextWithSubResolved } from './interfaces';
 import traverse from 'traverse';
 import { getAllValues } from './utils';
 
@@ -22,7 +25,7 @@ export const verifyACLList = async (ruleTarget: Target,
     }
   }
 
-  let context = request.context;
+  let context = (request as any).context as ContextWithSubResolved;
   if (_.isEmpty(context)) {
     logger.debug('No valid context in request');
     (context as any) = {};
@@ -159,7 +162,7 @@ export const verifyACLList = async (ruleTarget: Target,
                 validTargetInstances = true;
                 validatedACLInstances.push(targetInstance);
                 continue;
-              } else if(!validatedACLInstances.includes(targetInstance)) {
+              } else if (!validatedACLInstances.includes(targetInstance)) {
                 logger.info(`ACL instance ${targetInstance} cannot be assigned by subject ${context.subject.id}
                     as subject does not have permissions`);
                 validTargetInstances = false;
