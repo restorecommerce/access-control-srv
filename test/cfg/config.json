@@ -1,7 +1,5 @@
 {
-  "protosPathPrefix": "io/restorecommerce/",
   "protosServicePrefix": "io.restorecommerce.",
-  "protosRoot": "node_modules/@restorecommerce/protos/",
   "redis": {
     "host": "localhost",
     "port": 6379,
