@@ -215,6 +215,19 @@
       "level": "silly",
       "colorize": true,
       "prettyPrint": true
+    },
+    "fieldOptions": {
+      "bufferFields": [
+        {
+          "fieldPath": "context"
+        },
+        {
+          "fieldPath": "request.context.subject"
+        },
+        {
+          "fieldPath": "request.context.resources"
+        }
+      ]
     }
   },
   "database": {
