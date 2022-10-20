@@ -36,6 +36,7 @@ import {
   protoMetadata as commandInterfaceMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
 import { protoMetadata as reflectionMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/reflection/v1alpha/reflection';
+import { protoMetadata as authMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
 import {
   HealthDefinition
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/health/v1/health';
@@ -49,7 +50,7 @@ const capitalized = (collectionName: string): string => {
 };
 
 registerProtoMeta(ruleMeta, policyMeta, policySetMeta, accessControlMeta,
-  commandInterfaceMeta, reflectionMeta);
+  commandInterfaceMeta, reflectionMeta, authMeta);
 
 /**
  * Generates Kafka configs for CRUD events.

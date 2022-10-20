@@ -36,13 +36,13 @@ const marshallResource = (resource: any, resourceName: string): any => {
     case 'policy_set':
       marshalled = _.assign(marshalled, _.pick(resource, ['target']));
       if (!_.isEmpty(resource)) {
-        marshalled.combiningAlgorithm = resource.combining_algorithm;
+        marshalled.combining_algorithm = resource.combining_algorithm;
       }
       marshalled.combinables = new Map<string, Policy>();
       break;
     case 'policy':
       marshalled = _.assign(marshalled, _.pick(resource, ['target', 'effect']));
-      marshalled.combiningAlgorithm = resource.combining_algorithm;
+      marshalled.combining_algorithm = resource.combining_algorithm;
       marshalled.combinables = new Map<string, Rule>();
       break;
     case 'rule':
@@ -501,7 +501,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
 
   async getPolicies(policyIDs?: string[]): Promise<Map<string, PolicyWithCombinables>> {
     const filters = policyIDs ? makeFilter(policyIDs) : {};
-    const result = await super.read(ReadRequest.fromPartial(filters), {});
+    const result = await super.read(ReadRequest.fromPartial({ filters }), {});
 
     const policies = new Map<string, PolicyWithCombinables>();
     if (result && result.items) {
