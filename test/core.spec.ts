@@ -1,21 +1,21 @@
 import * as mocha from 'mocha';
 import nock from 'nock';
 import * as should from 'should';
-
 import * as core from '../src/core';
 import * as testUtils from './utils';
-
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
-import { GrpcClient } from '@restorecommerce/grpc-client';
+import { createChannel, createClient } from '@restorecommerce/grpc-client';
+import { ServiceDefinition as UserServiceDefinition, ServiceClient as UserServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
+import { Request, Response, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 
 const cfg = createServiceConfig(process.cwd() + '/test');
 const acConfig = require('./access_control.json');
 const logger = createLogger(cfg.get('logger'));
 
 let ac: core.AccessController;
-let request: core.Request;
+let request: Request;
 
 // Helper functions
 const prepare = async (filepath: string): Promise<void> => {
@@ -23,21 +23,23 @@ const prepare = async (filepath: string): Promise<void> => {
   const events = new Events(kafkaConfig, logger); // Kafka
   await events.start();
   const userTopic = await events.topic(kafkaConfig.topics['user'].topic);
-  let userService;
+  let userService: UserServiceClient;
   const grpcIDSConfig = cfg.get('client:user');
   if (grpcIDSConfig) {
-    const idsClient = new GrpcClient(grpcIDSConfig, logger);
-    userService = idsClient.user;
+    userService = createClient({
+      ...grpcIDSConfig,
+      logger
+    }, UserServiceDefinition, createChannel(grpcIDSConfig.address));
   }
   ac = new core.AccessController(logger, acConfig, userTopic, cfg, userService);
   testUtils.populate(ac, filepath);
 };
 
-const requestAndValidate = async (ac: core.AccessController, request: core.Request, expectedDecision: core.Decision, invalidContext?: boolean): Promise<void> => {
-  const response: core.Response = await ac.isAllowed(request);
+const requestAndValidate = async (ac: core.AccessController, request: Request, expectedDecision: Response_Decision, invalidContext?: boolean): Promise<void> => {
+  const response: Response = await ac.isAllowed(request);
   should.exist(response);
   should.exist(response.decision);
-  const decision: core.Decision = response.decision;
+  const decision: Response_Decision = response.decision;
   decision.should.equal(expectedDecision);
   if (!invalidContext) {
     response.operation_status.code.should.equal(200);
@@ -63,7 +65,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
     it('should DENY based on rule A2', async () => {
@@ -78,7 +80,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
 
     it('should DENY based on rule A3', async () => {
@@ -93,7 +95,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
 
     it('should return INDETERMINATE', async () => {
@@ -108,7 +110,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.INDETERMINATE);
+      await requestAndValidate(ac, request, Response_Decision.INDETERMINATE);
     });
 
     it('should return INDETERMINATE', async () => {
@@ -123,7 +125,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.INDETERMINATE);
+      await requestAndValidate(ac, request, Response_Decision.INDETERMINATE);
     });
 
     it('should return INDETERMINATE', async () => {
@@ -138,7 +140,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.INDETERMINATE);
+      await requestAndValidate(ac, request, Response_Decision.INDETERMINATE);
     });
 
     it('should PERMIT based on combining algorithm from policy B', async () => {
@@ -153,7 +155,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
     it('should DENY based on combining algorithm from policy C', async () => {
@@ -168,7 +170,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
 
     it('should DENY based on combining algorithm from policy D', async () => {
@@ -183,7 +185,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
   });
 
@@ -204,7 +206,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
     it('should DENY based on rule A2', async () => {
@@ -219,7 +221,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
 
     it('should PERMIT based on policy A\'s combining algorithm', async () => {
@@ -234,7 +236,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
     it('should return INDETERMINATE based on policy A\'s target', async () => {
@@ -249,7 +251,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.INDETERMINATE);
+      await requestAndValidate(ac, request, Response_Decision.INDETERMINATE);
     });
 
     it('should PERMIT based on rule B1', async () => {
@@ -264,7 +266,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
     it('should PERMIT based on policy C', async () => {
@@ -279,7 +281,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
   });
 
@@ -299,7 +301,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
     it('should return INDETERMINATE', async () => {
@@ -314,7 +316,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.INDETERMINATE);
+      await requestAndValidate(ac, request, Response_Decision.INDETERMINATE);
     });
 
     it('should DENY based on rule AA2', async () => {
@@ -329,7 +331,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
 
     it('should PERMIT based on Rule BA1', async () => {
@@ -344,7 +346,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:read'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
     it('should DENY based on Rule BA2', async () => {
@@ -359,7 +361,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
   });
 
@@ -383,7 +385,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
 
     it('should PERMIT modify request due to special condition', async () => {
@@ -397,7 +399,7 @@ describe('Testing access control core', () => {
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
     it('should DENY due to invalid context in request', async () => {
@@ -412,7 +414,7 @@ describe('Testing access control core', () => {
       });
       request.context = null;
 
-      await requestAndValidate(ac, request, core.Decision.DENY, true);
+      await requestAndValidate(ac, request, Response_Decision.DENY, true);
     });
   });
   describe('testing roles with hierarchical scopes', () => {
@@ -433,7 +435,7 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
       });
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
     it('should PERMIT a read by a SimpleUser for both Location and Organization', async () => {
       request = testUtils.buildRequest({
@@ -447,7 +449,7 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: ['Org1', 'Org1']
       });
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
     it('should DENY a read by a SimpleUser for isAllowed operation on Location and Organization resource with resource IDs', async () => {
       request = testUtils.buildRequest({
@@ -461,7 +463,7 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: ['Org1', 'anotherOrg']
       });
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
     it('should DENY a modify by a SimpleUser', async () => {
       request = testUtils.buildRequest({
@@ -476,7 +478,7 @@ describe('Testing access control core', () => {
         ownerInstance: 'Org1'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
     it('should PERMIT a modify by an Admin', async () => {
       request = testUtils.buildRequest({
@@ -491,7 +493,7 @@ describe('Testing access control core', () => {
         ownerInstance: 'Org1'
       });
 
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
     it('should DENY a modify by an Admin from another Organization', async () => {
       request = testUtils.buildRequest({
@@ -506,7 +508,7 @@ describe('Testing access control core', () => {
         ownerInstance: 'Org1'
       });
 
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
     it('should PERMIT Execute action on executeTestMutation by an Admin', async () => {
       request = testUtils.buildRequest({
@@ -520,7 +522,7 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
       });
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
     it('should DENY Execute action on executeTestMutation by an Admin from another organization', async () => {
       request = testUtils.buildRequest({
@@ -534,7 +536,7 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
       });
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
     it('should DENY Execute action on executeTestMutation by a SimpleUser', async () => {
       request = testUtils.buildRequest({
@@ -548,7 +550,7 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
       });
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
   });
   describe('testing rules with HR scopes disabled', () => {
@@ -567,7 +569,7 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
       });
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
     it('should DENY a read by a SimpleUser if HR scoping match is disabled', async () => {
       request = testUtils.buildRequest({
@@ -582,7 +584,7 @@ describe('Testing access control core', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org2'
       });
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      await requestAndValidate(ac, request, Response_Decision.DENY);
     });
   });
   describe('testing rules with GraphQL queries', () => {
@@ -619,8 +621,8 @@ describe('Testing access control core', () => {
         resourceID: 'Location 1',
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
-      request.context.resources[0].address = 'Address 1';
-      await requestAndValidate(ac, request, core.Decision.PERMIT);
+      (request.context as any).resources[0].address = 'Address 1';
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
       scope.isDone().should.equal(true);
     });
 
@@ -653,8 +655,8 @@ describe('Testing access control core', () => {
         resourceID: 'Location 1',
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
-      request.context.resources[0].address = 'Address 1';
-      await requestAndValidate(ac, request, core.Decision.DENY);
+      (request.context as any).resources[0].address = 'Address 1';
+      await requestAndValidate(ac, request, Response_Decision.DENY);
       scope.isDone().should.equal(true);
     });
   });

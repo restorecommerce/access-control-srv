@@ -1,29 +1,34 @@
 import * as _ from 'lodash';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
-
 import * as core from '../src/core';
 import { formatTarget } from '../src/core/utils';
 export { formatTarget };
+import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
+import { Rule, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { PolicyWithCombinables, PolicySetWithCombinables } from '../src/core/interfaces';
 
 /**
  *
  * @param opts
  */
-export const buildRequest = (opts: RequestOpts): core.Request => {
+export const buildRequest = (opts: RequestOpts): Request => {
 
-  let subject: core.Attribute[] = [];
-  let resources: core.Attribute[] = [];
-  const action: core.Attribute[] = [];
+  let subject: Attribute[] = [];
+  let resources: Attribute[] = [];
+  const action: Attribute[] = [];
 
   subject = subject.concat([
     {
       id: 'urn:restorecommerce:acs:names:role',
-      value: opts.subjectRole ? opts.subjectRole : 'SimpleUser'
+      value: opts.subjectRole ? opts.subjectRole : 'SimpleUser',
+      attribute: []
     },
     {
       id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
-      value: opts.subjectID
+      value: opts.subjectID,
+      attribute: []
     }
   ]);
 
@@ -31,11 +36,13 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
     subject = subject.concat([
       {
         id: 'urn:restorecommerce:acs:names:roleScopingEntity',
-        value: opts.roleScopingEntity
+        value: opts.roleScopingEntity,
+        attribute: []
       },
       {
         id: 'urn:restorecommerce:acs:names:roleScopingInstance',
-        value: opts.targetScopingInstance ? opts.targetScopingInstance : opts.roleScopingInstance
+        value: opts.targetScopingInstance ? opts.targetScopingInstance : opts.roleScopingInstance,
+        attribute: []
       }
     ]);
   }
@@ -44,7 +51,8 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
     resources = resources.concat([
       {
         id: 'urn:restorecommerce:acs:names:operation',
-        value: opts.resourceType as string
+        value: opts.resourceType as string,
+        attribute: []
       }
     ]);
   } else {
@@ -52,23 +60,27 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
       resources = resources.concat([
         {
           id: 'urn:restorecommerce:acs:names:model:entity',
-          value: opts.resourceType as string
+          value: opts.resourceType as string,
+          attribute: []
         },
         {
           id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
-          value: opts.resourceID as string
+          value: opts.resourceID as string,
+          attribute: []
         },
       ]);
       if (opts.resourceProperty && typeof opts.resourceProperty === 'string') {
         resources = resources.concat([{
           id: 'urn:restorecommerce:acs:names:model:property',
-          value: opts.resourceProperty
+          value: opts.resourceProperty,
+          attribute: []
         }]);
       } else if (opts.resourceProperty && _.isArray(opts.resourceProperty)) {
         for (let resourceProperty of opts.resourceProperty) {
           resources = resources.concat([{
             id: 'urn:restorecommerce:acs:names:model:property',
-            value: resourceProperty
+            value: resourceProperty,
+            attribute: []
           }]);
         }
       }
@@ -81,24 +93,28 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
         resources = resources.concat([
           {
             id: 'urn:restorecommerce:acs:names:model:entity',
-            value: opts.resourceType[i]
+            value: opts.resourceType[i],
+            attribute: []
           },
           {
             id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
-            value: resourceID
+            value: resourceID,
+            attribute: []
           },
         ]);
         if (opts.resourceProperty && typeof opts.resourceProperty === 'string') {
           resources = resources.concat([{
             id: 'urn:restorecommerce:acs:names:model:property',
-            value: opts.resourceProperty
+            value: opts.resourceProperty,
+            attribute: []
           }]);
         } else if (opts.resourceProperty && _.isArray(opts.resourceProperty)) {
           for (let resourceProperty of opts.resourceProperty) {
             if (typeof resourceProperty === 'string') {
               resources = resources.concat([{
                 id: 'urn:restorecommerce:acs:names:model:property',
-                value: resourceProperty
+                value: resourceProperty,
+                attribute: []
               }]);
             } else if (_.isArray(resourceProperty)) {
               // TODO add only specific resource prop types related
@@ -107,7 +123,8 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
                 if (resProp.indexOf(entityName) > -1) {
                   resources = resources.concat([{
                     id: 'urn:restorecommerce:acs:names:model:property',
-                    value: resProp
+                    value: resProp,
+                    attribute: []
                   }]);
                 }
               }
@@ -120,7 +137,8 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
 
   action.push({
     id: 'urn:oasis:names:tc:xacml:1.0:action:action-id',
-    value: opts.actionType
+    value: opts.actionType,
+    attribute: []
   });
 
   let acl = [];
@@ -263,7 +281,7 @@ export const buildRequest = (opts: RequestOpts): core.Request => {
         ] : []
       }
     }
-  };
+  } as any;
 };
 
 export const marshallYamlPolicies = (yamlPolicies: any): any => {
@@ -333,7 +351,7 @@ export const marshallProtobufAny = (object: any): any => {
   };
 };
 
-export const marshallRequest = (request: core.Request): void => {
+export const marshallRequest = (request: Request): void => {
   request.context.resources = request.context.resources.map(marshallProtobufAny);
   request.context.subject = marshallProtobufAny(request.context.subject || []);
 };
@@ -345,10 +363,10 @@ export const populate = (accessController: core.AccessController, filepath: stri
 
   for (let policySetYaml of policySets) {
 
-    let policies = new Map<string, core.Policy>();
+    let policies = new Map<string, PolicyWithCombinables>();
     for (let policyYaml of policySetYaml.policies) {
 
-      let rules = new Map<string, core.Rule>();
+      let rules = new Map<string, Rule>();
       if (policyYaml.rules) {
         for (let ruleYaml of policyYaml.rules) {
           const ruleID = ruleYaml.id;
@@ -357,18 +375,20 @@ export const populate = (accessController: core.AccessController, filepath: stri
           const ruleTarget = formatTarget(ruleYaml.target);
 
           // const effect: core.Effect = core.Effect[core.Effect[ruleYaml.effect]];
-          const effect: core.Effect = ruleYaml.effect;
-          const contextQuery = ruleYaml.context_query;  // may be null
+          const effect: Effect = ruleYaml.effect;
+          const context_query = ruleYaml.context_query;  // may be null
           const condition = ruleYaml.condition; // JS code; may be null
+          const evaluation_cacheable = ruleYaml.evaluation_cacheable;
 
-          const rule: core.Rule = {
+          const rule: Rule = {
             id: ruleID,
             name: ruleName,
             description: ruleDescription,
             target: ruleTarget,
             effect,
-            contextQuery,
-            condition
+            context_query,
+            condition,
+            evaluation_cacheable
           };
           rules.set(rule.id, rule);
         }
@@ -379,27 +399,31 @@ export const populate = (accessController: core.AccessController, filepath: stri
       const policyDescription = policyYaml.description;
       const policyCA = policyYaml.combining_algorithm;
       const policyEffect = policyYaml.effect;
+      const evaluation_cacheable = policyYaml.evaluation_cacheable;
       const policyTarget = formatTarget(policyYaml.target);
 
-      const policy: core.Policy = {
+      const policy: PolicyWithCombinables = {
         id: policyID,
         name: policyName,
         description: policyDescription,
-        combiningAlgorithm: policyCA,
+        combining_algorithm: policyCA,
         combinables: rules,
         effect: policyEffect,
-        target: policyTarget
+        target: policyTarget,
+        rules: [],
+        evaluation_cacheable
       };
       policies.set(policy.id, policy);
     }
 
-    const policySet: core.PolicySet = {
+    const policySet: PolicySetWithCombinables = {
       id: policySetYaml.id,
       name: policySetYaml.name,
       description: policySetYaml.description,
-      combiningAlgorithm: policySetYaml.combining_algorithm,
+      combining_algorithm: policySetYaml.combining_algorithm,
       combinables: policies,
-      target: formatTarget(policySetYaml.target)
+      target: formatTarget(policySetYaml.target),
+      policies: []
     };
 
     accessController.updatePolicySet(policySet);

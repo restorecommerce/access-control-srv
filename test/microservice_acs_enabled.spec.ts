@@ -1,11 +1,6 @@
 import * as should from 'should';
 import { Worker } from '../src/worker';
 import * as testUtils from './utils';
-
-import { createServiceConfig } from '@restorecommerce/service-config';
-import { createLogger } from '@restorecommerce/logger';
-import { GrpcClient } from '@restorecommerce/grpc-client';
-
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import { updateConfig } from '@restorecommerce/acs-client';
@@ -13,13 +8,19 @@ import { GrpcMockServer, ProtoUtils } from '@alenon/grpc-mock-server';
 import * as proto_loader from '@grpc/proto-loader';
 import * as grpc from '@grpc/grpc-js';
 import { Topic, Events } from '@restorecommerce/kafka-client';
+import { createServiceConfig } from '@restorecommerce/service-config';
+import { createLogger } from '@restorecommerce/logger';
+import { ServiceDefinition as RuleServiceDefinition, ServiceClient as RuleServiceClient, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { ServiceDefinition as PolicyServiceDefinition, ServiceClient as PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { ServiceDefinition as PolicySetServiceDefinition, ServiceClient as PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { ServiceDefinition as AccessControlServiceDefinition, ServiceClient as AccessControlServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { createChannel, createClient } from '@restorecommerce/grpc-client';
 
 let cfg: any;
 let logger;
-let client: GrpcClient;
 let worker: Worker;
-let ruleService: any, policyService: any, policySetService: any;
-let accessControlService: any;
+let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
+let accessControlService: AccessControlServiceClient;
 let rules, policies, policySets;
 let userTopic: Topic;
 
@@ -73,7 +74,7 @@ let testRule = [{
       value: 'urn:restorecommerce:acs:model:test.Test'
     }]
   },
-  effect: 'PERMIT',
+  effect: Effect.PERMIT,
   meta: {
     owner: [{
       id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
@@ -221,12 +222,23 @@ const setupService = async (): Promise<void> => {
   worker = new Worker();
   await worker.start(cfg, logger);
 
-  client = new GrpcClient(cfg.get('client:policy_set'), logger);
-  policySetService = client.policy_set;
-  client = new GrpcClient(cfg.get('client:policy'), logger);
-  policyService = client.policy;
-  client = new GrpcClient(cfg.get('client:rule'), logger);
-  ruleService = client.rule;
+  const policySetCfg = cfg.get('client:policy_set');
+  policySetService = createClient({
+    ...policySetCfg,
+    logger
+  }, PolicySetServiceDefinition, createChannel(policySetCfg.address));
+
+  const policyCfg = cfg.get('client:policy');
+  policyService = createClient({
+    ...policyCfg,
+    logger
+  }, PolicyServiceDefinition, createChannel(policyCfg.address));
+
+  const ruleCfg = cfg.get('client:rule');
+  ruleService = createClient({
+    ...ruleCfg,
+    logger
+  }, RuleServiceDefinition, createChannel(ruleCfg.address));
 };
 
 const load = async (policiesFile: string): Promise<void> => {
@@ -238,8 +250,11 @@ const load = async (policiesFile: string): Promise<void> => {
   policies = marshalled.policies;
   policySets = marshalled.policySets;
 
-  client = new GrpcClient(cfg.get('client:acs-srv'), logger);
-  accessControlService = client['acs-srv'];
+  const acsCfg = cfg.get('client:acs-srv');
+  accessControlService = createClient({
+    ...acsCfg,
+    logger
+  }, AccessControlServiceDefinition, createChannel(acsCfg.address));
 };
 
 const truncate = async (): Promise<void> => {
@@ -303,7 +318,6 @@ describe('testing microservice', () => {
     after(async () => {
       await userTopic.removeAllListeners('hierarchicalScopesRequest');
       await truncate();
-      await client.close();
       await worker.stop();
     });
     describe('testing create() operations', () => {
@@ -326,33 +340,33 @@ describe('testing microservice', () => {
         cfg.set('authorization:enabled', false);
         cfg.set('authorization:enforce', false);
         updateConfig(cfg);
-        let result = await policySetService.create({
+        const result_policySet = await policySetService.create({
           items: policySets,
           subject
         });
-        should.exist(result);
-        should.exist(result.items);
-        result.items.should.be.length(policySets.length);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
-        result = await policyService.create({
+        should.exist(result_policySet);
+        should.exist(result_policySet.items);
+        result_policySet.items.should.be.length(policySets.length);
+        result_policySet.operation_status.code.should.equal(200);
+        result_policySet.operation_status.message.should.equal('success');
+        const result_policy = await policyService.create({
           items: policies,
           subject
         });
-        should.exist(result);
-        should.exist(result.items);
-        result.items.should.be.length(policies.length);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
-        result = await ruleService.create({
+        should.exist(result_policy);
+        should.exist(result_policy.items);
+        result_policy.items.should.be.length(policies.length);
+        result_policy.operation_status.code.should.equal(200);
+        result_policy.operation_status.message.should.equal('success');
+        const result_rule = await ruleService.create({
           items: rules,
           subject
         });
-        should.exist(result);
-        should.exist(result.items);
-        result.items.should.be.length(rules.length);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        should.exist(result_rule);
+        should.exist(result_rule.items);
+        result_rule.items.should.be.length(rules.length);
+        result_rule.operation_status.code.should.equal(200);
+        result_rule.operation_status.message.should.equal('success');
       });
 
       it('should allow to create test rule with ACS enabled with valid scope in subject', async () => {
@@ -386,7 +400,7 @@ describe('testing microservice', () => {
               value: 'urn:restorecommerce:acs:model:test.Test'
             }]
           },
-          effect: 'PERMIT',
+          effect: Effect.PERMIT,
           meta: {
             owner: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
@@ -409,7 +423,7 @@ describe('testing microservice', () => {
               value: 'urn:restorecommerce:acs:model:test.Test'
             }]
           },
-          effect: 'PERMIT',
+          effect: Effect.PERMIT,
           meta: {
             owner: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
@@ -451,7 +465,7 @@ describe('testing microservice', () => {
               value: 'urn:restorecommerce:acs:model:test.Test'
             }]
           },
-          effect: 'PERMIT',
+          effect: Effect.PERMIT,
           meta: {
             owner: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
@@ -474,7 +488,7 @@ describe('testing microservice', () => {
               value: 'urn:restorecommerce:acs:model:test.Test'
             }]
           },
-          effect: 'PERMIT',
+          effect: Effect.PERMIT,
           meta: {
             owner: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',

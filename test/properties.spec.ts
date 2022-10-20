@@ -2,25 +2,24 @@
 
 import * as mocha from 'mocha';
 import * as should from 'should';
-
-import * as core from '../src/core';
 import { Worker } from '../src/worker';
 import * as testUtils from './utils';
-
-import { createServiceConfig } from '@restorecommerce/service-config';
-import { createLogger } from '@restorecommerce/logger';
-import { GrpcClient } from '@restorecommerce/grpc-client';
-
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import { updateConfig } from '@restorecommerce/acs-client';
+import { createServiceConfig } from '@restorecommerce/service-config';
+import { createLogger } from '@restorecommerce/logger';
+import { createChannel, createClient } from '@restorecommerce/grpc-client';
+import { ServiceDefinition as RuleServiceDefinition, ServiceClient as RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { ServiceDefinition as PolicyServiceDefinition, ServiceClient as PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { ServiceDefinition as PolicySetServiceDefinition, ServiceClient as PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { ServiceDefinition as AccessControlServiceDefinition, ServiceClient as AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 
 let cfg: any;
 let logger;
-let client: GrpcClient;
 let worker: Worker;
-let ruleService: any, policyService: any, policySetService: any;
-let accessControlService: any;
+let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
+let accessControlService: AccessControlServiceClient;
 let rules, policies, policySets;
 
 const setupService = async (): Promise<void> => {
@@ -30,12 +29,23 @@ const setupService = async (): Promise<void> => {
   worker = new Worker();
   await worker.start(cfg, logger);
 
-  client = new GrpcClient(cfg.get('client:policy_set'), logger);
-  policySetService = client.policy_set;
-  client = new GrpcClient(cfg.get('client:policy'), logger);
-  policyService = client.policy;
-  client = new GrpcClient(cfg.get('client:rule'), logger);
-  ruleService = client.rule;
+  const policySetCfg = cfg.get('client:policy_set');
+  policySetService = createClient({
+    ...policySetCfg,
+    logger
+  }, PolicySetServiceDefinition, createChannel(policySetCfg.address));
+
+  const policyCfg = cfg.get('client:policy');
+  policyService = createClient({
+    ...policyCfg,
+    logger
+  }, PolicyServiceDefinition, createChannel(policyCfg.address));
+
+  const ruleCfg = cfg.get('client:rule');
+  ruleService = createClient({
+    ...ruleCfg,
+    logger
+  }, RuleServiceDefinition, createChannel(ruleCfg.address));
 };
 
 const truncate = async (): Promise<void> => {
@@ -59,8 +69,11 @@ const load = async (policiesFile: string): Promise<void> => {
   policies = marshalled.policies;
   policySets = marshalled.policySets;
 
-  client = new GrpcClient(cfg.get('client:acs-srv'), logger);
-  accessControlService = client['acs-srv'];
+  const acsCfg = cfg.get('client:acs-srv');
+  accessControlService = createClient({
+    ...acsCfg,
+    logger
+  }, AccessControlServiceDefinition, createChannel(acsCfg.address));
 };
 
 const create = async (policiesFile: string): Promise<void> => {
@@ -126,7 +139,6 @@ describe('testing access control', () => {
     updateConfig(cfg);
   });
   after(async () => {
-    await client.close();
     await worker.stop();
   });
   describe('isAllowed() for single entity', () => {
@@ -156,7 +168,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -178,7 +190,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -200,7 +212,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -221,7 +233,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -244,7 +256,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -266,7 +278,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -288,7 +300,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -309,7 +321,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -434,7 +446,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -455,7 +467,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -536,7 +548,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -557,7 +569,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -578,7 +590,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -598,7 +610,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -619,7 +631,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -639,7 +651,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -660,7 +672,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -680,7 +692,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -867,7 +879,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -889,7 +901,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -912,7 +924,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -933,7 +945,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -957,7 +969,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -979,7 +991,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -1002,7 +1014,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -1023,7 +1035,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -1206,7 +1218,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.PERMIT);
+      result.decision.should.equal(Response_Decision.PERMIT);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -1229,7 +1241,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });
@@ -1250,7 +1262,7 @@ describe('testing access control', () => {
       const result = await accessControlService.isAllowed(accessRequest);
       should.exist(result);
       should.exist(result.decision);
-      result.decision.should.equal(core.Decision.DENY);
+      result.decision.should.equal(Response_Decision.DENY);
       result.operation_status.code.should.equal(200);
       result.operation_status.message.should.equal('success');
     });

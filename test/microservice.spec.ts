@@ -1,24 +1,24 @@
 import * as mocha from 'mocha';
 import * as should from 'should';
-
-import * as core from '../src/core';
 import { Worker } from '../src/worker';
 import * as testUtils from './utils';
-
-import { createServiceConfig } from '@restorecommerce/service-config';
-import { createLogger } from '@restorecommerce/logger';
-import { GrpcClient } from '@restorecommerce/grpc-client';
-
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import { updateConfig } from '@restorecommerce/acs-client';
+import { createServiceConfig } from '@restorecommerce/service-config';
+import { createLogger } from '@restorecommerce/logger';
+import { createChannel, createClient } from '@restorecommerce/grpc-client';
+import { ServiceDefinition as RuleServiceDefinition, ServiceClient as RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { ServiceDefinition as PolicyServiceDefinition, ServiceClient as PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { ServiceDefinition as PolicySetServiceDefinition, ServiceClient as PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { ServiceDefinition as AccessControlServiceDefinition, ServiceClient as AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { PolicySetWithCombinables, PolicyWithCombinables } from '../src/core/interfaces';
 
 let cfg: any;
 let logger;
-let client: GrpcClient;
 let worker: Worker;
-let ruleService: any, policyService: any, policySetService: any;
-let accessControlService: any;
+let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
+let accessControlService: AccessControlServiceClient;
 let rules, policies, policySets;
 
 const setupService = async (): Promise<void> => {
@@ -28,12 +28,23 @@ const setupService = async (): Promise<void> => {
   worker = new Worker();
   await worker.start(cfg, logger);
 
-  client = new GrpcClient(cfg.get('client:policy_set'), logger);
-  policySetService = client.policy_set;
-  client = new GrpcClient(cfg.get('client:policy'), logger);
-  policyService = client.policy;
-  client = new GrpcClient(cfg.get('client:rule'), logger);
-  ruleService = client.rule;
+  const policySetCfg = cfg.get('client:policy_set');
+  policySetService = createClient({
+    ...policySetCfg,
+    logger
+  }, PolicySetServiceDefinition, createChannel(policySetCfg.address));
+
+  const policyCfg = cfg.get('client:policy');
+  policyService = createClient({
+    ...policyCfg,
+    logger
+  }, PolicyServiceDefinition, createChannel(policyCfg.address));
+
+  const ruleCfg = cfg.get('client:rule');
+  ruleService = createClient({
+    ...ruleCfg,
+    logger
+  }, RuleServiceDefinition, createChannel(ruleCfg.address));
 };
 
 const truncate = async (): Promise<void> => {
@@ -57,8 +68,11 @@ const load = async (policiesFile: string): Promise<void> => {
   policies = marshalled.policies;
   policySets = marshalled.policySets;
 
-  client = new GrpcClient(cfg.get('client:acs-srv'), logger);
-  accessControlService = client['acs-srv'];
+  const acsCfg = cfg.get('client:acs-srv');
+  accessControlService = createClient({
+    ...acsCfg,
+    logger
+  }, AccessControlServiceDefinition, createChannel(acsCfg.address));
 };
 
 const create = async (policiesFile: string): Promise<void> => {
@@ -85,7 +99,6 @@ describe('testing microservice', () => {
       updateConfig(cfg);
     });
     after(async () => {
-      await client.close();
       await worker.stop();
     });
     describe('testing create() operations', () => {
@@ -128,12 +141,12 @@ describe('testing microservice', () => {
         accessController.policySets.should.have.size(1);
 
         // checking policies
-        const policySet: [string, core.PolicySet] = accessController.policySets.entries().next().value;
+        const policySet: [string, PolicySetWithCombinables] = accessController.policySets.entries().next().value;
         should.exist(policySet[1].combinables);
         policySet[1].combinables.should.have.size(1);
 
         // checking policy rules
-        const policy: [string, core.Policy] = policySet[1].combinables.entries().next().value;
+        const policy: [string, PolicyWithCombinables] = policySet[1].combinables.entries().next().value;
         should.exist(policy[1].combinables);
         policy[1].combinables.should.have.size(3);
       });
@@ -248,7 +261,6 @@ describe('testing microservice', () => {
         });
         const result = await policySetService.read({});
         should.exist(result);
-        should.not.exist(result.error);
         should.exist(result.items);
         result.items.should.be.empty();
         result.operation_status.code.should.equal(200);
@@ -268,7 +280,6 @@ describe('testing microservice', () => {
       await setupService();
     });
     after(async () => {
-      await client.close();
       await worker.stop();
     });
     describe('isAllowed()', () => {
@@ -295,7 +306,7 @@ describe('testing microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(core.Decision.PERMIT);
+        result.decision.should.equal(Response_Decision.PERMIT);
         result.operation_status.code.should.equal(200);
         result.operation_status.message.should.equal('success');
       });
@@ -316,7 +327,7 @@ describe('testing microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(core.Decision.DENY);
+        result.decision.should.equal(Response_Decision.DENY);
         result.operation_status.code.should.equal(200);
         result.operation_status.message.should.equal('success');
       });
@@ -337,7 +348,7 @@ describe('testing microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(core.Decision.DENY);
+        result.decision.should.equal(Response_Decision.DENY);
         result.operation_status.code.should.equal(200);
         result.operation_status.message.should.equal('success');
       });
@@ -358,7 +369,7 @@ describe('testing microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(core.Decision.INDETERMINATE);
+        result.decision.should.equal(Response_Decision.INDETERMINATE);
         result.operation_status.code.should.equal(200);
         result.operation_status.message.should.equal('success');
       });
@@ -382,7 +393,6 @@ describe('testing microservice', () => {
         testUtils.marshallRequest(accessRequest);
         const result = await accessControlService.whatIsAllowed(accessRequest);
         should.exist(result);
-        should.not.exist(result.error);
         should.exist(result.policy_sets);
         result.policy_sets.should.be.length(1);
 
@@ -595,7 +605,7 @@ describe('testing microservice', () => {
         result.policy_sets[0].policies.should.be.length(1);
         should.exist(result.policy_sets[0].policies[0].rules);
         result.policy_sets[0].policies[0].rules.should.have.length(1);
-        result.policy_sets[0].policies[0].rules[0].effect.should.equal(core.Decision.DENY);
+        result.policy_sets[0].policies[0].rules[0].effect.should.equal(Response_Decision.DENY);
       });
     });
   });
