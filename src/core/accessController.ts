@@ -1,11 +1,5 @@
 import * as _ from 'lodash';
-// import {
-//   Rule, Policy, PolicySet, Request, Response,
-//   Decision, Effect, Target, CombiningAlgorithm, AccessControlConfiguration,
-//   Attribute, ContextQuery, PolicySetRQ, PolicyRQ, RuleRQ, AccessControlOperation, HierarchicalScope, EffectEvaluation, ReverseQueryResponse, Obligation
-// } from './interfaces';
-
-import { PolicySetWithCombinables } from './interfaces';
+import { PolicySetWithCombinables, PolicyWithCombinables, AccessControlOperation } from './interfaces';
 import { CombiningAlgorithm, AccessControlConfiguration, EffectEvaluation, ContextWithSubResolved } from './interfaces';
 import { Request, Response, Response_Decision, ReverseQuery } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { Rule, RuleRQ, ContextQuery, Effect, Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
@@ -108,12 +102,12 @@ export class AccessController {
       const subject = await this.userService.findByToken({ token: context.subject.token });
       if (subject && subject.payload) {
         context.subject.id = subject.payload.id;
-        context.subject.tokens = subject.payload.tokens;
-        context.subject.role_associations = subject.payload.role_associations;
+        (context.subject as any).tokens = subject.payload.tokens;
+        context.subject.role_associations = subject.payload.roleAssociations;
       }
     }
     for (let [, value] of this.policySets) {
-      const policySet: PolicySet = value;
+      const policySet: PolicySetWithCombinables = value;
       let policyEffects: EffectEvaluation[] = [];
 
       // policyEffect needed to evalute if the properties should be PERMIT / DENY
@@ -125,8 +119,8 @@ export class AccessController {
           const policy: Policy = policyValue;
           if (policy.effect) {
             policyEffect = policy.effect;
-          } else if (policy.combiningAlgorithm) {
-            const method = this.combiningAlgorithms.get(policy.combiningAlgorithm);
+          } else if (policy.combining_algorithm) {
+            const method = this.combiningAlgorithms.get(policy.combining_algorithm);
             if (method === 'permitOverrides') {
               policyEffect = Effect.PERMIT;
             } else if (method === 'denyOverrides') {
@@ -156,7 +150,7 @@ export class AccessController {
         }
 
         for (let [, policyValue] of policySet.combinables) {
-          const policy: Policy = policyValue;
+          const policy: PolicyWithCombinables = policyValue;
           if (!policy) {
             this.logger.debug('Policy Object not set');
             continue;
@@ -205,8 +199,8 @@ export class AccessController {
                     if (matches && !_.isEmpty(rule.condition)) {
                       // context query is only checked when a rule exists
                       let context: any;
-                      if (!_.isEmpty(rule.contextQuery) && this.resourceAdapter) {
-                        context = await this.pullContextResources(rule.contextQuery, request);
+                      if (!_.isEmpty(rule.context_query) && this.resourceAdapter) {
+                        context = await this.pullContextResources(rule.context_query, request);
 
                         if (_.isNil(context)) {
                           return {  // deny by default
@@ -252,14 +246,14 @@ export class AccessController {
               }
 
               if (ruleEffects.length > 0) {
-                policyEffects.push(this.decide(policy.combiningAlgorithm, ruleEffects));
+                policyEffects.push(this.decide(policy.combining_algorithm, ruleEffects));
               }
             }
           }
         }
 
         if (policyEffects.length > 0) {
-          effect = this.decide(policySet.combiningAlgorithm, policyEffects);
+          effect = this.decide(policySet.combining_algorithm, policyEffects);
         }
       }
     }
@@ -294,20 +288,20 @@ export class AccessController {
 
   async whatIsAllowed(request: Request): Promise<ReverseQuery> {
     let policySets: PolicySetRQ[] = [];
-    let context = request.context;
+    let context = (request as any).context as ContextWithSubResolved;
     if (context && context.subject && context.subject.token) {
       const subject = await this.userService.findByToken({ token: context.subject.token });
       if (subject && subject.payload) {
-        request.context.subject.id = subject.payload.id;
-        request.context.subject.tokens = subject.payload.tokens;
-        request.context.subject.role_associations = subject.payload.role_associations;
+        context.subject.id = subject.payload.id;
+        (context.subject as any).tokens = subject.payload.tokens;
+        context.subject.role_associations = subject.payload.roleAssociations;
       }
     }
     let obligation: Attribute[] = [];
     for (let [, value] of this.policySets) {
       let pSet: PolicySetRQ;
       if (_.isEmpty(value.target) || await this.targetMatches(value.target, request, 'whatIsAllowed', obligation)) {
-        pSet = _.merge({}, { combining_algorithm: value.combiningAlgorithm }, _.pick(value, ['id', 'target', 'effect']));
+        pSet = _.merge({}, { combining_algorithm: value.combining_algorithm }, _.pick(value, ['id', 'target', 'effect'])) as any;
         pSet.policies = [];
 
         let exactMatch = false;
@@ -315,8 +309,8 @@ export class AccessController {
         for (let [, policy] of value.combinables) {
           if (policy.effect) {
             policyEffect = policy.effect;
-          } else if (policy.combiningAlgorithm) {
-            const method = this.combiningAlgorithms.get(policy.combiningAlgorithm);
+          } else if (policy.combining_algorithm) {
+            const method = this.combiningAlgorithms.get(policy.combining_algorithm);
             if (method === 'permitOverrides') {
               policyEffect = Effect.PERMIT;
             } else if (method === 'denyOverrides') {
@@ -351,11 +345,10 @@ export class AccessController {
             this.logger.debug('Policy Object not set');
             continue;
           }
-          let maskPropertyList = [];
           if (_.isEmpty(policy.target)
             || (exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', obligation, policyEffect))
             || (!exactMatch && await this.targetMatches(policy.target, request, 'whatIsAllowed', obligation, policyEffect, true))) {
-            policyRQ = _.merge({}, { combining_algorithm: policy.combiningAlgorithm }, _.pick(policy, ['id', 'target', 'effect', 'evaluation_cacheable']));
+            policyRQ = _.merge({}, { combining_algorithm: policy.combining_algorithm }, _.pick(policy, ['id', 'target', 'effect', 'evaluation_cacheable'])) as any;
             policyRQ.rules = [];
 
             policyRQ.has_rules = (!!policy.combinables && policy.combinables.size > 0);
@@ -374,7 +367,7 @@ export class AccessController {
               }
 
               if (_.isEmpty(rule.target) || matches) {
-                ruleRQ = _.merge({}, { context_query: rule.contextQuery }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
+                ruleRQ = _.merge({}, { context_query: rule.context_query }, _.pick(rule, ['id', 'target', 'effect', 'condition', 'evaluation_cacheable']));
                 policyRQ.rules.push(ruleRQ);
               }
             }
@@ -396,7 +389,7 @@ export class AccessController {
     };
   }
 
-  private checkMultipleEntitiesMatch(policySet: PolicySet, request: Request, obligation: Attribute[]) {
+  private checkMultipleEntitiesMatch(policySet: PolicySetWithCombinables, request: Request, obligation: Attribute[]): boolean {
     let multipleEntitiesMatch = false;
     let exactMatch = true;
     // iterate and find for each of the exact mathing resource attribute
@@ -409,8 +402,8 @@ export class AccessController {
           let policyEffect: Effect;
           if (policy.effect) {
             policyEffect = policy.effect;
-          } else if (policy.combiningAlgorithm) {
-            const method = this.combiningAlgorithms.get(policy.combiningAlgorithm);
+          } else if (policy.combining_algorithm) {
+            const method = this.combiningAlgorithms.get(policy.combining_algorithm);
             if (method === 'permitOverrides') {
               policyEffect = Effect.PERMIT;
             } else if (method === 'denyOverrides') {
@@ -579,9 +572,9 @@ export class AccessController {
           continue;
         }
         if (!maskPropExists) {
-          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: maskProperty }] });
+          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: maskProperty, attribute: [] }] });
         } else {
-          maskPropExists.attribute.push({ id: maskedPropertyURN, value: maskProperty });
+          maskPropExists.attribute.push({ id: maskedPropertyURN, value: maskProperty, attribute: [] });
         }
       }
 
@@ -604,9 +597,9 @@ export class AccessController {
           continue;
         }
         if (!maskPropExists) {
-          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: maskProperty }] });
+          maskPropertyList.push({ id: entityURN, value: requestEntityURN, attribute: [{ id: maskedPropertyURN, value: maskProperty, attribute: [] }] });
         } else {
-          maskPropExists.attribute.push({ id: maskedPropertyURN, value: maskProperty });
+          maskPropExists.attribute.push({ id: maskedPropertyURN, value: maskProperty, attribute: [] });
         }
       }
     }
@@ -701,7 +694,7 @@ export class AccessController {
     return await this.redisClient.set(key, value);
   }
 
-  async  createHRScope(context) {
+  async  createHRScope(context: ContextWithSubResolved): Promise<ContextWithSubResolved> {
     if (context && !context.subject) {
       context.subject = {};
     }
@@ -800,7 +793,7 @@ export class AccessController {
       }
     }
 
-    let context = request.context;
+    let context = (request as any).context as ContextWithSubResolved;
     // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
     if (context && context.subject && context.subject.token &&
       _.isEmpty(context.subject.hierarchical_scopes)) {
@@ -811,7 +804,6 @@ export class AccessController {
       matches = false;
       // check the target scoping instance is present in
       // the context subject roleassociations and then update matches to true
-      const context = request.context;
       if (context && context.subject && context.subject.role_associations) {
         for (let requestSubAttribute of requestSubAttributes) {
           if (requestSubAttribute.id === scopingInstanceURN) {
@@ -859,8 +851,8 @@ export class AccessController {
       }
     } else if (!scopingEntExists) {
       // scoping entity does not exist - check for point 3.
-      if (request.context && request.context.subject) {
-        const userRoleAssocs = request.context.subject.role_associations;
+      if (context && context.subject) {
+        const userRoleAssocs = context.subject.role_associations;
         if (!_.isEmpty(userRoleAssocs)) {
           for (let ruleSubAttribute of ruleSubAttributes) {
             if (ruleSubAttribute.id === roleURN) {
@@ -970,7 +962,7 @@ export class AccessController {
 
   // in-memory resource handlers
 
-  updatePolicySet(policySet: PolicySet): void {
+  updatePolicySet(policySet: PolicySetWithCombinables): void {
     this.policySets.set(policySet.id, policySet);
   }
 
@@ -978,24 +970,24 @@ export class AccessController {
     this.policySets.delete(policySetID);
   }
 
-  updatePolicy(policySetID: string, policy: Policy): void {
-    const policySet: PolicySet = this.policySets.get(policySetID);
+  updatePolicy(policySetID: string, policy: PolicyWithCombinables): void {
+    const policySet: PolicySetWithCombinables = this.policySets.get(policySetID);
     if (!_.isNil(policySet)) {
       policySet.combinables.set(policy.id, policy);
     }
   }
 
   removePolicy(policySetID: string, policyID: string): void {
-    const policySet: PolicySet = this.policySets.get(policySetID);
+    const policySet: PolicySetWithCombinables = this.policySets.get(policySetID);
     if (!_.isNil(policySet)) {
       policySet.combinables.delete(policyID);
     }
   }
 
   updateRule(policySetID: string, policyID: string, rule: Rule): void {
-    const policySet: PolicySet = this.policySets.get(policySetID);
+    const policySet: PolicySetWithCombinables = this.policySets.get(policySetID);
     if (!_.isNil(policySet)) {
-      const policy: Policy = policySet.combinables.get(policyID);
+      const policy: PolicyWithCombinables = policySet.combinables.get(policyID);
       if (!_.isNil(policy)) {
         policy.combinables.set(rule.id, rule);
       }
@@ -1003,9 +995,9 @@ export class AccessController {
   }
 
   removeRule(policySetID: string, policyID: string, ruleID: string): void {
-    const policySet: PolicySet = this.policySets.get(policySetID);
+    const policySet: PolicySetWithCombinables = this.policySets.get(policySetID);
     if (!_.isNil(policySet)) {
-      const policy: Policy = policySet.combinables.get(policyID);
+      const policy: PolicyWithCombinables = policySet.combinables.get(policyID);
       if (!_.isNil(policy)) {
         policy.combinables.delete(ruleID);
       }

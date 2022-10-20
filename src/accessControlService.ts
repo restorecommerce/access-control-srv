@@ -8,9 +8,13 @@ import { RedisClientType } from 'redis';
 
 import * as core from './core';
 import { Logger } from 'winston';
-import { ServiceServiceImplementation as ACSServiceImplementation, ReverseQuery, Request, Response, DeepPartial, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { ServiceServiceImplementation as CommandInterfaceServiceImplementation } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
-import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import {
+  ServiceServiceImplementation as ACSServiceImplementation, ReverseQuery,
+  Request, Response, DeepPartial, Response_Decision
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import {
+  ServiceServiceImplementation as CommandInterfaceServiceImplementation
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
 import { PolicySetWithCombinables } from './core/interfaces';
 
 export class AccessControlService implements ACSServiceImplementation {

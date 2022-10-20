@@ -1,7 +1,6 @@
 import * as _ from 'lodash';
 import traverse from 'traverse';
 import { Logger } from 'winston';
-
 import { AccessController } from '.';
 import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';

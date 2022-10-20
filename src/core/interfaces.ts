@@ -4,34 +4,6 @@ import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-serve
 import { Attribute, AttributeObj } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
 import { RoleAssociation as RoleAssociations, HierarchicalScope, Tokens } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
 
-
-// export interface AccessControlObjectInterface {
-//   id?: string;
-//   name?: string;
-//   description?: string;
-//   target?: Target;
-//   effect?: Effect;
-//   evaluation_cacheable?: boolean;
-// }
-
-// export interface Combinable extends AccessControlObjectInterface { }
-// export interface Rule extends Combinable {
-//   effect: Effect; // effect is never optional in rule
-//   contextQuery?: ContextQuery;
-//   condition?: any;
-//   evaluation_cacheable?: boolean;
-// }
-
-// export interface Combiner<T extends Combinable> extends AccessControlObjectInterface {
-//   combinables: Map<string, T>;  // combinables mapped by their IDs
-//   combiningAlgorithm: string;
-// }
-
-// export interface Policy extends Combiner<Rule>, Combinable {
-//   evaluation_cacheable?: boolean;
-// }
-// export interface PolicySet extends Combiner<Policy> { }
-
 export interface PolicyWithCombinables extends Policy {
   combinables: Map<string, Rule>;
 }
@@ -39,28 +11,6 @@ export interface PolicyWithCombinables extends Policy {
 export interface PolicySetWithCombinables extends PolicySet {
   combinables: Map<string, PolicyWithCombinables>;
 }
-
-// export interface Attribute {
-//   id: string;
-//   value: string;
-//   attribute?: Attribute[];
-// }
-
-// export interface Target {
-//   // each map is an attribute with (key, value) pairs
-//   subject: Attribute[];
-//   resources: Attribute[];
-//   action: Attribute[];
-// }
-
-// export interface ContextQuery {
-//   filters: GQLFilterArr[];
-//   query: string;
-// }
-
-// interface GQLFilterArr {
-//   filter: GQLFilter[];
-// }
 
 export interface EffectEvaluation {
   effect: Effect;
@@ -71,60 +21,19 @@ export interface Obligation {
   obligation?: Attribute[];
 }
 
-// export enum Effect {
-//   PERMIT = 'PERMIT',
-//   DENY = 'DENY'
-// }
-
-// export enum Decision {
-//   PERMIT = 'PERMIT',
-//   DENY = 'DENY',
-//   INDETERMINATE = 'INDETERMINATE'
-// }
-
-// export interface Request {
-//   target: Target;
-//   context: Context; //  data for context query and evaluated code
-// }
-
 export interface ContextWithSubResolved {
   subject: ContextSubjectResolved;
   resources: Resource[];
   security?: any; // session tokens, etc.
 }
 
-// export interface ContextSubject {
-//   id: string;
-//   token?: string;
-// }
-
-// export interface Tokens {
-//   name: string;
-//   expires_at: number;
-//   token: string;
-//   scopes: string[];
-//   token_type: string;
-//   interactive: boolean;
-// }
-
 export interface ContextSubjectResolved {
-  id: string;
-  role_associations: RoleAssociations[];
+  id?: string;
+  role_associations?: RoleAssociations[];
   hierarchical_scopes?: HierarchicalScope[];
   token?: string;
   tokens?: Tokens[];
 }
-
-// export interface RoleAssociations {
-//   role: string;
-//   attributes: Attribute[];
-// }
-
-// export interface HierarchicalScope {
-//   id: string;
-//   children?: HierarchicalScope[];
-//   role?: string;
-// }
 
 export interface Resource {
   id: string;
@@ -132,31 +41,12 @@ export interface Resource {
   [key: string]: any;
 }
 
-// export interface AttributeObj {
-//   attribute: Attribute[];
-// }
-
 export interface ResourceMeta {
   created: number;
   modified: number;
   acl?: AttributeObj[];
   owner: Attribute[];
 }
-
-// export interface ResourceOwnerAttributes {
-//   id: string;
-//   value: string;
-// }
-
-// export interface Response {
-//   decision: Decision;
-//   evaluation_cacheable?: boolean;
-//   obligation?: Attribute[];
-//   operation_status: {
-//     code: number;
-//     message: string;
-//   };
-// }
 
 export interface CombiningAlgorithm {
   urn: string;
@@ -167,34 +57,5 @@ export interface AccessControlConfiguration {
   combiningAlgorithms?: CombiningAlgorithm[];
   urns?: { [key: string]: string };
 }
-
-// export interface GQLFilter {
-//   field: string;
-//   operation: string;
-//   value: string;
-// }
-
-// export interface ReverseQueryResponse {
-//   policy_sets: PolicySetRQ [];
-//   obligation?: Attribute[];
-//   operation_status: {
-//     code: number;
-//     message: string;
-//   };
-// }
-
-// // Reverse query response
-// export interface PolicySetRQ extends AccessControlObjectInterface {
-//   combining_algorithm: string;
-//   policies?: PolicyRQ[];
-// }
-
-// export interface PolicyRQ extends AccessControlObjectInterface {
-//   rules?: RuleRQ[];
-//   has_rules?: boolean;
-//   combining_algorithm?: string;
-// }
-
-// export interface RuleRQ extends AccessControlObjectInterface { }
 
 export type AccessControlOperation = 'whatIsAllowed' | 'isAllowed';

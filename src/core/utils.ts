@@ -12,9 +12,7 @@ import { FilterOp } from '@restorecommerce/resource-base-interface/lib/core/inte
 import * as uuid from 'uuid';
 import nodeEval from 'node-eval';
 import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { Policy } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
 import { Rule, Target, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
 import {
   ServiceDefinition as UserServiceDefinition,
   ServiceClient as UserServiceClient
