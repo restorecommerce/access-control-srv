@@ -500,7 +500,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   }
 
   async getPolicies(policyIDs?: string[]): Promise<Map<string, PolicyWithCombinables>> {
-    const filters = policyIDs ? makeFilter(policyIDs) : {};
+    const filters = policyIDs ? makeFilter(policyIDs) : [];
     const result = await super.read(ReadRequest.fromPartial({ filters }), {});
 
     const policies = new Map<string, PolicyWithCombinables>();
