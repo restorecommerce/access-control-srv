@@ -1,3 +1,8 @@
+## 0.3.5 (October 26th, 2022)
+
+- move to full typed client and server, full text search
+- up all deps
+
 ## 0.3.4 (August 22nd, 2022)
 
 - add null check for redis key exist
