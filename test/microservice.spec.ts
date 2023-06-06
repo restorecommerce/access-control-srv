@@ -8,10 +8,10 @@ import { updateConfig } from '@restorecommerce/acs-client';
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
-import { ServiceDefinition as RuleServiceDefinition, ServiceClient as RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { ServiceDefinition as PolicyServiceDefinition, ServiceClient as PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
-import { ServiceDefinition as PolicySetServiceDefinition, ServiceClient as PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { ServiceDefinition as AccessControlServiceDefinition, ServiceClient as AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { RuleServiceDefinition, RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { PolicySetWithCombinables, PolicyWithCombinables } from '../src/core/interfaces';
 
 let cfg: any;
@@ -166,7 +166,7 @@ describe('testing microservice', () => {
                 'policyA', 'policyB'
               ],
               meta: {
-                owner: [],
+                owners: [],
                 modified_by: ''
               }
             },
@@ -403,22 +403,22 @@ describe('testing microservice', () => {
 
         const rule = result.policy_sets[0].policies[0].rules[0];
         should.exist(rule.target);
-        should.exist(rule.target.subject);
-        rule.target.subject.should.have.length(2);
-        rule.target.subject[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        rule.target.subject[0].value.should.equal('SimpleUser');
-        rule.target.subject[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        rule.target.subject[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(rule.target.subjects);
+        rule.target.subjects.should.have.length(2);
+        rule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
+        rule.target.subjects[0].value.should.equal('SimpleUser');
+        rule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        rule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
         should.exist(rule.target.resources);
         rule.target.resources.should.have.length(1);
         rule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
         rule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
 
-        should.exist(rule.target.action);
-        rule.target.action.should.have.length(1);
-        rule.target.action[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        rule.target.action[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(rule.target.actions);
+        rule.target.actions.should.have.length(1);
+        rule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        rule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
       });
       it('should return filtered rules for both Location and Organization resource', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
@@ -446,42 +446,42 @@ describe('testing microservice', () => {
         // validate Location Rule
         const rule = result.policy_sets[0].policies[0].rules[0];
         should.exist(rule.target);
-        should.exist(rule.target.subject);
-        rule.target.subject.should.have.length(2);
-        rule.target.subject[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        rule.target.subject[0].value.should.equal('SimpleUser');
-        rule.target.subject[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        rule.target.subject[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(rule.target.subjects);
+        rule.target.subjects.should.have.length(2);
+        rule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
+        rule.target.subjects[0].value.should.equal('SimpleUser');
+        rule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        rule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
         should.exist(rule.target.resources);
         rule.target.resources.should.have.length(1);
         rule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
         rule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
 
-        should.exist(rule.target.action);
-        rule.target.action.should.have.length(1);
-        rule.target.action[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        rule.target.action[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(rule.target.actions);
+        rule.target.actions.should.have.length(1);
+        rule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        rule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
 
         // validate Organization Rule
         const orgRule = result.policy_sets[0].policies[1].rules[0];
         should.exist(orgRule.target);
-        should.exist(orgRule.target.subject);
-        orgRule.target.subject.should.have.length(2);
-        orgRule.target.subject[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        orgRule.target.subject[0].value.should.equal('SimpleUser');
-        orgRule.target.subject[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        orgRule.target.subject[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(orgRule.target.subjects);
+        orgRule.target.subjects.should.have.length(2);
+        orgRule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
+        orgRule.target.subjects[0].value.should.equal('SimpleUser');
+        orgRule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        orgRule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
         should.exist(orgRule.target.resources);
         orgRule.target.resources.should.have.length(1);
         orgRule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
         orgRule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization'); // entity should be Org
 
-        should.exist(orgRule.target.action);
-        orgRule.target.action.should.have.length(1);
-        orgRule.target.action[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        orgRule.target.action[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(orgRule.target.actions);
+        orgRule.target.actions.should.have.length(1);
+        orgRule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        orgRule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
       });
       it('should return filtered rules for both Location and Organization resource with resource IDs', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
@@ -511,42 +511,42 @@ describe('testing microservice', () => {
         // validate Location Rule
         const rule = result.policy_sets[0].policies[0].rules[0];
         should.exist(rule.target);
-        should.exist(rule.target.subject);
-        rule.target.subject.should.have.length(2);
-        rule.target.subject[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        rule.target.subject[0].value.should.equal('SimpleUser');
-        rule.target.subject[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        rule.target.subject[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(rule.target.subjects);
+        rule.target.subjects.should.have.length(2);
+        rule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
+        rule.target.subjects[0].value.should.equal('SimpleUser');
+        rule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        rule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
         should.exist(rule.target.resources);
         rule.target.resources.should.have.length(1);
         rule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
         rule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
 
-        should.exist(rule.target.action);
-        rule.target.action.should.have.length(1);
-        rule.target.action[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        rule.target.action[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(rule.target.actions);
+        rule.target.actions.should.have.length(1);
+        rule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        rule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
 
         // validate Organization Rule
         const orgRule = result.policy_sets[0].policies[1].rules[0];
         should.exist(orgRule.target);
-        should.exist(orgRule.target.subject);
-        orgRule.target.subject.should.have.length(2);
-        orgRule.target.subject[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        orgRule.target.subject[0].value.should.equal('SimpleUser');
-        orgRule.target.subject[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        orgRule.target.subject[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(orgRule.target.subjects);
+        orgRule.target.subjects.should.have.length(2);
+        orgRule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
+        orgRule.target.subjects[0].value.should.equal('SimpleUser');
+        orgRule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        orgRule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
         should.exist(orgRule.target.resources);
         orgRule.target.resources.should.have.length(1);
         orgRule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
         orgRule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization'); // entity should be Org
 
-        should.exist(orgRule.target.action);
-        orgRule.target.action.should.have.length(1);
-        orgRule.target.action[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        orgRule.target.action[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(orgRule.target.actions);
+        orgRule.target.actions.should.have.length(1);
+        orgRule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        orgRule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
       });
       it('should return only DENY rules for both Location and Organization resource with resource IDs with invalid target scoping instance', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({

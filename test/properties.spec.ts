@@ -10,10 +10,10 @@ import { updateConfig } from '@restorecommerce/acs-client';
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
-import { ServiceDefinition as RuleServiceDefinition, ServiceClient as RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { ServiceDefinition as PolicyServiceDefinition, ServiceClient as PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
-import { ServiceDefinition as PolicySetServiceDefinition, ServiceClient as PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { ServiceDefinition as AccessControlServiceDefinition, ServiceClient as AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { RuleServiceDefinition, RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 
 let cfg: any;
 let logger;
@@ -353,7 +353,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
     });
     it('should return empty obligation and filtered rules for Location resource with only name property', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
@@ -371,7 +371,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
     });
     it('should return obligation (for description properties) along with filtered rules for Location resource with id and name properties', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
@@ -389,11 +389,11 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result);
       // validate obligation
-      result.obligation.should.be.length(1);
-      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
-      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
+      result.obligations.should.be.length(1);
+      result.obligations[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+      result.obligations[0].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[0].attributes[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
     });
     it('should return only DENY rule for Location resource with out any properties in request', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
@@ -414,7 +414,7 @@ describe('testing access control', () => {
       result.policy_sets[0].policies[0].rules.should.be.length(1);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA3');
       result.policy_sets[0].policies[0].rules[0].effect.should.equal('DENY');
-      result.obligation.should.be.length(0);
+      result.obligations.should.be.length(0);
     });
   });
   describe('testing isAllowed without properties defined in Rule', () => {
@@ -499,7 +499,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result, true);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
     });
     it('should return empty obligation and filtered rules for Location resource with no properties in request', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
@@ -516,7 +516,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result, true);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
     });
   });
 
@@ -725,11 +725,11 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       should.exist(result);
       // validate obligation
-      result.obligation.should.be.length(1);
-      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
-      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
+      result.obligations.should.be.length(1);
+      result.obligations[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+      result.obligations[0].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[0].attributes[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
@@ -750,11 +750,11 @@ describe('testing access control', () => {
       testUtils.marshallRequest(accessRequest);
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligation.should.be.length(1);
-      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
-      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
+      result.obligations.should.be.length(1);
+      result.obligations[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+      result.obligations[0].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[0].attributes[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
@@ -775,7 +775,7 @@ describe('testing access control', () => {
       testUtils.marshallRequest(accessRequest);
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
@@ -795,11 +795,11 @@ describe('testing access control', () => {
       testUtils.marshallRequest(accessRequest);
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligation.should.be.length(1);
-      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
-      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
+      result.obligations.should.be.length(1);
+      result.obligations[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+      result.obligations[0].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[0].attributes[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#description');
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
@@ -821,7 +821,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       should.exist(result);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(1);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA3');
@@ -841,7 +841,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       should.exist(result);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(1);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA3');
@@ -1070,7 +1070,7 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
       // validate policies
       result.policy_sets[0].policies.should.be.length(2);
       result.policy_sets[0].policies[0].id.should.equal('LocationPolicy');
@@ -1101,7 +1101,7 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
       // validate policies
       result.policy_sets[0].policies.should.be.length(2);
       result.policy_sets[0].policies[0].id.should.equal('LocationPolicy');
@@ -1133,16 +1133,16 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate location obligation
-      result.obligation.should.be.length(2);
-      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
-      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#locdescription');
+      result.obligations.should.be.length(2);
+      result.obligations[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+      result.obligations[0].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[0].attributes[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#locdescription');
       // validate organization obligation
-      result.obligation[1].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
-      result.obligation[1].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[1].attribute[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization#orgdescription');
+      result.obligations[1].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+      result.obligations[1].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[1].attributes[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization#orgdescription');
 
       // validate policies
       result.policy_sets[0].policies.should.be.length(2);
@@ -1173,7 +1173,7 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
       // validate policies
       result.policy_sets[0].policies.should.be.length(2);
       result.policy_sets[0].policies[0].id.should.equal('LocationPolicy');
@@ -1297,7 +1297,7 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligation.should.be.empty();
+      result.obligations.should.be.empty();
       // validate location rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
@@ -1325,11 +1325,11 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation for organization resource
-      result.obligation.should.be.length(1);
-      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
-      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization#orgdescription');
+      result.obligations.should.be.length(1);
+      result.obligations[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+      result.obligations[0].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[0].attributes[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization#orgdescription');
       // validate location rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
@@ -1355,16 +1355,16 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation for location resource
-      result.obligation.should.be.length(2);
-      result.obligation[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
-      result.obligation[0].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[0].attribute[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#locdescription');
+      result.obligations.should.be.length(2);
+      result.obligations[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+      result.obligations[0].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[0].attributes[0].value.should.equal('urn:restorecommerce:acs:model:location.Location#locdescription');
       // validate obligation for organization resource
-      result.obligation[1].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-      result.obligation[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
-      result.obligation[1].attribute[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
-      result.obligation[1].attribute[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization#orgdescription');
+      result.obligations[1].id.should.equal('urn:restorecommerce:acs:names:model:entity');
+      result.obligations[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+      result.obligations[1].attributes[0].id.should.equal('urn:restorecommerce:acs:names:obligation:maskedProperty');
+      result.obligations[1].attributes[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization#orgdescription');
       // validate location rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');

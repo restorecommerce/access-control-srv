@@ -10,10 +10,10 @@ import * as grpc from '@grpc/grpc-js';
 import { Topic, Events } from '@restorecommerce/kafka-client';
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
-import { ServiceDefinition as RuleServiceDefinition, ServiceClient as RuleServiceClient, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { ServiceDefinition as PolicyServiceDefinition, ServiceClient as PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
-import { ServiceDefinition as PolicySetServiceDefinition, ServiceClient as PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { ServiceDefinition as AccessControlServiceDefinition, ServiceClient as AccessControlServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { RuleServiceDefinition, RuleServiceClient, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+import { AccessControlServiceDefinition, AccessControlServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
 
 let cfg: any;
@@ -65,7 +65,7 @@ let testRule = [{
   name: 'test rule for test entitiy',
   description: 'test rule',
   target: {
-    subject: [{
+    subjects: [{
       id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
       value: 'test-r-id'
     }],
@@ -76,7 +76,7 @@ let testRule = [{
   },
   effect: Effect.PERMIT,
   meta: {
-    owner: [{
+    owners: [{
       id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
       value: 'urn:restorecommerce:acs:model:organization.Organization'
     }, {
@@ -391,7 +391,7 @@ describe('testing microservice', () => {
           name: '1 test rule for test entitiy',
           description: '1 test rule',
           target: {
-            subject: [{
+            subjects: [{
               id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
               value: 'test-r-id'
             }],
@@ -402,7 +402,7 @@ describe('testing microservice', () => {
           },
           effect: Effect.PERMIT,
           meta: {
-            owner: [{
+            owners: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
               value: 'urn:restorecommerce:acs:model:organization.Organization'
             }, {
@@ -414,7 +414,7 @@ describe('testing microservice', () => {
           name: '2 test rule for test entitiy',
           description: '2 test rule',
           target: {
-            subject: [{
+            subjects: [{
               id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
               value: 'test-r-id'
             }],
@@ -425,7 +425,7 @@ describe('testing microservice', () => {
           },
           effect: Effect.PERMIT,
           meta: {
-            owner: [{
+            owners: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
               value: 'urn:restorecommerce:acs:model:organization.Organization'
             }, {
@@ -456,7 +456,7 @@ describe('testing microservice', () => {
           name: '1 test rule for test entitiy',
           description: '1 test rule',
           target: {
-            subject: [{
+            subjects: [{
               id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
               value: 'test-r-id'
             }],
@@ -467,7 +467,7 @@ describe('testing microservice', () => {
           },
           effect: Effect.PERMIT,
           meta: {
-            owner: [{
+            owners: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
               value: 'urn:restorecommerce:acs:model:organization.Organization'
             }, {
@@ -479,7 +479,7 @@ describe('testing microservice', () => {
           name: '2 test rule for test entitiy',
           description: '2 test rule',
           target: {
-            subject: [{
+            subjects: [{
               id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
               value: 'test-r-id'
             }],
@@ -490,7 +490,7 @@ describe('testing microservice', () => {
           },
           effect: Effect.PERMIT,
           meta: {
-            owner: [{
+            owners: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
               value: 'urn:restorecommerce:acs:model:organization.Organization'
             }, {

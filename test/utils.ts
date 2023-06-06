@@ -15,34 +15,34 @@ import { PolicyWithCombinables, PolicySetWithCombinables } from '../src/core/int
  */
 export const buildRequest = (opts: RequestOpts): Request => {
 
-  let subject: Attribute[] = [];
+  let subjects: Attribute[] = [];
   let resources: Attribute[] = [];
-  const action: Attribute[] = [];
+  const actions: Attribute[] = [];
 
-  subject = subject.concat([
+  subjects = subjects.concat([
     {
       id: 'urn:restorecommerce:acs:names:role',
       value: opts.subjectRole ? opts.subjectRole : 'SimpleUser',
-      attribute: []
+      attributes: []
     },
     {
       id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
       value: opts.subjectID,
-      attribute: []
+      attributes: []
     }
   ]);
 
   if (opts.roleScopingEntity && opts.roleScopingInstance) {
-    subject = subject.concat([
+    subjects = subjects.concat([
       {
         id: 'urn:restorecommerce:acs:names:roleScopingEntity',
         value: opts.roleScopingEntity,
-        attribute: []
+        attributes: []
       },
       {
         id: 'urn:restorecommerce:acs:names:roleScopingInstance',
         value: opts.targetScopingInstance ? opts.targetScopingInstance : opts.roleScopingInstance,
-        attribute: []
+        attributes: []
       }
     ]);
   }
@@ -52,7 +52,7 @@ export const buildRequest = (opts: RequestOpts): Request => {
       {
         id: 'urn:restorecommerce:acs:names:operation',
         value: opts.resourceType as string,
-        attribute: []
+        attributes: []
       }
     ]);
   } else {
@@ -61,26 +61,26 @@ export const buildRequest = (opts: RequestOpts): Request => {
         {
           id: 'urn:restorecommerce:acs:names:model:entity',
           value: opts.resourceType as string,
-          attribute: []
+          attributes: []
         },
         {
           id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
           value: opts.resourceID as string,
-          attribute: []
+          attributes: []
         },
       ]);
       if (opts.resourceProperty && typeof opts.resourceProperty === 'string') {
         resources = resources.concat([{
           id: 'urn:restorecommerce:acs:names:model:property',
           value: opts.resourceProperty,
-          attribute: []
+          attributes: []
         }]);
       } else if (opts.resourceProperty && _.isArray(opts.resourceProperty)) {
         for (let resourceProperty of opts.resourceProperty) {
           resources = resources.concat([{
             id: 'urn:restorecommerce:acs:names:model:property',
             value: resourceProperty,
-            attribute: []
+            attributes: []
           }]);
         }
       }
@@ -94,19 +94,19 @@ export const buildRequest = (opts: RequestOpts): Request => {
           {
             id: 'urn:restorecommerce:acs:names:model:entity',
             value: opts.resourceType[i],
-            attribute: []
+            attributes: []
           },
           {
             id: 'urn:oasis:names:tc:xacml:1.0:resource:resource-id',
             value: resourceID,
-            attribute: []
+            attributes: []
           },
         ]);
         if (opts.resourceProperty && typeof opts.resourceProperty === 'string') {
           resources = resources.concat([{
             id: 'urn:restorecommerce:acs:names:model:property',
             value: opts.resourceProperty,
-            attribute: []
+            attributes: []
           }]);
         } else if (opts.resourceProperty && _.isArray(opts.resourceProperty)) {
           for (let resourceProperty of opts.resourceProperty) {
@@ -114,7 +114,7 @@ export const buildRequest = (opts: RequestOpts): Request => {
               resources = resources.concat([{
                 id: 'urn:restorecommerce:acs:names:model:property',
                 value: resourceProperty,
-                attribute: []
+                attributes: []
               }]);
             } else if (_.isArray(resourceProperty)) {
               // TODO add only specific resource prop types related
@@ -124,7 +124,7 @@ export const buildRequest = (opts: RequestOpts): Request => {
                   resources = resources.concat([{
                     id: 'urn:restorecommerce:acs:names:model:property',
                     value: resProp,
-                    attribute: []
+                    attributes: []
                   }]);
                 }
               }
@@ -135,13 +135,13 @@ export const buildRequest = (opts: RequestOpts): Request => {
     }
   }
 
-  action.push({
+  actions.push({
     id: 'urn:oasis:names:tc:xacml:1.0:action:action-id',
     value: opts.actionType,
-    attribute: []
+    attributes: []
   });
 
-  let acl = [];
+  let acls = [];
   if (opts.aclIndicatoryEntity && opts.aclInstances) {
     let aclInstances = [];
     opts.aclInstances.forEach(aclInstance => {
@@ -150,7 +150,7 @@ export const buildRequest = (opts: RequestOpts): Request => {
         value: aclInstance
       });
     });
-    acl = [
+    acls = [
       {
         attribute: {
           id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
@@ -172,7 +172,7 @@ export const buildRequest = (opts: RequestOpts): Request => {
         value: subjectInstance
       });
     });
-    acl = [
+    acls = [
       {
         attribute: {
           id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
@@ -196,8 +196,8 @@ export const buildRequest = (opts: RequestOpts): Request => {
       id: opts.resourceID as string,
       meta: {
         created: Date.now(), modified: Date.now(),
-        acl,
-        owner: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
+        acls,
+        owners: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
           {
             id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
             value: opts.ownerIndicatoryEntity
@@ -218,8 +218,8 @@ export const buildRequest = (opts: RequestOpts): Request => {
         id: resourceID,
         meta: {
           created: Date.now(), modified: Date.now(),
-          acl,
-          owner: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
+          acls,
+          owners: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
             {
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
               value: opts.ownerIndicatoryEntity
@@ -235,9 +235,9 @@ export const buildRequest = (opts: RequestOpts): Request => {
 
   return {
     target: {
-      subject,
+      subjects,
       resources,
-      action
+      actions
     },
     context: {
       resources: ctxResources,
