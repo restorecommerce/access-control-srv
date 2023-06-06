@@ -13,13 +13,13 @@ policy_sets:
             name: Rule AA1
             descripton: A rule targeting a user's 'read' permission regarding a User account
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:user.User
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -27,13 +27,13 @@ policy_sets:
             name: Rule AA2
             descripton: A rule targeting a user's 'modify' permission regarding a User account
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:user.User
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT
@@ -53,13 +53,13 @@ policy_sets:
             name: Rule AA3
             descripton: A rule targeting a user's 'modify' permission regarding a User account
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:user.User
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: DENY

@@ -13,7 +13,7 @@
             name: Rule AA1
             descripton: Permit rule targeting a 'read' action by a SimpleUser for Location resource for all properties
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -21,7 +21,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:location.Location
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -29,7 +29,7 @@
             name: Rule AA2
             descripton: Deny rule targeting 'read' action by a SimpleUser for Location resource on description property
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -39,7 +39,7 @@
                   value: urn:restorecommerce:acs:model:location.Location
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:location.Location#description
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: DENY
@@ -47,7 +47,7 @@
             name: Rule AA3
             descripton: Permit rule targeting a 'read' action by a AdminUser for Location resource
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: AdminUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -55,7 +55,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:location.Location
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -63,7 +63,7 @@
             name: Rule AA4
             descripton: Permit rule targeting a 'modify' action by a SimpleUser for Location resource for all properties
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -71,7 +71,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:location.Location
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT
@@ -79,7 +79,7 @@
             name: Rule AA5
             descripton: Deny rule targeting a 'modify' action by a SimpleUser for Location resource on description property
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -89,7 +89,7 @@
                   value: urn:restorecommerce:acs:model:location.Location
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:location.Location#description
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: DENY
@@ -97,7 +97,7 @@
             name: Rule AA6
             descripton: Permit rule targeting a 'modify' action by a AdminUser for Location resource
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: AdminUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -105,7 +105,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:location.Location
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT

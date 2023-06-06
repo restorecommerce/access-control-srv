@@ -274,16 +274,16 @@ export async function createMetadata(resources: any,
         // update owner info
         if (result.items.length === 1) {
           let item = result.items[0].payload;
-          resource.meta.owner = item.meta.owner;
+          resource.meta.owners = item.meta.owners;
         } else if (result.items.length === 0) {
           if (_.isEmpty(resource.id)) {
             resource.id = uuid.v4().replace(/-/g, '');
           }
           let ownerAttributes;
-          if (!resource.meta.owner) {
+          if (!resource.meta.owners) {
             ownerAttributes = _.cloneDeep(orgOwnerAttributes);
           } else {
-            ownerAttributes = resource.meta.owner;
+            ownerAttributes = resource.meta.owners;
           }
           if (subject && subject.id) {
             ownerAttributes.push(
@@ -296,17 +296,17 @@ export async function createMetadata(resources: any,
                 value: subject.id
               });
           }
-          resource.meta.owner = ownerAttributes;
+          resource.meta.owners = ownerAttributes;
         }
       } else if (action === AuthZAction.CREATE) {
         if (_.isEmpty(resource.id)) {
           resource.id = uuid.v4().replace(/-/g, '');
         }
         let ownerAttributes;
-        if (!resource.meta.owner) {
+        if (!resource.meta.owners) {
           ownerAttributes = _.cloneDeep(orgOwnerAttributes);
         } else {
-          ownerAttributes = resource.meta.owner;
+          ownerAttributes = resource.meta.owners;
         }
         if (subject && subject.id) {
           ownerAttributes.push(
@@ -319,7 +319,7 @@ export async function createMetadata(resources: any,
               value: subject.id
             });
         }
-        resource.meta.owner = ownerAttributes;
+        resource.meta.owners = ownerAttributes;
       }
     }
   }

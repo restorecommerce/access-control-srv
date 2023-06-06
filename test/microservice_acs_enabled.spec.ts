@@ -93,7 +93,7 @@ interface MethodWithOutput {
 
 const PROTO_PATH = 'test/protos/io/restorecommerce/user.proto';
 const PKG_NAME = 'io.restorecommerce.user';
-const SERVICE_NAME = 'Service';
+const SERVICE_NAME = 'UserService';
 
 const pkgDef: grpc.GrpcObject = grpc.loadPackageDefinition(
   proto_loader.loadSync(PROTO_PATH, {

@@ -13,13 +13,13 @@ policy_sets:
             name: Rule A1
             description: A rule targeting Alice's 'read' permission to the resource 'organization'
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:organization.Organization
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -27,13 +27,13 @@ policy_sets:
             name: Rule A2
             description: A rule targeting Bob's 'read' permission to the resource 'organization'
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Bob
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:organization.Organization
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: DENY
@@ -41,13 +41,13 @@ policy_sets:
             name: Rule A3
             description: A rule targeting Alice's 'modify' permission to the resource 'organization'
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:organization.Organization
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: DENY
@@ -60,13 +60,13 @@ policy_sets:
             name: Rule B1
             description: A rule targeting John's 'read' permission to the resource 'organization'
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: John
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:organization.Organization
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: DENY
@@ -74,7 +74,7 @@ policy_sets:
             name: Rule B2
             description: A rule targeting John's overall permission
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: John
             effect: PERMIT
@@ -87,13 +87,13 @@ policy_sets:
             name: Rule C1
             description: A rule targeting Anna's 'read' permission to the resource 'user'
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Anna
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:user.User
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: DENY
@@ -101,7 +101,7 @@ policy_sets:
             name: Rule C2
             description: A rule targeting Anna's overall permission
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Anna
             effect: PERMIT
@@ -114,13 +114,13 @@ policy_sets:
             name: Rule D1
             description: A rule targeting Alice's 'read' permission to the resource 'address'
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:address.Address
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: DENY
@@ -128,13 +128,13 @@ policy_sets:
             name: Rule D2
             description: Another rule targeting Alice's 'read' permission to the resource 'address'
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:address.Address
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT

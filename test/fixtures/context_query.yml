@@ -13,7 +13,7 @@ policy_sets:
             name: Rule AA1
             descripton: Targets permission to `modify` a `Location`'s address
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
               resources:
@@ -21,14 +21,14 @@ policy_sets:
                   value: urn:restorecommerce:acs:model:location.Location
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:location.Location#address
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT
             context_query:
               # use `address_id` property from any provided Location
               filters:
-                - filter:
+                - filters:
                   - field: id
                     operation: eq
                     value: urn:restorecommerce:acs:model:location.Location#address

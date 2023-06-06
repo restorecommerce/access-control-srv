@@ -9,7 +9,7 @@ policy_sets:
         description: A Policy targeting a generic User who wants to access 'organization' resources
         combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
         target:
-          subject:
+          subjects:
             - id: urn:restorecommerce:acs:names:role
               value: SimpleUser
           resources:
@@ -26,7 +26,7 @@ policy_sets:
                   value: urn:restorecommerce:acs:model:organization.Organization
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:organization.Organization#sensible_attribute
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -42,7 +42,7 @@ policy_sets:
                   value: urn:restorecommerce:acs:model:organization.Organization
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:organization.Organization#sensible_attribute
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: DENY
@@ -50,7 +50,7 @@ policy_sets:
             name: Rule A3
             descripton: A rule targeting 'modify' permission to a certain attribute of an organization by the User 'Alice'
             target:
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
                   value: Alice
               resources:
@@ -58,7 +58,7 @@ policy_sets:
                   value: urn:restorecommerce:acs:model:organization.Organization
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:organization.Organization#sensible_attribute
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT
@@ -80,7 +80,7 @@ policy_sets:
                   value: urn:restorecommerce:acs:model:address.Address
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:address.Address#street
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT
@@ -93,7 +93,7 @@ policy_sets:
         description: A Policy targeting all users with ID 'Anna'
         combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
         target:
-          subject:
+          subjects:
             - id: urn:oasis:names:tc:xacml:1.0:subject:subject-id
               value: Anna
         effect: PERMIT

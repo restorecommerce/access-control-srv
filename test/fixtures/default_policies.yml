@@ -17,7 +17,7 @@ policy_sets:
               name: Rule R1
               description: A rule targeting admin to CRUD for rule resource
               target:
-                subject:
+                subjects:
                   - id: urn:restorecommerce:acs:names:role
                     value: admin-r-id
                   - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -43,7 +43,7 @@ policy_sets:
               name: Rule R2
               description: A rule targeting admin to CRUD for policy resource
               target:
-                subject:
+                subjects:
                   - id: urn:restorecommerce:acs:names:role
                     value: admin-r-id
                 resources:
@@ -67,7 +67,7 @@ policy_sets:
               name: Rule R3
               description: A rule targeting admin to CRUD for policy resource
               target:
-                subject:
+                subjects:
                   - id: urn:restorecommerce:acs:names:role
                     value: admin-r-id
                 resources:

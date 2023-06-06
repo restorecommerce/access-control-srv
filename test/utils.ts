@@ -293,7 +293,7 @@ export const marshallYamlPolicies = (yamlPolicies: any): any => {
     const policySetObj = _.pick<any>(policySet, ['id', 'name', 'description', 'target', 'combining_algorithm']);
     policySetObj.policies = policySet.policies ? policySet.policies.map((p) => { return p.id; }) : [];
     _.set(policySetObj, 'meta', {
-      owner: [],
+      owners: [],
       modified_by: ''
     });
     policySets.push(policySetObj);
@@ -303,13 +303,13 @@ export const marshallYamlPolicies = (yamlPolicies: any): any => {
       obj.rules = ruleIDs;
       _.set(obj, 'rules', ruleIDs);
       _.set(obj, 'meta', {
-        owner: [],
+        owners: [],
         modified_by: ''
       });
       policies.push(obj);
       for (let rule of policy.rules) {
         rule.meta = {
-          owner: [],
+          owners: [],
           modified_by: ''
         };
         rules.push(

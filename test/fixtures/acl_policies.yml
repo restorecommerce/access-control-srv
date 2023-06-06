@@ -13,7 +13,7 @@
             name: Rule CRMD permit admin
             descripton: A rule targeting a 'CRMD' action by a AdminUser on Bucket resource
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: Admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -26,13 +26,13 @@
             name: Rule permit read
             descripton: A rule targeting 'read' action by an SimpleUser on Bucket resource
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:bucket.Bucket
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT

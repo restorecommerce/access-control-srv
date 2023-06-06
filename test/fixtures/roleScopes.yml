@@ -13,7 +13,7 @@
             name: Rule AA1
             descripton: A rule targeting a 'read' action by a SimpleUser for Location resource
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -21,7 +21,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:location.Location
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -29,7 +29,7 @@
             name: Rule AA2
             descripton: A rule targeting 'modify' action by an Admin for Location resource
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: Admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -37,7 +37,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:location.Location
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: PERMIT
@@ -49,7 +49,7 @@
             name: Rule AA4
             descripton: A rule targeting a 'execute' action by a Admin for mutation.executeTestMutation
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: Admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -57,7 +57,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:operation
                   value: mutation.executeTestMutation
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:execute
             effect: PERMIT
@@ -74,7 +74,7 @@
             name: Rule AA5
             descripton: A rule targeting a 'read' action by a SimpleUser for Organization read
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -82,7 +82,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:organization.Organization
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT

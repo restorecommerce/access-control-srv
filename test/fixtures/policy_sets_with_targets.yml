@@ -4,7 +4,7 @@ policy_sets:
     description: A policy set targeting Users
     combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
     target:
-      subject:
+      subjects:
         - id: urn:restorecommerce:acs:names:role
           value: SimpleUser
     policies:
@@ -24,7 +24,7 @@ policy_sets:
             description: A rule targeting 'read' permission'
             target:
               # resources: any Organization resource property
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -33,7 +33,7 @@ policy_sets:
             description: A rule targeting 'modify' permission'
             target:
               # resources: any Organization resource property
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: DENY
@@ -42,7 +42,7 @@ policy_sets:
             description: A rule targeting all permissions for Alice
             target:
               # resources: any Organization resource property
-              subject:
+              subjects:
                 - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
                   value: Alice
             effect: Permit
@@ -51,7 +51,7 @@ policy_sets:
     description: 'A policy set targeting ExternalUsers'
     combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
     target:
-      subject:
+      subjects:
         - id: urn:restorecommerce:acs:names:role
           value: ExternalUser
     policies:
@@ -68,7 +68,7 @@ policy_sets:
             name: Rule BA1
             description: A rule targeting 'modify' actions
             target:
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
             effect: DENY
@@ -76,7 +76,7 @@ policy_sets:
             name: Rule BA2
             description: A rule targeting 'read' actions
             target:
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT

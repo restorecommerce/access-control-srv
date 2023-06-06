@@ -17,7 +17,7 @@
             name: Rule AA1
             descripton: Permit rule targeting a 'read' action by a SimpleUser for Location resource for all properties
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -25,7 +25,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:location.Location
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -33,7 +33,7 @@
             name: Rule AA2
             descripton: Deny rule targeting 'read' action by a SimpleUser for Location resource on description property
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -43,7 +43,7 @@
                   value: urn:restorecommerce:acs:model:location.Location
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:location.Location#locdescription
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: DENY
@@ -60,7 +60,7 @@
             name: Rule AA3
             descripton: Permit rule targeting a 'read' action by a SimpleUser for Organization resource for all properties
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -68,7 +68,7 @@
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:organization.Organization
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
@@ -76,7 +76,7 @@
             name: Rule AA4
             descripton: Deny rule targeting 'read' action by a SimpleUser for Location resource on description property
             target:
-              subject:
+              subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: SimpleUser
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -86,7 +86,7 @@
                   value: urn:restorecommerce:acs:model:organization.Organization
                 - id: urn:restorecommerce:acs:names:model:property
                   value: urn:restorecommerce:acs:model:organization.Organization#orgdescription
-              action:
+              actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: DENY
