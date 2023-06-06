@@ -101,12 +101,12 @@ const validateWhatIsAllowedLocationResponse = (result: any, withoutProps?: boole
 
   const rule = result.policy_sets[0].policies[0].rules[0];
   should.exist(rule.target);
-  should.exist(rule.target.subject);
-  rule.target.subject.should.have.length(2);
-  rule.target.subject[0].id.should.equal('urn:restorecommerce:acs:names:role');
-  rule.target.subject[0].value.should.equal('SimpleUser');
-  rule.target.subject[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-  rule.target.subject[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+  should.exist(rule.target.subjects);
+  rule.target.subjects.should.have.length(2);
+  rule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
+  rule.target.subjects[0].value.should.equal('SimpleUser');
+  rule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+  rule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
   if (withoutProps) {
     should.exist(rule.target.resources);
@@ -124,10 +124,10 @@ const validateWhatIsAllowedLocationResponse = (result: any, withoutProps?: boole
     rule.target.resources[2].value.should.equal('urn:restorecommerce:acs:model:location.Location#name');
   }
 
-  should.exist(rule.target.action);
-  rule.target.action.should.have.length(1);
-  rule.target.action[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-  rule.target.action[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+  should.exist(rule.target.actions);
+  rule.target.actions.should.have.length(1);
+  rule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+  rule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
 };
 
 describe('testing access control', () => {
