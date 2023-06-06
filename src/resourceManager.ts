@@ -10,15 +10,15 @@ import {
   Response_Decision
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import {
-  ServiceServiceImplementation as PolicySetServiceImplementation,
+  PolicySetServiceImplementation,
   PolicySetList, PolicySetListResponse, PolicySet, PolicySetResponse
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
 import {
-  ServiceServiceImplementation as PolicyServiceImplementation,
+  PolicyServiceImplementation,
   PolicyList, PolicyListResponse, Policy
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
 import {
-  ServiceServiceImplementation as RuleServiceImplementation,
+  RuleServiceImplementation,
   RuleList, RuleListResponse, Rule
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import { ReadRequest, Filter_Operation, DeepPartial, DeleteRequest, DeleteResponse } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/resource_base';
@@ -115,7 +115,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     let result = await super.read(ReadRequest.fromPartial(
       {
         filters: [{
-          filter: [{
+          filters: [{
             field: 'id',
             operation: Filter_Operation.eq,
             value: id
@@ -178,7 +178,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
       ctx.subject = subject;
       ctx.resources = [];
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule' }], AuthZAction.READ,
-        Operation.whatIsAllowed);
+        Operation.whatIsAllowed) as PolicySetRQResponse;
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv for read Rules', { code: err.code, message: err.message, stack: err.stack });
       return {
@@ -402,7 +402,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   async readMetaData(id?: string): Promise<DeepPartial<PolicyListResponse>> {
     let result = await super.read(ReadRequest.fromPartial({
       filters: [{
-        filter: [{
+        filters: [{
           field: 'id',
           operation: Filter_Operation.eq,
           value: id
@@ -420,7 +420,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       ctx.subject = subject;
       ctx.resources = [];
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy' }], AuthZAction.READ,
-        Operation.whatIsAllowed);
+        Operation.whatIsAllowed) as PolicySetRQResponse;
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv for read Policies', { code: err.code, message: err.message, stack: err.stack });
       return {
@@ -608,7 +608,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   async readMetaData(id?: string): Promise<DeepPartial<PolicySetListResponse>> {
     let result = await super.read(ReadRequest.fromPartial({
       filters: [{
-        filter: [{
+        filters: [{
           field: 'id',
           operation: Filter_Operation.eq,
           value: id
@@ -830,7 +830,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       ctx.subject = subject;
       ctx.resources = [];
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set' }], AuthZAction.READ,
-        Operation.whatIsAllowed);
+        Operation.whatIsAllowed) as PolicySetRQResponse;
     } catch (err) {
       this.logger.error('Error occurred requesting access-control-srv for read PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {

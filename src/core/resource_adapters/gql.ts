@@ -26,7 +26,7 @@ export class GraphQLAdapter implements ResourceAdapter {
     const resources = request.target.resources;
     let queryFilters = [];
     for (let filtersObj of filters) {
-      for (let filter of filtersObj.filter) {
+      for (let filter of filtersObj.filters) {
         // search for property in resources
         if (!filter.value.match(/urn:*#*/)) {
           throw new Error('Invalid property name specified for resource adapter filter');

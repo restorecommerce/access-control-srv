@@ -9,15 +9,15 @@ import { RedisClientType } from 'redis';
 import * as core from './core';
 import { Logger } from 'winston';
 import {
-  ServiceServiceImplementation as ACSServiceImplementation, ReverseQuery,
+  AccessControlServiceImplementation, ReverseQuery,
   Request, Response, DeepPartial, Response_Decision
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import {
-  ServiceServiceImplementation as CommandInterfaceServiceImplementation
+  CommandInterfaceServiceImplementation
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
 import { PolicySetWithCombinables } from './core/interfaces';
 
-export class AccessControlService implements ACSServiceImplementation {
+export class AccessControlService implements AccessControlServiceImplementation {
   cfg: any;
   logger: Logger;
   resourceManager: ResourceManager;
@@ -72,7 +72,7 @@ export class AccessControlService implements ACSServiceImplementation {
       this.logger.error('Error evaluating isAllowed request', { code: err.code, message: err.message, stack: err.stack });
       return {
         decision: Response_Decision.DENY,
-        obligation: [],
+        obligations: [],
         operation_status: {
           code: err.code,
           message: err.message

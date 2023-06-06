@@ -13,7 +13,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   const scopedRoles = new Map<string, Map<string, string[]>>(); // <role, <scopingEntity, scopingInstances[]>>
   let role: string;
   const totalScopingEntities: string[] = [];
-  const ruleSubject = ruleTarget.subject || [];
+  const ruleSubject = ruleTarget.subjects || [];
   let hierarchicalRoleScopeCheck = 'true';
   // retrieving all role scoping entities from the rule's subject
   for (let attribute of ruleSubject) {
@@ -50,7 +50,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   const ctxResources = context.resources || [];
   const reqTarget = request.target;
   let currentResourceEntity: string;
-  // iterating through all targeted resources and retrieve relevant owner instances
+  // iterating through all targeted resources and retrieve relevant owners instances
   for (let attribute of ruleTarget.resources) {
     if (attribute.id == urns.get('entity')) { // resource type found
       logger.debug('Evaluating resource entity match');
@@ -102,7 +102,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
         }
         else if (requestAttribute.id == urns.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
           const instanceID = requestAttribute.value;
-          // found resource instance ID, iterating through the context to check if owner entities match the scoping entities
+          // found resource instance ID, iterating through the context to check if owners entities match the scoping entities
           let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
           // ctxResource = ctxResource.instance;
           if (ctxResource) {
@@ -114,13 +114,13 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
           if (ctxResource) {
             const meta = ctxResource.meta;
 
-            if (_.isEmpty(meta) || _.isEmpty(meta.owner)) {
-              logger.debug(`Owner information missing for hierarchical scope matching of entity ${attribute.value}, evaluation fails`);
+            if (_.isEmpty(meta) || _.isEmpty(meta.owners)) {
+              logger.debug(`Owners information missing for hierarchical scope matching of entity ${attribute.value}, evaluation fails`);
               return false; // no ownership was passed, evaluation fails
             }
 
             let ownerEntity: string;
-            for (let owner of meta.owner) {
+            for (let owner of meta.owners) {
               if (owner.id == urns.get('ownerEntity')) {
                 if (_.find(totalScopingEntities, e => e == owner.value)) {
                   ownerEntity = owner.value;
@@ -159,12 +159,12 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               meta = ctxResources[0].meta;
             }
 
-            if (_.isEmpty(meta) || _.isEmpty(meta.owner)) {
+            if (_.isEmpty(meta) || _.isEmpty(meta.owners)) {
               logger.debug(`Owner information missing for hierarchical scope matching of operation ${attribute.value}, evaluation fails`);
               return false; // no ownership was passed, evaluation fails
             }
             let ownerEntity: string;
-            for (let owner of meta.owner) {
+            for (let owner of meta.owners) {
               if (owner.id == urns.get('ownerEntity')) {
                 if (_.find(totalScopingEntities, e => e == owner.value)) {
                   ownerEntity = owner.value;

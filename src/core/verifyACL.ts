@@ -12,7 +12,7 @@ export const verifyACLList = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
   const scopedRoles = []; // list of roles in Rule subject
   let role: string;
-  const ruleSubject = ruleTarget.subject || [];
+  const ruleSubject = ruleTarget.subjects || [];
   // retrieving all role scoping entities from the rule's subject
   for (let attribute of ruleSubject) {
     if (attribute.id === urns.get('role')) {
@@ -48,8 +48,8 @@ export const verifyACLList = async (ruleTarget: Target,
       }
       if (ctxResource) {
         const meta = ctxResource.meta;
-        if (meta && meta.acl && meta.acl.length > 0) {
-          aclList = meta.acl;
+        if (meta && meta.acls && meta.acls.length > 0) {
+          aclList = meta.acls;
         }
       }
 
@@ -118,7 +118,7 @@ export const verifyACLList = async (ruleTarget: Target,
     }
   }
 
-  const actionObj = reqTarget.action;
+  const actionObj = reqTarget.actions;
   // verify targetScopeEntInstances with subjectScopedEntityInstances for create action
 
   if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&

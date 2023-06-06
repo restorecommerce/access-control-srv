@@ -12,27 +12,27 @@ import * as core from './core';
 import { ACSAuthZ, initAuthZ, initializeCache } from '@restorecommerce/acs-client';
 import { createChannel, createClient as grpcCreateClient } from '@restorecommerce/grpc-client';
 import {
-  ServiceDefinition as UserServiceDefinition,
-  ServiceClient as UserServiceClient, FindByTokenRequest
+  UserServiceDefinition,
+  UserServiceClient, FindByTokenRequest
 } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
 import {
-  ServiceDefinition as RuleServiceDefinition,
+  RuleServiceDefinition,
   protoMetadata as ruleMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import {
-  ServiceDefinition as PolicyServiceDefinition,
+  PolicyServiceDefinition,
   protoMetadata as policyMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
 import {
-  ServiceDefinition as PolicySetServiceDefinition,
+  PolicySetServiceDefinition,
   protoMetadata as policySetMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
 import {
-  ServiceDefinition as AccessControlServiceDefinition,
+  AccessControlServiceDefinition,
   protoMetadata as accessControlMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import {
-  ServiceDefinition as CommandInterfaceServiceDefinition,
+  CommandInterfaceServiceDefinition,
   protoMetadata as commandInterfaceMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
 import { protoMetadata as reflectionMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/reflection/v1alpha/reflection';

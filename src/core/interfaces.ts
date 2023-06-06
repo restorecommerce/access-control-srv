@@ -44,8 +44,8 @@ export interface Resource {
 export interface ResourceMeta {
   created: number;
   modified: number;
-  acl?: AttributeObj[];
-  owner: Attribute[];
+  acls?: AttributeObj[];
+  owners: Attribute[];
 }
 
 export interface CombiningAlgorithm {
