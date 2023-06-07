@@ -43,11 +43,11 @@ Atomic element of the ABAC system.
 - description
 - contextQuery            GraphQL Queries whose results are provided in the data context of the evaluated code to provide essential information for the decision making
 - target
-  - resource
+  - resources
     - attribute
       - id                ex: urn:restorecommerce:acs:names:model:entity
       - value             ex: urn:restorecommerce:model:device.Device
-  - action
+  - actions
     - attribute
       - id                ex: urn:oasis:names:tc:xacml:1.0:action:action-id
       - value             ex: urn:restorecommerce:acs:names:action:create
@@ -57,7 +57,7 @@ Atomic element of the ABAC system.
 
 === General
 
-The `subject`, `resource`, `action` properties are arrays and can contain 1..n elements.
+The `subjects`, `resources`, `actions` properties are arrays and can contain 1..n elements.
 
 [#abstract_api]
 == Abstract API
@@ -88,7 +88,7 @@ as demanding such evaluation would require a replication of this functionality a
 
 [source,yml]
 ----
-- subject
+- subjects
   # To identify subject by its ID
   - id         ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
   - value      ex: <subject identifier>
@@ -100,7 +100,7 @@ as demanding such evaluation would require a replication of this functionality a
   # To identify role scoping instance
   - id         ex: urn:restorecommerce:acs:names:roleScopeInstance
     value:     ex: <organization identifier>
-- resource
+- resources
   # To identify a domain model type
   - id         ex: maskedProperty
   - value      ex: urn:restorecommerce:model:user.User
@@ -112,7 +112,7 @@ as demanding such evaluation would require a replication of this functionality a
   # To identify a property of the selected resource(s)
   - id         ex: urn:restorecommerce:acs:names:model:property
   - value      ex: urn:xingular:model:User#password
-- action
+- actions
   - id         ex: urn:oasis:names:tc:xacml:1.0:action:action-id
   - value      ex: urn:restorecommerce:acs:names:action:modify
 - context
@@ -123,7 +123,7 @@ as demanding such evaluation would require a replication of this functionality a
 [source,yml]
 ----
 - decision: PERMIT | DENY | NOT-APPLICABLE | INDETERMINATE
-- obligation: [obligation]
+- obligations: [obligations]
 ----
 
 === `PolicySetList`
@@ -131,19 +131,19 @@ as demanding such evaluation would require a replication of this functionality a
 [source,yml]
 ----
 - policy_sets: List of applicable policy sets containing only the applicable policies and rules
-- obligation: [obligation]
+- obligations: [obligations]
 ----
 
 === Obligations
 
-==== `obligation`
+==== `obligations`
 
 An array of obligation attributes along with their values (if applicable)
 that are spcified in the rules that have matched. For example:
 
 [source,yml]
 ----
-obligation:
+obligations:
   - id: urn:restorecommerce:acs:names:model:entity
     value: ...
     attribute:
@@ -187,7 +187,7 @@ Request:
 ----
 request:
   target:
-    subject:
+    subjects:
       - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
         value: Alice
       - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -199,7 +199,7 @@ request:
         value: urn:restorecommerce:model:device.Device
       - id: urn:oasis:names:tc:xacml:1.0:resource:resource-id
         value: deviceX
-    action:
+    actions:
       - id: urn:oasis:names:tc:xacml:1.0:action:action-id
         value: urn:restorecommerce:acs:names:action:read
   context:
@@ -225,7 +225,7 @@ request:
         created: <timestamp>
         modified: <timestamp>
         modified_by: RandomUser
-        owner:
+        owners:
           - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
             value: urn:restorecommerce:model:organization.Organization
           - id: urn:restorecommerce:acs:names:ownerInstance
@@ -255,10 +255,10 @@ policy_sets:
             resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:model:device.Device
-            action:
+            actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
-            subject:
+            subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -286,7 +286,7 @@ This example illustrates permissible actions on two resource entities `Address` 
 ----
 request:
     target:
-      subject:
+      subjects:
         - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
           value: Alice
         - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -298,7 +298,7 @@ request:
           value: urn:restorecommerce:model:address.Address
         - id: urn:restorecommerce:acs:names:model:entity
           value: urn:restorecommerce:model:country.Country
-      action:
+      actions:
         - id: urn:oasis:names:tc:xacml:1.0:action:action-id
           value: urn:restorecommerce:acs:names:action:create
         - id: urn:oasis:names:tc:xacml:1.0:action:action-id
@@ -345,12 +345,12 @@ policy_sets:
             resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:model:address.Address
-            action:
+            actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:create
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
-            subject:
+            subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -366,12 +366,12 @@ policy_sets:
             resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:model:country.Country
-            action:
+            actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:delete
-            subject:
+            subjects:
                 - id: urn:restorecommerce:acs:names:role
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
@@ -393,10 +393,10 @@ rules:
       resources:
           - id: urn:restorecommerce:acs:names:operation
             value: mutation.orgDelete
-      action:
+      actions:
           - id: urn:oasis:names:tc:xacml:1.0:action:action-id
             value: urn:restorecommerce:acs:names:action:execute
-      subject:
+      subjects:
           - id: urn:restorecommerce:acs:names:role
             value: admin
           - id: urn:restorecommerce:acs:names:roleScopingEntity

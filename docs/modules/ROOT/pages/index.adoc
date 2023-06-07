@@ -48,13 +48,13 @@ A Rule resource.
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| id |string |required |Rule ID
+| id |string |optional |Rule ID
 | name | string | optional | Rule name
 | description | string | optional | Rule description
 | target | `io.restorecommerce.access_control.Target` | optional | Rule target
 | context_query | `io.restorecommerce.rule.ContextQuery` | optional | GraphQL query which can be performed to obtain required info for request
 | condition | string | optional | Custom Javascript code to check if rule is applicable
-| effect | `io.restorecommerce.access_control.Effect` | required | Rule effect; possible values are `PERMIT` and `DENY`
+| effect | `io.restorecommerce.access_control.Effect` | optional | Rule effect; possible values are `PERMIT` and `DENY`
 |==============================================================================================================================================
 
 `io.restorecommerce.access_control.Target`
@@ -62,18 +62,19 @@ A Rule resource.
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| subject | [ ]`io.restorecommerce.access_control.Property` | required | Entity requesting access
-| resources | [ ]`io.restorecommerce.access_control.Property` | required | Resources to be accessed
-| action | [ ]`io.restorecommerce.access_control.Property` | required | Action to be performed on resources
+| subjects | [ ]`io.restorecommerce.attribute.Attribute` | optional | Entity requesting access
+| resources | [ ]`io.restorecommerce.attribute.Attribute` | optional | Resources to be accessed
+| actions | [ ]`io.restorecommerce.attribute.Attribute` | optional | Action to be performed on resources
 |==============================================================================================================================================
 
-`io.restorecommerce.access_control.Property`
+`io.restorecommerce.attribute.Attribute`
 
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| id | string | required | Attribute ID
-| value | string | required | Attribute value
+| id | string | optional | Attribute ID
+| value | string | optional | Attribute value
+| attributes | [ ] `io.restorecommerce.attribute.Attribute` | optional | Nested Attributes
 |==============================================================================================================================================
 
 `io.restorecommerce.rule.ContextQuery`
@@ -82,17 +83,7 @@ A Rule resource.
 |==============================================================================================================================================
 | Field | Type | Label | Description
 | query | string | required | Query to retrieve external resources
-| filters | [ ]`io.restorecommerce.rule.Filter` | optional | List of argument keys to be passed from `Request#context` to `query`
-|==============================================================================================================================================
-
-`io.restorecommerce.rule.Filter`
-
-[width="100%",cols="20%,16%,20%,44%",options="header",]
-|==============================================================================================================================================
-| Field | Type | Label | Description
-| field | string | optional | field to query
-| operation | string | optional | operation
-| value | string | optional | value
+| filters | [ ]`io.restorecommerce.filter.FilterOp` | optional | List of argument keys to be passed from `Request#context` to `query`
 |==============================================================================================================================================
 
 [#api_policy]
@@ -105,7 +96,7 @@ A Policy resource consisting of set of Rules.
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| id | string | required | Policy ID
+| id | string | optional | Policy ID
 | name | string | optional | Policy name
 | description | string | optional | Policy description
 | target | `io.restorecommerce.access_control.Target` | optional | Policy target
@@ -123,11 +114,11 @@ A PolicySet resource consisting of set of Policies.
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| id | string | required | Policy ID
+| id | string | optional | Policy ID
 | name | string | optional | Policy name
 | description | string | optional | Policy description
 | target | `io.restorecommerce.access_control.Target` | optional | Policy target
-| policies | [ ] `io.restorecommerce.policy.Policy` | required | List of policies binded to a policy set
+| policies | [ ] `io.restorecommerce.policy.Policy` | optional | List of policies binded to a policy set
 | combining_algorithm | string | optional | Combining algorithm to be applied to the policy set
 |==============================================================================================================================================
 
@@ -196,8 +187,8 @@ If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| policy_sets | `io.restorecommerce.policy_set.PolicySetRQ` | required | List of applicable policy sets
-| obligation | https://github.com/restorecommerce/libs/blob/master/packages/protos/io/restorecommerce/attribute.proto#L5[`io.restorecommerce.attribute.Attribute [ ]`] | optional | list of Obligation attached to rules / policies
+| policy_sets | `io.restorecommerce.policy_set.PolicySetRQ` | optional | List of applicable policy sets
+| obligations | https://github.com/restorecommerce/libs/blob/master/packages/protos/io/restorecommerce/attribute.proto#L5[`io.restorecommerce.attribute.Attribute [ ]`] | optional | Obligations attached to rules / policies
 | operation_status | https://github.com/restorecommerce/libs/blob/master/packages/protos/io/restorecommerce/status.proto#L23[`io.restorecommerce.status.OperationStatus`] | required | operation status code and message |
 |==============================================================================================================================================
 
@@ -206,7 +197,7 @@ If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| id | string | required | Policy Set ID
+| id | string | optional | Policy Set ID
 | target | `io.restorecommerce.access_control.Target` | optional | Policy set target
 | combining_algorithm | string | optional | Combining algorithm
 | effect | `io.restorecommerce.access_control.Effect` | optional | A policy target's effect (only applicable if there are no rules)
@@ -218,11 +209,11 @@ If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| id | string | required | Policy ID
+| id | string | optional | Policy ID
 | target | `io.restorecommerce.access_control.Target` | optional | Policy target
 | combining_algorithm | string | optional | Combining algorithm
 | effect | `io.restorecommerce.access_control.Effect` | optional | A policy's effect (only applicable if there are no rules)
-| has_rules | bool | required | Flag to infer if effect should be considered or not
+| has_rules | bool | optional | Flag to infer if effect should be considered or not
 | rules | `io.restorecommerce.rule.RuleRQ` | optional | List of policies bound to a policy set
 |==============================================================================================================================================
 
@@ -231,7 +222,7 @@ If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[
 [width="100%",cols="20%,16%,20%,44%",options="header",]
 |==============================================================================================================================================
 | Field | Type | Label | Description
-| id | string | required | Policy Set ID
+| id | string | optional | Policy Set ID
 | target | `io.restorecommerce.access_control.Target` | optional | Policy set target
 | effect | `io.restorecommerce.access_control.Effect` | optional | A policy's effect (only applicable if there are no rules)
 |==============================================================================================================================================
