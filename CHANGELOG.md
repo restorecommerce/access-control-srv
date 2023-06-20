@@ -1,3 +1,7 @@
+## 1.0.0 (June 20th, 2023)
+
+- major version change (considering full typed client server, full text and up all dependencies)
+
 ## 0.3.6 (June 19th, 2023)
 
 - up all deps
