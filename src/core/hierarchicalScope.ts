@@ -124,18 +124,20 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               if (owner.id == urns.get('ownerEntity')) {
                 if (_.find(totalScopingEntities, e => e == owner.value)) {
                   ownerEntity = owner.value;
+                  owner?.attributes?.forEach((obj) => {
+                    if (obj.id == urns.get('ownerInstance') && !!ownerEntity) {
+                      for (let [role, entities] of scopedRoles) {
+                        if (entities.has(ownerEntity)) {
+                          const instances = entities.get(ownerEntity);
+                          instances.push(obj.value);
+                          entities.set(ownerEntity, instances);
+                          scopedRoles.set(role, entities);
+                        }
+                      }
+                      ownerEntity = null;
+                    }
+                  });
                 }
-              } else if (owner.id == urns.get('ownerInstance') && !!ownerEntity) {
-                for (let [role, entities] of scopedRoles) {
-                  if (entities.has(ownerEntity)) {
-                    const instances = entities.get(ownerEntity);
-                    instances.push(owner.value);
-                    entities.set(ownerEntity, instances);
-                    scopedRoles.set(role, entities);
-                  }
-                }
-
-                ownerEntity = null;
               }
             }
           } else {
@@ -168,17 +170,20 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               if (owner.id == urns.get('ownerEntity')) {
                 if (_.find(totalScopingEntities, e => e == owner.value)) {
                   ownerEntity = owner.value;
+                  owner.attributes.forEach((obj) => {
+                    if (obj.id == urns.get('ownerInstance') && !!ownerEntity) {
+                      for (let [role, entities] of scopedRoles) {
+                        if (entities.has(ownerEntity)) {
+                          const instances = entities.get(ownerEntity);
+                          instances.push(obj.value);
+                          entities.set(ownerEntity, instances);
+                          scopedRoles.set(role, entities);
+                        }
+                      }
+                      ownerEntity = null;
+                    }
+                  });
                 }
-              } else if (owner.id == urns.get('ownerInstance') && !!ownerEntity) {
-                for (let [role, entities] of scopedRoles) {
-                  if (entities.has(ownerEntity)) {
-                    const instances = entities.get(ownerEntity);
-                    instances.push(owner.value);
-                    entities.set(ownerEntity, instances);
-                    scopedRoles.set(role, entities);
-                  }
-                }
-                ownerEntity = null;
               }
             }
           } else {
@@ -219,28 +224,31 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
       for (let attribute of attributes) {
         if (attribute.id == urns.get('roleScopingEntity') && entities.has(attribute.value)) {
           scopingEntity = attribute.value;
-        } else if (attribute.id == urns.get('roleScopingInstance') && !!scopingEntity) { // if scoping instance is found within the attributes
-          const instances = entities.get(scopingEntity);
-          if (!_.isEmpty(_.remove(instances, i => i == attribute.value))) { // if any element was removed
-            if (_.isEmpty(instances)) {
-              entities.delete(scopingEntity);
-              if (entities.size == 0) {
-                scopedRoles.delete(role);
+          attribute.attributes.forEach((obj) => { // role-attributes-attributes -> roleScopingInstance
+            if (obj.id == urns.get('roleScopingInstance') && !!scopingEntity) {  // if scoping instance is found within the attributes
+              const instances = entities.get(scopingEntity);
+              if (!_.isEmpty(_.remove(instances, i => i == obj.value))) { // if any element was removed
+                if (_.isEmpty(instances)) {
+                  entities.delete(scopingEntity);
+                  if (entities.size == 0) {
+                    scopedRoles.delete(role);
+                  }
+                }
+              } else {
+                if (!treeNodes.has(role)) {
+                  treeNodes.set(role, new Map<string, string[]>());
+                }
+                const nodesByEntity = treeNodes.get(role);
+                if (!nodesByEntity.has(scopingEntity)) {
+                  nodesByEntity.set(scopingEntity, []);
+                }
+                const nodes = nodesByEntity.get(scopingEntity);
+                nodes.push(obj.value);
+                nodesByEntity.set(scopingEntity, nodes);
+                treeNodes.set(role, nodesByEntity);
               }
             }
-          } else {
-            if (!treeNodes.has(role)) {
-              treeNodes.set(role, new Map<string, string[]>());
-            }
-            const nodesByEntity = treeNodes.get(role);
-            if (!nodesByEntity.has(scopingEntity)) {
-              nodesByEntity.set(scopingEntity, []);
-            }
-            const nodes = nodesByEntity.get(scopingEntity);
-            nodes.push(attribute.value);
-            nodesByEntity.set(scopingEntity, nodes);
-            treeNodes.set(role, nodesByEntity);
-          }
+          })
         }
       }
     }
@@ -283,7 +291,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               if (entities) {
                 for (let [entity, instances] of entities) {
                   for (let instance of instances) {
-                    if(eligibleOrgScopes.indexOf(instance) > -1) {
+                    if (eligibleOrgScopes.indexOf(instance) > -1) {
                       instances = instances.filter(e => e != instance);
                     }
                   }

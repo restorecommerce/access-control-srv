@@ -762,8 +762,8 @@ export class AccessController {
     // 3) If rule subject entity does not exist (as for master data resources)
     // then check context->subject->role_associations->role against
     // Rule->subject->role
-    const scopingEntityURN = this.urns.get('roleScopingEntity');
-    const scopingInstanceURN = this.urns.get('roleScopingInstance');
+    const scopingEntityURN = this.urns.get('roleScopingEntity'); // urn:restorecommerce:acs:names:roleScopingEntity
+    const scopingInstanceURN = this.urns.get('roleScopingInstance'); // urn:restorecommerce:acs:names:roleScopingInstance
     const hierarchicalRoleScopingURN = this.urns.get('hierarchicalRoleScoping');
     const roleURN = this.urns.get('role');
     let matches = false;
@@ -805,43 +805,50 @@ export class AccessController {
       // check the target scoping instance is present in
       // the context subject roleassociations and then update matches to true
       if (context && context.subject && context.subject.role_associations) {
-        for (let requestSubAttribute of requestSubAttributes) {
-          if (requestSubAttribute.id === scopingInstanceURN) {
-            const targetScopingInstance = requestSubAttribute.value;
-            // check in role_associations
-            const userRoleAssocs = context.subject.role_associations;
-            if (!_.isEmpty(userRoleAssocs)) {
-              for (let role of userRoleAssocs) {
-                const roleID = role.role;
-                const attributes = role.attributes;
-                for (let attribute of attributes) {
-                  if (attribute.id === scopingInstanceURN &&
-                    attribute.value === targetScopingInstance) {
+        let targetScopingInstance;
+        requestSubAttributes.find((obj) => {
+          if (obj?.id === scopingEntityURN && obj?.attributes?.length > 0) {
+            obj?.attributes?.filter((roleScopeInstObj) => {
+              if (roleScopeInstObj?.id === scopingInstanceURN) {
+                targetScopingInstance = roleScopeInstObj?.value;
+              }
+            })
+          }
+        });
+        // check in role_associations
+        const userRoleAssocs = context.subject.role_associations;
+        if (!_.isEmpty(userRoleAssocs)) {
+          for (let role of userRoleAssocs) {
+            const roleID = role.role;
+            role.attributes.forEach((obj) => {
+              if(obj?.id === scopingEntityURN) {
+                obj?.attributes?.forEach((ruleScopInstObj) =>{
+                  if(ruleScopInstObj?.id == scopingInstanceURN && ruleScopInstObj.value == targetScopingInstance) {
                     if (!ruleRole || (ruleRole && ruleRole === roleID)) {
                       matches = true;
                       return matches;
                     }
-                  }
-                }
+                  } 
+                })
               }
-            }
-            if (!matches && hierarchicalRoleScoping && hierarchicalRoleScoping === 'true') {
-              // check for HR scope
-              const hrScopes = context.subject.hierarchical_scopes;
-              if (!hrScopes || hrScopes.length === 0) {
-                return matches;
-              }
-              for (let hrScope of hrScopes) {
-                if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
-                  const userRoleAssocs = context.subject.role_associations;
-                  if (!_.isEmpty(userRoleAssocs)) {
-                    for (let role of userRoleAssocs) {
-                      const roleID = role.role;
-                      if (!ruleRole || (ruleRole && ruleRole === roleID)) {
-                        matches = true;
-                        return matches;
-                      }
-                    }
+            });
+          }
+        }
+        if (!matches && hierarchicalRoleScoping && hierarchicalRoleScoping === 'true') {
+          // check for HR scope
+          const hrScopes = context.subject.hierarchical_scopes;
+          if (!hrScopes || hrScopes.length === 0) {
+            return matches;
+          }
+          for (let hrScope of hrScopes) {
+            if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
+              const userRoleAssocs = context.subject.role_associations;
+              if (!_.isEmpty(userRoleAssocs)) {
+                for (let role of userRoleAssocs) {
+                  const roleID = role.role;
+                  if (!ruleRole || (ruleRole && ruleRole === roleID)) {
+                    matches = true;
+                    return matches;
                   }
                 }
               }
@@ -854,16 +861,13 @@ export class AccessController {
       if (context && context.subject) {
         const userRoleAssocs = context.subject.role_associations;
         if (!_.isEmpty(userRoleAssocs)) {
-          for (let ruleSubAttribute of ruleSubAttributes) {
-            if (ruleSubAttribute.id === roleURN) {
-              for (let userRoleAssoc of userRoleAssocs) {
-                if (userRoleAssoc.role === ruleSubAttribute.value) {
-                  matches = true;
-                  return matches;
-                }
-              }
+          const ruleSubAttributeObj = ruleSubAttributes.find((obj) => obj.id === roleURN)[0]
+          userRoleAssocs.forEach((obj) => {
+            if(obj.role === ruleSubAttributeObj?.value) {
+              matches = true;
+              return matches;
             }
-          }
+          });
         }
       }
       // must be a rule subject targetted to specific user
