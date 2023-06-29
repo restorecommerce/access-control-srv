@@ -12,6 +12,7 @@ policy_sets:
               - id: urn:restorecommerce:acs:names:model:entity
                 value: urn:restorecommerce:acs:model:rule.Rule
           combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+          evaluation_cacheable: false
           rules:
             - id: 'R1'
               name: Rule R1
@@ -38,6 +39,7 @@ policy_sets:
               - id: urn:restorecommerce:acs:names:model:entity
                 value: urn:restorecommerce:acs:model:policy.Policy
           combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+          evaluation_cacheable: false
           rules:
             - id: 'R2'
               name: Rule R2
@@ -62,6 +64,7 @@ policy_sets:
               - id: urn:restorecommerce:acs:names:model:entity
                 value: urn:restorecommerce:acs:model:policy_set.PolicySet
           combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+          evaluation_cacheable: false
           rules:
             - id: 'R3'
               name: Rule R3

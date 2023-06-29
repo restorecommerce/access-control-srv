@@ -668,6 +668,100 @@ describe('testing microservice', () => {
         result.operation_status.code.should.equal(200);
         result.operation_status.message.should.equal('success');
       });
+
+      // Create with two different scopes assigned for same role
+      it('should PERMIT to create test rule with ACS enabled with valid scope in subject with multilple instances assigned to same role', async () => {
+        let testRule1 = [{
+          name: '1 test rule for test entitiy',
+          description: '1 test rule',
+          target: {
+            subjects: [{
+              id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
+              value: 'test-r-id'
+            }],
+            resources: [{
+              id: 'urn:restorecommerce:acs:names:model:entity',
+              value: 'urn:restorecommerce:acs:model:test.Test'
+            }]
+          },
+          effect: Effect.PERMIT,
+          meta: {
+            owners: [{
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'org1'
+              }]
+            }]
+          }
+        }];
+        // For admin-r-id role Assign two RoleScoped instances (Same Role with 2 different scopes assigned)
+        adminSubject.role_associations[0].attributes[0].attributes = [{
+          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+          value: 'org1'
+        }, {
+          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+          value: 'org2'
+        }];
+        // corresponding HR scopes for two different Orgs
+        adminSubject.hierarchical_scopes = [{
+          id: 'org1',
+          role: 'admin-r-id',
+          children: []
+        }, {
+          id: 'org2',
+          role: 'admin-r-id',
+          children: []
+        }];
+        adminSubject.scope = 'org1';
+        const result = await ruleService.create({
+          items: testRule1,
+          subject: adminSubject
+        });
+        // validate result
+        result.items.should.be.length(1);
+        result.items[0].payload.name.should.equal('1 test rule for test entitiy');
+        result.operation_status.code.should.equal(200);
+        result.operation_status.message.should.equal('success');
+
+        let testRule2 = [{
+          name: '2 test rule for test entitiy',
+          description: '2 test rule',
+          target: {
+            subjects: [{
+              id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
+              value: 'test-r-id'
+            }],
+            resources: [{
+              id: 'urn:restorecommerce:acs:names:model:entity',
+              value: 'urn:restorecommerce:acs:model:test.Test'
+            }]
+          },
+          effect: Effect.PERMIT,
+          meta: {
+            owners: [{
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'org2'
+              }]
+            }]
+          }
+        }];
+
+        adminSubject.scope = 'org2';
+        const result2 = await ruleService.create({
+          items: testRule2,
+          subject: adminSubject
+        });
+        // validate result2
+        result2.items.should.be.length(1);
+        result2.items[0].payload.name.should.equal('2 test rule for test entitiy');
+        result2.operation_status.code.should.equal(200);
+        result2.operation_status.message.should.equal('success');
+      });
     });
   });
 });
