@@ -289,11 +289,11 @@ export async function createMetadata(resources: any,
             ownerAttributes.push(
               {
                 id: urns.ownerIndicatoryEntity,
-                value: urns.user
-              },
-              {
-                id: urns.ownerInstance,
-                value: subject.id
+                value: urns.user,
+                attributes: [{
+                  id: urns.ownerInstance,
+                  value: subject.id
+                }]
               });
           }
           resource.meta.owners = ownerAttributes;
@@ -312,11 +312,11 @@ export async function createMetadata(resources: any,
           ownerAttributes.push(
             {
               id: urns.ownerIndicatoryEntity,
-              value: urns.user
-            },
-            {
-              id: urns.ownerInstance,
-              value: subject.id
+              value: urns.user,
+              attributes: [{
+                id: urns.ownerInstance,
+                value: subject.id
+              }]
             });
         }
         resource.meta.owners = ownerAttributes;

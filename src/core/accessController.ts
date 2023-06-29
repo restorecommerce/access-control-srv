@@ -812,7 +812,7 @@ export class AccessController {
               if (roleScopeInstObj?.id === scopingInstanceURN) {
                 targetScopingInstance = roleScopeInstObj?.value;
               }
-            })
+            });
           }
         });
         // check in role_associations
@@ -828,8 +828,8 @@ export class AccessController {
                       matches = true;
                       return matches;
                     }
-                  } 
-                })
+                  }
+                });
               }
             });
           }
@@ -861,7 +861,7 @@ export class AccessController {
       if (context && context.subject) {
         const userRoleAssocs = context.subject.role_associations;
         if (!_.isEmpty(userRoleAssocs)) {
-          const ruleSubAttributeObj = ruleSubAttributes.find((obj) => obj.id === roleURN)[0]
+          const ruleSubAttributeObj = ruleSubAttributes?.find((obj) => obj.id === roleURN);
           userRoleAssocs.forEach((obj) => {
             if(obj.role === ruleSubAttributeObj?.value) {
               matches = true;

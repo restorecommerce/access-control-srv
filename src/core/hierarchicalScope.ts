@@ -248,7 +248,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
                 treeNodes.set(role, nodesByEntity);
               }
             }
-          })
+          });
         }
       }
     }
