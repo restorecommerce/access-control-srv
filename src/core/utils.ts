@@ -256,11 +256,11 @@ export async function createMetadata(resources: any,
     orgOwnerAttributes.push(
       {
         id: urns.ownerIndicatoryEntity,
-        value: urns.organization
-      },
-      {
-        id: urns.ownerInstance,
-        value: subject.scope
+        value: urns.organization,
+        attributes: [{
+          id: urns.ownerInstance,
+          value: subject.scope
+        }]
       });
   }
 

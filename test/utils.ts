@@ -37,12 +37,11 @@ export const buildRequest = (opts: RequestOpts): Request => {
       {
         id: 'urn:restorecommerce:acs:names:roleScopingEntity',
         value: opts.roleScopingEntity,
-        attributes: []
-      },
-      {
-        id: 'urn:restorecommerce:acs:names:roleScopingInstance',
-        value: opts.targetScopingInstance ? opts.targetScopingInstance : opts.roleScopingInstance,
-        attributes: []
+        attributes: [{
+          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+          value: opts.targetScopingInstance ? opts.targetScopingInstance : opts.roleScopingInstance,
+          attributes: []
+        }]
       }
     ]);
   }
@@ -200,10 +199,11 @@ export const buildRequest = (opts: RequestOpts): Request => {
         owners: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
           {
             id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-            value: opts.ownerIndicatoryEntity
-          }, {
-            id: 'urn:restorecommerce:acs:names:ownerInstance',
-            value: opts.ownerInstance
+            value: opts.ownerIndicatoryEntity,
+            attributes: [{
+              id: 'urn:restorecommerce:acs:names:ownerInstance',
+              value: opts.ownerInstance
+            }]
           }
         ] : []
       }
@@ -222,10 +222,11 @@ export const buildRequest = (opts: RequestOpts): Request => {
           owners: (opts.ownerIndicatoryEntity && opts.ownerInstance) ? [
             {
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-              value: opts.ownerIndicatoryEntity
-            }, {
-              id: 'urn:restorecommerce:acs:names:ownerInstance',
-              value: opts.ownerInstance[i]
+              value: opts.ownerIndicatoryEntity,
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: opts.ownerInstance[i]
+              }]
             }
           ] : []
         }
@@ -249,12 +250,12 @@ export const buildRequest = (opts: RequestOpts): Request => {
             attributes: [
               {
                 id: 'urn:restorecommerce:acs:names:roleScopingEntity',
-                value: opts.roleScopingEntity
-              },
-              {
-                id: 'urn:restorecommerce:acs:names:roleScopingInstance',
-                value: opts.roleScopingInstance
-              },
+                value: opts.roleScopingEntity,
+                attributes: [{
+                  id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+                  value: opts.roleScopingInstance
+                }]
+              }
             ]
           }
         ] : [],

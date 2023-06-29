@@ -35,11 +35,11 @@ let subject = {
       id: '',
       attributes: [{
         id: 'urn:restorecommerce:acs:names:roleScopingEntity',
-        value: 'urn:restorecommerce:acs:model:organization.Organization'
-      },
-      {
-        id: 'urn:restorecommerce:acs:names:roleScopingInstance',
-        value: 'mainOrg'
+        value: 'urn:restorecommerce:acs:model:organization.Organization',
+        attributes: [{
+          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+          value: 'mainOrg'
+        }]
       }]
     }
   ],
@@ -78,10 +78,11 @@ let testRule = [{
   meta: {
     owners: [{
       id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-      value: 'urn:restorecommerce:acs:model:organization.Organization'
-    }, {
-      id: 'urn:restorecommerce:acs:names:ownerInstance',
-      value: 'orgC'
+      value: 'urn:restorecommerce:acs:model:organization.Organization',
+      attributes: [{
+        id: 'urn:restorecommerce:acs:names:ownerInstance',
+        value: 'orgC'
+      }]
     }]
   }
 }];
@@ -123,11 +124,11 @@ let adminSubject = {
       id: '',
       attributes: [{
         id: 'urn:restorecommerce:acs:names:roleScopingEntity',
-        value: 'urn:restorecommerce:acs:model:organization.Organization'
-      },
-      {
-        id: 'urn:restorecommerce:acs:names:roleScopingInstance',
-        value: 'mainOrg'
+        value: 'urn:restorecommerce:acs:model:organization.Organization',
+        attributes: [{
+          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+          value: 'mainOrg'
+        }]
       }]
     }
   ],
@@ -159,11 +160,11 @@ let userSubject = {
       id: '',
       attributes: [{
         id: 'urn:restorecommerce:acs:names:roleScopingEntity',
-        value: 'urn:restorecommerce:acs:model:organization.Organization'
-      },
-      {
-        id: 'urn:restorecommerce:acs:names:roleScopingInstance',
-        value: 'mainOrg'
+        value: 'urn:restorecommerce:acs:model:organization.Organization',
+        attributes: [{
+          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+          value: 'mainOrg'
+        }]
       }]
     }
   ],
