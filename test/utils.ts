@@ -151,10 +151,10 @@ export const buildRequest = (opts: RequestOpts): Request => {
     });
     acls = [
       {
-        attribute: {
+        attributes: {
           id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
           value: opts.aclIndicatoryEntity,
-          attribute: aclInstances
+          attributes: aclInstances
         }
       }];
   } else if (opts.multipleAclIndicatoryEntity && opts.orgInstances && opts.subjectInstances) {
@@ -173,17 +173,17 @@ export const buildRequest = (opts: RequestOpts): Request => {
     });
     acls = [
       {
-        attribute: {
+        attributes: {
           id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
           value: opts.multipleAclIndicatoryEntity[0],
-          attribute: orgInstances
+          attributes: orgInstances
         }
       },
       {
-        attribute: {
+        attributes: {
           id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
           value: opts.multipleAclIndicatoryEntity[1],
-          attribute: subjectInstances
+          attributes: subjectInstances
         }
       }];
   }

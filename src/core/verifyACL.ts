@@ -61,13 +61,13 @@ export const verifyACLList = async (ruleTarget: Target,
       // verify ACL list
       if (!_.isEmpty(aclList) && _.isArray(aclList)) {
         for (let acl of aclList) {
-          let aclObj = acl.attribute;
+          let aclObj = acl.attributes;
           if (aclObj.id === urns.get('aclIndicatoryEntity')) {
             scopingEntity = aclObj.value;
             if (!targetScopeEntInstances.get(scopingEntity)) {
               targetScopeEntInstances.set(scopingEntity, []);
             }
-            for (let attribute of aclObj.attribute) {
+            for (let attribute of aclObj.attributes) {
               if (attribute.id === urns.get('aclInstance')) {
                 targetScopeEntInstances.get(scopingEntity).push(attribute.value);
               } else {
@@ -102,17 +102,20 @@ export const verifyACLList = async (ruleTarget: Target,
     const role: string = roleAssociations[i].role;
     const attributes: Attribute[] = roleAssociations[i].attributes || [];
     if (scopedRoles.includes(role)) {
-      let scopingEntityMatched = false;
       let roleScopingEntity;
       for (let roleAttr of attributes) {
         if (roleAttr.id === urns.get('roleScopingEntity') && targetScopingEntities.includes(roleAttr.value)) {
-          scopingEntityMatched = true;
           roleScopingEntity = roleAttr.value;
           if (!subjectScopedEntityInstances.get(roleAttr.value)) {
             subjectScopedEntityInstances.set(roleAttr.value, []);
           }
-        } else if (scopingEntityMatched && roleAttr.id === urns.get('roleScopingInstance')) {
-          subjectScopedEntityInstances.get(roleScopingEntity).push(roleAttr.value);
+          if (roleAttr?.attributes?.length > 0) {
+            for (let roleInstObj of roleAttr.attributes) {
+              if(roleInstObj.id === urns.get('roleScopingInstance')) {
+                subjectScopedEntityInstances.get(roleScopingEntity).push(roleInstObj.value);
+              }
+            }
+          }
         }
       }
     }

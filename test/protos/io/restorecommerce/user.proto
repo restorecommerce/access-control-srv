@@ -16,6 +16,7 @@ message FindByTokenRequest {
 message Attribute {
   string id = 1;
   string value = 2;
+  repeated Attribute attributes = 3;
 }
 
 message RoleAssociation {

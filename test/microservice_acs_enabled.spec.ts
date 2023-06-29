@@ -405,10 +405,11 @@ describe('testing microservice', () => {
           meta: {
             owners: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-              value: 'urn:restorecommerce:acs:model:organization.Organization'
-            }, {
-              id: 'urn:restorecommerce:acs:names:ownerInstance',
-              value: 'orgA'
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'orgA'
+              }]
             }]
           }
         }, {
@@ -428,10 +429,11 @@ describe('testing microservice', () => {
           meta: {
             owners: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-              value: 'urn:restorecommerce:acs:model:organization.Organization'
-            }, {
-              id: 'urn:restorecommerce:acs:names:ownerInstance',
-              value: 'orgB'
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'orgB'
+              }]
             }]
           }
         }];
@@ -470,10 +472,11 @@ describe('testing microservice', () => {
           meta: {
             owners: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-              value: 'urn:restorecommerce:acs:model:organization.Organization'
-            }, {
-              id: 'urn:restorecommerce:acs:names:ownerInstance',
-              value: 'orgA'
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'orgA'
+              }]
             }]
           }
         }, {
@@ -493,10 +496,11 @@ describe('testing microservice', () => {
           meta: {
             owners: [{
               id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-              value: 'urn:restorecommerce:acs:model:organization.Organization'
-            }, {
-              id: 'urn:restorecommerce:acs:names:ownerInstance',
-              value: 'INVALID' // invalid owner org instance
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'INVALID' // invalid owner org instance
+              }]
             }]
           }
         }];
