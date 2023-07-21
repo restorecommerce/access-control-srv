@@ -82,7 +82,20 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
   authZ: ACSAuthZ;
   constructor(logger: any, policyTopic: Topic, db: any, cfg: any,
     redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
-    super('rule', policyTopic, logger, new ResourcesAPIBase(db, 'rules'), true);
+    let resourceFieldConfig;
+    if (cfg.get('fieldHandlers')) {
+      resourceFieldConfig = cfg.get('fieldHandlers');
+      resourceFieldConfig['bufferFields'] = resourceFieldConfig?.bufferFields?.users;
+      if (cfg.get('fieldHandlers:timeStampFields')) {
+        resourceFieldConfig['timeStampFields'] = [];
+        for (let timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
+          if (timeStampFiledConfig.entities.includes('rules')) {
+            resourceFieldConfig['timeStampFields'].push(...timeStampFiledConfig.fields);
+          }
+        }
+      }
+    }
+    super('rule', policyTopic, logger, new ResourcesAPIBase(db, 'rules', resourceFieldConfig), true);
     this.cfg = cfg;
     this.redisClient = redisClient;
     this.authZ = authZ;
@@ -331,7 +344,20 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   authZ: ACSAuthZ;
   constructor(logger: any, db: any, policyTopic: Topic, rulesTopic: Topic, cfg: any,
     redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
-    super('policy', policyTopic, logger, new ResourcesAPIBase(db, 'policies'), true);
+    let resourceFieldConfig;
+    if (cfg.get('fieldHandlers')) {
+      resourceFieldConfig = cfg.get('fieldHandlers');
+      resourceFieldConfig['bufferFields'] = resourceFieldConfig?.bufferFields?.users;
+      if (cfg.get('fieldHandlers:timeStampFields')) {
+        resourceFieldConfig['timeStampFields'] = [];
+        for (let timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
+          if (timeStampFiledConfig.entities.includes('policies')) {
+            resourceFieldConfig['timeStampFields'].push(...timeStampFiledConfig.fields);
+          }
+        }
+      }
+    }
+    super('policy', policyTopic, logger, new ResourcesAPIBase(db, 'policies', resourceFieldConfig), true);
     this.ruleService = new RuleService(this.logger, rulesTopic, db, cfg, redisClient, authZ);
     this.cfg = cfg;
     this.redisClient = redisClient;
@@ -599,7 +625,20 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   authZ: ACSAuthZ;
   constructor(logger: any, db: any, policySetTopic: Topic, cfg: any,
     redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
-    super('policy_set', policySetTopic, logger, new ResourcesAPIBase(db, 'policy_sets'), true);
+    let resourceFieldConfig;
+    if (cfg.get('fieldHandlers')) {
+      resourceFieldConfig = cfg.get('fieldHandlers');
+      resourceFieldConfig['bufferFields'] = resourceFieldConfig?.bufferFields?.users;
+      if (cfg.get('fieldHandlers:timeStampFields')) {
+        resourceFieldConfig['timeStampFields'] = [];
+        for (let timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
+          if (timeStampFiledConfig.entities.includes('policy_sets')) {
+            resourceFieldConfig['timeStampFields'].push(...timeStampFiledConfig.fields);
+          }
+        }
+      }
+    }
+    super('policy_set', policySetTopic, logger, new ResourcesAPIBase(db, 'policy_sets', resourceFieldConfig), true);
     this.cfg = cfg;
     this.redisClient = redisClient;
     this.authZ = authZ;

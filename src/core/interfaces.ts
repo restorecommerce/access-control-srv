@@ -1,7 +1,7 @@
 import { Effect, Rule } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import { Policy } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
 import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { Attribute, AttributeObj } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
 import { RoleAssociation as RoleAssociations, HierarchicalScope, Tokens } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
 
 export interface PolicyWithCombinables extends Policy {
@@ -42,9 +42,9 @@ export interface Resource {
 }
 
 export interface ResourceMeta {
-  created: number;
-  modified: number;
-  acls?: AttributeObj[];
+  created: Date;
+  modified: Date;
+  acls?: Attribute[];
   owners: Attribute[];
 }
 

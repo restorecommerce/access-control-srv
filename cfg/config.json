@@ -279,5 +279,13 @@
       "code": "403",
       "message": "Action not allowed on this resource"
     }
+  },
+  "fieldHandlers": {
+    "timeStampFields": [
+      {
+        "fields": ["meta.created", "meta.modified"],
+        "entities": ["rules", "policies", "policy_sets"]
+      }
+    ]
   }
 }

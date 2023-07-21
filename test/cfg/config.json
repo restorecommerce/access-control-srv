@@ -243,5 +243,13 @@
         "policy_set"
       ]
     }
+  },
+  "fieldHandlers": {
+    "timeStampFields": [
+      {
+        "fields": ["meta.created", "meta.modified"],
+        "entities": ["rules", "policies", "policy_sets"]
+      }
+    ]
   }
 }
