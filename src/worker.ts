@@ -134,7 +134,7 @@ export class Worker {
       const channel = createChannel(grpcIDSConfig.address);
       userService = grpcCreateClient({
         ...grpcIDSConfig,
-        logger
+        logger: this.logger
       }, UserServiceDefinition, channel);
     }
     this.accessController = new core.AccessController(this.logger,
