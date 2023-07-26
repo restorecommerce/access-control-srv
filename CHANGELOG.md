@@ -1,3 +1,7 @@
+## 1.0.4 (July 26th, 2023)
+
+- updated dependencies
+
 ## 1.0.3 (July 26th, 2023)
 
 - fix grpc client logger initialization
