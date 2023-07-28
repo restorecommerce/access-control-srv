@@ -16,7 +16,7 @@ import { Rule, Target, Effect } from '@restorecommerce/rc-grpc-clients/dist/gene
 import {
   UserServiceDefinition,
   UserServiceClient
-} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
 import { PolicySetWithCombinables, PolicyWithCombinables } from './interfaces';
 
 

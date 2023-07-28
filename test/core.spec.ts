@@ -7,7 +7,7 @@ import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
-import {  UserServiceDefinition, UserServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
+import {  UserServiceDefinition, UserServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
 import { Request, Response, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 
 const cfg = createServiceConfig(process.cwd() + '/test');

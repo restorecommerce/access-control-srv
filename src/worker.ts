@@ -12,9 +12,8 @@ import * as core from './core';
 import { ACSAuthZ, initAuthZ, initializeCache } from '@restorecommerce/acs-client';
 import { createChannel, createClient as grpcCreateClient } from '@restorecommerce/grpc-client';
 import {
-  UserServiceDefinition,
-  UserServiceClient, FindByTokenRequest
-} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
+  FindByTokenRequest, UserServiceClient, UserServiceDefinition
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
 import {
   RuleServiceDefinition,
   protoMetadata as ruleMeta

@@ -9,7 +9,7 @@ import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-serve
 import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
 import {
   UserServiceClient
-} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/user';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
 
 import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
 import * as errors from './errors';
@@ -103,7 +103,7 @@ export class AccessController {
       if (subject && subject.payload) {
         context.subject.id = subject.payload.id;
         (context.subject as any).tokens = subject.payload.tokens;
-        context.subject.role_associations = subject.payload.roleAssociations;
+        context.subject.role_associations = subject.payload.role_associations;
       }
     }
     for (let [, value] of this.policySets) {
@@ -294,7 +294,7 @@ export class AccessController {
       if (subject && subject.payload) {
         context.subject.id = subject.payload.id;
         (context.subject as any).tokens = subject.payload.tokens;
-        context.subject.role_associations = subject.payload.roleAssociations;
+        context.subject.role_associations = subject.payload.role_associations;
       }
     }
     let obligations: Attribute[] = [];
