@@ -40,7 +40,7 @@
   "devDependencies": {
     "@alenon/grpc-mock-server": "^3.0.21",
     "@grpc/proto-loader": "^0.7.8",
-    "@types/lodash": "^4.14.196",
+    "@types/lodash": "^4.14.198",
     "@types/mocha": "^10.0.1",
     "@types/nock": "^11.1.0",
     "@types/node": "^20.4.5",
