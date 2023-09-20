@@ -1,4 +1,4 @@
-## 1.0.5 (September 20th, 2023)
+## 1.1.0 (September 20th, 2023)
 
 - made all fields optionals in proto files
 
