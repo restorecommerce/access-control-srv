@@ -1,3 +1,7 @@
+## 1.0.5 (September 20th, 2023)
+
+- made all fields optionals in proto files
+
 ## 1.0.5 (July 28th, 2023)
 
 - use generated server typings

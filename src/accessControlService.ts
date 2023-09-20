@@ -38,12 +38,12 @@ export class AccessControlService implements AccessControlServiceImplementation 
     this.logger.info('Loading policies....');
 
     const policiesCfg = this.cfg.get('policies');
-    const loadType = policiesCfg.type;
+    const loadType = policiesCfg?.type;
     switch (loadType) {
       case 'local':
         this.logger.silly('Loading policies from local files....');
-        const path: string = policiesCfg.path;
-        this.accessController = await core.utils.loadPoliciesFromDoc(this.accessController, path);
+        const path: string = policiesCfg?.path;
+        this.accessController = await core?.utils?.loadPoliciesFromDoc(this.accessController, path);
         break;
       case 'database':
         this.logger.silly('Loading policies from database....');

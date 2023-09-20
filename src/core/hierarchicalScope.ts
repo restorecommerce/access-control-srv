@@ -51,62 +51,62 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   const reqTarget = request.target;
   let currentResourceEntity: string;
   // iterating through all targeted resources and retrieve relevant owners instances
-  for (let attribute of ruleTarget.resources) {
-    if (attribute.id == urns.get('entity')) { // resource type found
+  for (let attribute of ruleTarget.resources || []) {
+    if (attribute?.id == urns.get('entity')) { // resource type found
       logger.debug('Evaluating resource entity match');
-      currentResourceEntity = attribute.value;
+      currentResourceEntity = attribute?.value;
 
       let entitiesMatch = false;
       // iterating request resources to filter all resources of a given type
-      for (let requestAttribute of reqTarget.resources) {
-        if (requestAttribute.id == attribute.id && requestAttribute.value == currentResourceEntity) {
+      for (let requestAttribute of reqTarget.resources || []) {
+        if (requestAttribute?.id == attribute?.id && requestAttribute?.value == currentResourceEntity) {
           entitiesMatch = true; // a resource entity that matches the request and the rule's target
-        } else if (requestAttribute.id == attribute.id) {
+        } else if (requestAttribute?.id == attribute?.id) {
           // rule entity, get ruleNS and entityRegexValue for rule
           const value = currentResourceEntity;
-          let pattern = value.substring(value.lastIndexOf(':') + 1);
-          let nsEntityArray = pattern.split('.');
+          let pattern = value?.substring(value?.lastIndexOf(':') + 1);
+          let nsEntityArray = pattern?.split('.');
           // firstElement could be either entity or namespace
           let nsOrEntity = nsEntityArray[0];
           let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
           let reqNS, ruleNS;
-          if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
+          if (nsOrEntity?.toUpperCase() != entityRegexValue?.toUpperCase()) {
             // rule name space is present
-            ruleNS = nsOrEntity.toUpperCase();
+            ruleNS = nsOrEntity?.toUpperCase();
           }
 
           // request entity, get reqNS and requestEntityValue for request
-          let reqValue = requestAttribute.value;
-          const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
-          const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
+          let reqValue = requestAttribute?.value;
+          const reqAttributeNS = reqValue?.substring(0, reqValue?.lastIndexOf(':'));
+          const ruleAttributeNS = value?.substring(0, value?.lastIndexOf(':'));
           // verify namespace before entity name
           if (reqAttributeNS != ruleAttributeNS) {
             entitiesMatch = false;
           }
-          let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
-          let reqNSEntityArray = reqPattern.split('.');
+          let reqPattern = reqValue?.substring(reqValue?.lastIndexOf(':') + 1);
+          let reqNSEntityArray = reqPattern?.split('.');
           // firstElement could be either entity or namespace
           let reqNSOrEntity = reqNSEntityArray[0];
           let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
-          if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
+          if (reqNSOrEntity?.toUpperCase() != requestEntityValue?.toUpperCase()) {
             // request name space is present
-            reqNS = reqNSOrEntity.toUpperCase();
+            reqNS = reqNSOrEntity?.toUpperCase();
           }
 
           if ((reqNS && ruleNS && (reqNS === ruleNS)) || (!reqNS && !ruleNS)) {
             const reExp = new RegExp(entityRegexValue);
-            if (requestEntityValue.match(reExp)) {
+            if (requestEntityValue?.match(reExp)) {
               entitiesMatch = true;
             }
           }
         }
-        else if (requestAttribute.id == urns.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
-          const instanceID = requestAttribute.value;
+        else if (requestAttribute?.id == urns?.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
+          const instanceID = requestAttribute?.value;
           // found resource instance ID, iterating through the context to check if owners entities match the scoping entities
           let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
           // ctxResource = ctxResource.instance;
           if (ctxResource) {
-            ctxResource = ctxResource.instance;
+            ctxResource = ctxResource?.instance;
           } else {
             // look up by ID
             ctxResource = _.find(ctxResources, ['id', instanceID]);
@@ -149,13 +149,13 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
           // entitiesMatch = false;
         }
       }
-    } else if (attribute.id === urns.get('operation')) {
+    } else if (attribute?.id === urns.get('operation')) {
       logger.debug('Evaluating resource operation match');
-      currentResourceEntity = attribute.value;
-      for (let reqAttribute of reqTarget.resources) {
+      currentResourceEntity = attribute?.value;
+      for (let reqAttribute of reqTarget.resources || []) {
         // match Rule resource operation URN and operation name with request resource operation URN and operation name
-        if (reqAttribute.id === attribute.id && reqAttribute.value === attribute.value) {
-          if (ctxResources.length === 1) {
+        if (reqAttribute?.id === attribute?.id && reqAttribute?.value === attribute?.value) {
+          if (ctxResources?.length === 1) {
             let meta;
             if (ctxResources[0]?.instance) {
               meta = ctxResources[0]?.instance?.meta;
@@ -205,12 +205,11 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   }
 
   // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
-  if (context && context.subject && context.subject.token &&
-    _.isEmpty(context.subject.hierarchical_scopes)) {
+  if (context?.subject?.token && _.isEmpty(context.subject.hierarchical_scopes)) {
     context = await accessController.createHRScope(context);
   }
 
-  const roleAssociations = context.subject.role_associations;
+  const roleAssociations = context?.subject?.role_associations;
   if (_.isEmpty(roleAssociations)) {
     logger.debug('Role Associations not found');
     return false; // impossible to evaluate context

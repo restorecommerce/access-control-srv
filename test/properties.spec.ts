@@ -353,7 +353,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
     });
     it('should return empty obligation and filtered rules for Location resource with only name property', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
@@ -371,7 +371,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
     });
     it('should return obligation (for description properties) along with filtered rules for Location resource with id and name properties', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
@@ -414,7 +414,7 @@ describe('testing access control', () => {
       result.policy_sets[0].policies[0].rules.should.be.length(1);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA3');
       result.policy_sets[0].policies[0].rules[0].effect.should.equal('DENY');
-      result.obligations.should.be.length(0);
+      should.not.exist(result.obligations);
     });
   });
   describe('testing isAllowed without properties defined in Rule', () => {
@@ -499,7 +499,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result, true);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
     });
     it('should return empty obligation and filtered rules for Location resource with no properties in request', async (): Promise<void> => {
       const accessRequest = testUtils.buildRequest({
@@ -516,7 +516,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       validateWhatIsAllowedLocationResponse(result, true);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
     });
   });
 
@@ -775,7 +775,7 @@ describe('testing access control', () => {
       testUtils.marshallRequest(accessRequest);
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');
@@ -821,7 +821,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       should.exist(result);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(1);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA3');
@@ -841,7 +841,7 @@ describe('testing access control', () => {
       const result = await accessControlService.whatIsAllowed(accessRequest);
       should.exist(result);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
       // validate 2 rules
       result.policy_sets[0].policies[0].rules.should.be.length(1);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA3');
@@ -1070,7 +1070,7 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
       // validate policies
       result.policy_sets[0].policies.should.be.length(2);
       result.policy_sets[0].policies[0].id.should.equal('LocationPolicy');
@@ -1101,7 +1101,7 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
       // validate policies
       result.policy_sets[0].policies.should.be.length(2);
       result.policy_sets[0].policies[0].id.should.equal('LocationPolicy');
@@ -1173,7 +1173,7 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
       // validate policies
       result.policy_sets[0].policies.should.be.length(2);
       result.policy_sets[0].policies[0].id.should.equal('LocationPolicy');
@@ -1297,7 +1297,7 @@ describe('testing access control', () => {
 
       const result = await accessControlService.whatIsAllowed(accessRequest);
       // validate obligation
-      result.obligations.should.be.empty();
+      should.not.exist(result.obligations);
       // validate location rules
       result.policy_sets[0].policies[0].rules.should.be.length(2);
       result.policy_sets[0].policies[0].rules[0].id.should.equal('ruleAA1');

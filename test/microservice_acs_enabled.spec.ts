@@ -509,7 +509,7 @@ describe('testing microservice', () => {
           items: testRule2,
           subject
         });
-        result.items.should.be.empty();
+        should.not.exist(result.items);
         result.operation_status.code.should.equal(403);
         result.operation_status.message.should.equal('Access not allowed for request with subject:admin_user_id, resource:rule, action:CREATE, target_scope:orgA; the response was DENY');
       });
@@ -536,7 +536,7 @@ describe('testing microservice', () => {
           subject
         });
         should.exist(result);
-        result.items.should.be.empty();
+        should.not.exist(result.items);
         result.operation_status.code.should.equal(403);
         result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:CREATE, target_scope:orgC; the response was DENY');
       });
@@ -582,7 +582,7 @@ describe('testing microservice', () => {
           items: testRule,
           subject
         });
-        result.items.should.be.empty();
+        should.not.exist(result.items);
         result.operation_status.code.should.equal(403);
         result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY');
       });
@@ -628,7 +628,7 @@ describe('testing microservice', () => {
           items: testRule,
           subject
         });
-        result.items.should.be.empty();
+        should.not.exist(result.items);
         result.operation_status.code.should.equal(403);
         result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY');
       });
@@ -641,7 +641,7 @@ describe('testing microservice', () => {
           ids: [testRule[0].id],
           subject
         });
-        result.status.should.be.empty();
+        should.not.exist(result.status);
         result.operation_status.code.should.equal(403);
         result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:DELETE, target_scope:orgC; the response was DENY');
       });

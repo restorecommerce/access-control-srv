@@ -23,7 +23,7 @@ export class GraphQLAdapter implements ResourceAdapter {
    */
   async query(contextQuery: ContextQuery, request: Request): Promise<any[]> {
     const filters = _.cloneDeep(contextQuery.filters);
-    const resources = request.target.resources;
+    const resources = request?.target?.resources ? request.target.resources : [];
     let queryFilters = [];
     for (let filtersObj of filters) {
       for (let filter of filtersObj.filters) {

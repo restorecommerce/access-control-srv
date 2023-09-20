@@ -15,6 +15,9 @@ import {
   FindByTokenRequest, UserServiceClient, UserServiceDefinition
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
 import {
+  RoleAssociation
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+import {
   RuleServiceDefinition,
   protoMetadata as ruleMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
@@ -202,20 +205,20 @@ export class Worker {
         await accessControlService.loadPolicies();
       } else if (eventName === hierarchicalScopesResponse) {
         // Add subject_id to waiting list
-        const hierarchical_scopes = msg.hierarchical_scopes;
-        const tokenDate = msg.token;
+        const hierarchical_scopes = msg?.hierarchical_scopes ? msg.hierarchical_scopes : [];
+        const tokenDate = msg?.token;
         // store HR scopes to cache with subjectID
-        const subID = msg.subject_id;
-        const token = tokenDate.split(':')[0];
+        const subID = msg?.subject_id;
+        const token = tokenDate?.split(':')[0];
         let redisHRScopesKey;
         let subject;
         if (token) {
           subject = await this.accessController.userService.findByToken(FindByTokenRequest.fromPartial({ token }));
-          if (subject && subject.payload) {
+          if (subject?.payload) {
             const tokens = subject.payload.tokens;
             const subID = subject.payload.id;
             const tokenFound = _.find(tokens, { token });
-            if (tokenFound && tokenFound.interactive) {
+            if (tokenFound?.interactive) {
               redisHRScopesKey = `cache:${subID}:hrScopes`;
             } else if (tokenFound && !tokenFound.interactive) {
               redisHRScopesKey = `cache:${subID}:${token}:hrScopes`;
@@ -250,7 +253,7 @@ export class Worker {
         }
       } else if (eventName === 'userModified') {
         if (msg && 'id' in msg) {
-          const updatedRoleAssocs = msg.role_associations;
+          const updatedRoleAssocs = msg.role_associations as RoleAssociation[];
           const updatedTokens = msg.tokens;
           let redisKey = `cache:${msg.id}:subject`;
           const redisSubject = await that.accessController.getRedisKey(redisKey);
@@ -259,15 +262,15 @@ export class Worker {
             const redisTokens = redisSubject.tokens;
             let roleAssocEqual;
             let tokensEqual;
-            for (let userRoleAssoc of updatedRoleAssocs) {
+            for (let userRoleAssoc of updatedRoleAssocs || []) {
               let found = false;
-              for (let redisRoleAssoc of redisRoleAssocs) {
-                if (redisRoleAssoc.role === userRoleAssoc.role) {
+              for (let redisRoleAssoc of redisRoleAssocs || []) {
+                if (redisRoleAssoc?.role === userRoleAssoc?.role) {
                   let i = 0;
-                  const attrLenght = userRoleAssoc.attributes.length;
-                  for (let redisAttribute of redisRoleAssoc.attributes) {
+                  const attrLenght = userRoleAssoc?.attributes?.length;
+                  for (let redisAttribute of redisRoleAssoc.attributes || []) {
                     for (let userAttribute of userRoleAssoc.attributes) {
-                      if (userAttribute.id === redisAttribute.id && userAttribute.value === redisAttribute.value) {
+                      if (userAttribute?.id === redisAttribute?.id && userAttribute?.value === redisAttribute?.value) {
                         i++;
                       }
                     }
@@ -290,12 +293,12 @@ export class Worker {
             if (_.isEmpty(updatedTokens)) {
               tokensEqual = true;
             }
-            for (let token of updatedTokens) {
+            for (let token of updatedTokens || []) {
               if (!token.interactive) {
                 // compare only token scopes (since it now contains last_login as well)
-                for (let redisToken of redisTokens) {
+                for (let redisToken of redisTokens || []) {
                   if (redisToken.token === token.token) {
-                    tokensEqual = _.isEqual(redisToken.scopes.sort(), token.scopes.sort());
+                    tokensEqual = _.isEqual(redisToken?.scopes?.sort(), token?.scopes?.sort());
                   }
                 }
                 if (!tokensEqual) {
@@ -306,7 +309,7 @@ export class Worker {
                 tokensEqual = true;
               }
             }
-            if (!roleAssocEqual || !tokensEqual || (updatedRoleAssocs.length != redisRoleAssocs.length)) {
+            if (!roleAssocEqual || !tokensEqual || (updatedRoleAssocs?.length != redisRoleAssocs?.length)) {
               that.logger.info('Evicting HR scope for Subject', { id: msg.id });
               await that.accessController.evictHRScopes(msg.id); // flush HR scopes
               // TODO use tech user below once ACS check is implemented on chassis-srv for command-interface

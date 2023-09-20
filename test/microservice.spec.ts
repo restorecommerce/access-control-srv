@@ -217,8 +217,7 @@ describe('testing microservice', () => {
         });
         const result = await ruleService.read({});
         should.exist(result);
-        should.exist(result.items);
-        result.items.should.be.empty();
+        should.not.exist(result.items);
         result.operation_status.code.should.equal(200);
         result.operation_status.message.should.equal('success');
       });
@@ -240,8 +239,7 @@ describe('testing microservice', () => {
         });
         const result = await policyService.read({});
         should.exist(result);
-        should.exist(result.items);
-        result.items.should.be.empty();
+        should.not.exist(result.items);
         result.operation_status.code.should.equal(200);
         result.operation_status.message.should.equal('success');
       });
@@ -261,8 +259,7 @@ describe('testing microservice', () => {
         });
         const result = await policySetService.read({});
         should.exist(result);
-        should.exist(result.items);
-        result.items.should.be.empty();
+        should.not.exist(result.items);
         result.operation_status.code.should.equal(200);
         result.operation_status.message.should.equal('success');
       });

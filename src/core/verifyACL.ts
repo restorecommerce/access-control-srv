@@ -34,7 +34,7 @@ export const verifyACLList = async (ruleTarget: Target,
   const reqTarget = request.target;
   // iterating through all targeted resources and retrieve relevant target instances
   let targetScopeEntInstances = new Map<string, string[]>(); // <org.Org, [a, b, c]> OR <user.User, [user1, user2 user3]>
-  for (let reqAttribute of reqTarget.resources) {
+  for (let reqAttribute of reqTarget.resources || []) {
     if (reqAttribute.id == urns.get('resourceID') || (reqAttribute.id === urns.get('operation'))) {
       const instanceID = reqAttribute.value;
       let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
@@ -59,7 +59,7 @@ export const verifyACLList = async (ruleTarget: Target,
       }
 
       // verify ACL list
-      if (!_.isEmpty(aclList) && _.isArray(aclList)) {
+      if (aclList?.length > 0) {
         for (let acl of aclList) {
           let aclObj = acl.attributes;
           if (aclObj.id === urns.get('aclIndicatoryEntity')) {
@@ -85,7 +85,7 @@ export const verifyACLList = async (ruleTarget: Target,
   }
 
   // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
-  if (context && context.subject && context.subject.token &&
+  if (context?.subject?.token &&
     _.isEmpty(context.subject.hierarchical_scopes)) {
     context = await accessController.createHRScope(context);
   }
@@ -99,20 +99,20 @@ export const verifyACLList = async (ruleTarget: Target,
   let subjectScopedEntityInstances = new Map<string, string[]>();
   let targetScopingEntities = [...targetScopeEntInstances.keys()]; // keys are the scopingEnt
   for (let i = 0; i < roleAssociations.length; i += 1) {
-    const role: string = roleAssociations[i].role;
-    const attributes: Attribute[] = roleAssociations[i].attributes || [];
+    const role: string = roleAssociations[i]?.role;
+    const attributes: Attribute[] = roleAssociations[i]?.attributes || [];
     if (scopedRoles.includes(role)) {
       let roleScopingEntity;
       for (let roleAttr of attributes) {
-        if (roleAttr.id === urns.get('roleScopingEntity') && targetScopingEntities.includes(roleAttr.value)) {
-          roleScopingEntity = roleAttr.value;
-          if (!subjectScopedEntityInstances.get(roleAttr.value)) {
-            subjectScopedEntityInstances.set(roleAttr.value, []);
+        if (roleAttr?.id === urns.get('roleScopingEntity') && targetScopingEntities.includes(roleAttr?.value)) {
+          roleScopingEntity = roleAttr?.value;
+          if (!subjectScopedEntityInstances.get(roleAttr?.value)) {
+            subjectScopedEntityInstances.set(roleAttr?.value, []);
           }
           if (roleAttr?.attributes?.length > 0) {
             for (let roleInstObj of roleAttr.attributes) {
-              if(roleInstObj.id === urns.get('roleScopingInstance')) {
-                subjectScopedEntityInstances.get(roleScopingEntity).push(roleInstObj.value);
+              if(roleInstObj?.id === urns.get('roleScopingInstance')) {
+                subjectScopedEntityInstances?.get(roleScopingEntity)?.push(roleInstObj?.value);
               }
             }
           }
@@ -121,7 +121,7 @@ export const verifyACLList = async (ruleTarget: Target,
     }
   }
 
-  const actionObj = reqTarget.actions;
+  const actionObj = reqTarget?.actions;
   // verify targetScopeEntInstances with subjectScopedEntityInstances for create action
 
   if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
@@ -152,7 +152,7 @@ export const verifyACLList = async (ruleTarget: Target,
       let validatedACLInstances: string[] = [];
       if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
         (actionObj[0].value === urns.get('create'))) {
-        const hierarchical_scopes = context.subject.hierarchical_scopes;
+        const hierarchical_scopes = context?.subject?.hierarchical_scopes;
         traverse(hierarchical_scopes).forEach((node: any): any => {
           // match the role with HR node and validate all the targetInstances
           if (scopedRoles.includes(node.role)) {

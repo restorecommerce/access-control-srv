@@ -37,7 +37,7 @@ export class AccessController {
 
     logger.info('Parsing combining algorithms from access control configuration...');
     //  parsing URNs and mapping them to functions
-    const combiningAlgorithms: CombiningAlgorithm[] = opts.combiningAlgorithms || [];
+    const combiningAlgorithms: CombiningAlgorithm[] = opts?.combiningAlgorithms || [];
     for (let ca of combiningAlgorithms) {
       const urn = ca.urn;
       const method = ca.method;
@@ -98,9 +98,9 @@ export class AccessController {
     if (!context) {
       (context as any) = {};
     }
-    if (context && context.subject && context.subject.token) {
+    if (context?.subject?.token) {
       const subject = await this.userService.findByToken({ token: context.subject.token });
-      if (subject && subject.payload) {
+      if (subject?.payload) {
         context.subject.id = subject.payload.id;
         (context.subject as any).tokens = subject.payload.tokens;
         context.subject.role_associations = subject.payload.role_associations;
@@ -136,7 +136,7 @@ export class AccessController {
         // if there are multiple entities in the request.target.resources
         // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
         // to ensure there is an exact policy entity match for each of the requested entity
-        if (request?.target?.resources && exactMatch) {
+        if (request?.target?.resources?.length > 0 && exactMatch) {
           let noOfEntities = 0;
           const entityURN = this.urns.get('entity');
           for (let resourceAttribute of request.target.resources) {
@@ -216,7 +216,10 @@ export class AccessController {
                       }
 
                       request.context = context || request.context;
+                      console.log('Validating the Condition.......', rule.condition);
+                      console.log('Req Target resources are...', JSON.stringify(request.target.resources));
                       matches = conditionMatches(rule.condition, request);
+                      console.log('Matches result is..', matches);
                     }
                   } catch (err) {
                     this.logger.error('Caught an exception while applying rule condition to request', { code: err.code, message: err.message, stack: err.stack });
@@ -232,7 +235,7 @@ export class AccessController {
                   }
 
                   // check if request has an ACL property set, if so verify it with the current rule target
-                  if (matches && rule.target) {
+                  if (matches && rule?.target) {
                     matches = await verifyACLList(rule.target, request, this.urns, this, this.logger);
                   }
 
@@ -289,9 +292,9 @@ export class AccessController {
   async whatIsAllowed(request: Request): Promise<ReverseQuery> {
     let policySets: PolicySetRQ[] = [];
     let context = (request as any).context as ContextWithSubResolved;
-    if (context && context.subject && context.subject.token) {
+    if (context?.subject?.token) {
       const subject = await this.userService.findByToken({ token: context.subject.token });
-      if (subject && subject.payload) {
+      if (subject?.payload) {
         context.subject.id = subject.payload.id;
         (context.subject as any).tokens = subject.payload.tokens;
         context.subject.role_associations = subject.payload.role_associations;
@@ -309,7 +312,7 @@ export class AccessController {
         for (let [, policy] of value.combinables) {
           if (policy.effect) {
             policyEffect = policy.effect;
-          } else if (policy.combining_algorithm) {
+          } else if (policy?.combining_algorithm) {
             const method = this.combiningAlgorithms.get(policy.combining_algorithm);
             if (method === 'permitOverrides') {
               policyEffect = Effect.PERMIT;
@@ -326,11 +329,11 @@ export class AccessController {
         // if there are multiple entities in the request.target.resources
         // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
         // to ensure there is an exact policy entity match for each of the requested entity
-        if (request?.target?.resources && exactMatch) {
+        if (request?.target?.resources.length > 0 && exactMatch) {
           let noOfEntities = 0;
           const entityURN = this.urns.get('entity');
           for (let resourceAttribute of request.target.resources) {
-            if (resourceAttribute.id === entityURN) {
+            if (resourceAttribute?.id === entityURN) {
               noOfEntities = noOfEntities + 1;
             }
           }
@@ -394,7 +397,7 @@ export class AccessController {
     let exactMatch = true;
     // iterate and find for each of the exact mathing resource attribute
     const entityURN = this.urns.get('entity');
-    for (let requestAttributeObj of request.target.resources) {
+    for (let requestAttributeObj of request?.target?.resources || []) {
       if (requestAttributeObj.id === entityURN) {
         multipleEntitiesMatch = false;
         for (let [, policyValue] of policySet.combinables) {
@@ -410,9 +413,8 @@ export class AccessController {
               policyEffect = Effect.DENY;
             }
           }
-          let policyTargetResources = policy?.target?.resources;
-          if (policyTargetResources && policyTargetResources.length > 0) {
-            if (this.resourceAttributesMatch(policyTargetResources, [requestAttributeObj], 'isAllowed', obligation, policyEffect)) {
+          if (policy?.target?.resources?.length > 0) {
+            if (this.resourceAttributesMatch(policy?.target?.resources, [requestAttributeObj], 'isAllowed', obligation, policyEffect)) {
               multipleEntitiesMatch = true;
             }
           }
@@ -448,39 +450,39 @@ export class AccessController {
     if (!maskPropertyList) {
       maskPropertyList = [];
     }
-    for (let reqAttr of requestAttributes) {
+    for (let reqAttr of requestAttributes || []) {
       if (reqAttr.id === propertyURN) {
         requestPropertiesExist = true;
       }
     }
-    for (let requestAttribute of requestAttributes) {
+    for (let requestAttribute of requestAttributes || []) {
       propertyMatch = false;
-      for (let ruleAttribute of ruleAttributes) {
+      for (let ruleAttribute of ruleAttributes || []) {
         if (ruleAttribute.id === propertyURN) {
           rulePropertiesExist = true;
           rulePropertyValue = ruleAttribute.value;
         }
         // direct match for attribute values
         if (!regexMatch) {
-          if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN
-            && requestAttribute.value === ruleAttribute.value) {
+          if (requestAttribute?.id === entityURN && ruleAttribute?.id === entityURN
+            && requestAttribute?.value === ruleAttribute?.value) {
             // entity match
             entityMatch = true;
             requestEntityURN = requestAttribute.value;
-          } else if (requestAttribute.id === operationURN && ruleAttribute.id === operationURN
-            && requestAttribute.value === ruleAttribute.value) {
+          } else if (requestAttribute?.id === operationURN && ruleAttribute?.id === operationURN
+            && requestAttribute?.value === ruleAttribute?.value) {
             operationMatch = true;
-          } else if (entityMatch && requestAttribute.id === propertyURN &&
-            ruleAttribute.id === propertyURN) {
+          } else if (entityMatch && requestAttribute?.id === propertyURN &&
+            ruleAttribute?.id === propertyURN) {
             // check if requestEntityURNs entityName is part in the ruleAttribute property
             // if so check the rule attribute value and request attribute value, if not set property match for
             // this request property as true as it does not belong to this rule (since for multiple entities request
             // its possible that there could be properties from other entities)
-            const entityName = requestEntityURN.substring(requestEntityURN.lastIndexOf(':') + 1);
-            if (requestAttribute.value.indexOf(entityName) > -1) {
+            const entityName = requestEntityURN?.substring(requestEntityURN?.lastIndexOf(':') + 1);
+            if (requestAttribute?.value?.indexOf(entityName) > -1) {
               // if match for request attribute is not found in rule attribute, Deny for isAllowed
               // and add properties to maskPropertyList for WhatIsAllowed
-              if (ruleAttribute.value === requestAttribute.value) {
+              if (ruleAttribute?.value === requestAttribute?.value) {
                 propertyMatch = true;
               }
             } else if (effect === Effect.PERMIT) { // set propertyMatch to true only when rule is Permit and request does not belong to this rule
@@ -489,35 +491,35 @@ export class AccessController {
           }
         } else if (regexMatch) {
           // regex match for attribute values
-          if (requestAttribute.id === entityURN && ruleAttribute.id === entityURN) {
+          if (requestAttribute?.id === entityURN && ruleAttribute?.id === entityURN) {
             // rule entity, get ruleNS and entityRegexValue for rule
-            const value = ruleAttribute.value;
-            let pattern = value.substring(value.lastIndexOf(':') + 1);
-            let nsEntityArray = pattern.split('.');
+            const value = ruleAttribute?.value;
+            let pattern = value?.substring(value?.lastIndexOf(':') + 1);
+            let nsEntityArray = pattern?.split('.');
             // firstElement could be either entity or namespace
             let nsOrEntity = nsEntityArray[0];
             let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
             let reqNS, ruleNS;
-            if (nsOrEntity.toUpperCase() != entityRegexValue.toUpperCase()) {
+            if (nsOrEntity?.toUpperCase() != entityRegexValue?.toUpperCase()) {
               // rule name space is present
               ruleNS = nsOrEntity.toUpperCase();
             }
 
             // request entity, get reqNS and requestEntityValue for request
-            let reqValue = requestAttribute.value;
+            let reqValue = requestAttribute?.value;
             requestEntityURN = reqValue;
-            const reqAttributeNS = reqValue.substring(0, reqValue.lastIndexOf(':'));
-            const ruleAttributeNS = value.substring(0, value.lastIndexOf(':'));
+            const reqAttributeNS = reqValue?.substring(0, reqValue?.lastIndexOf(':'));
+            const ruleAttributeNS = value?.substring(0, value?.lastIndexOf(':'));
             // verify namespace before entity name
             if (reqAttributeNS != ruleAttributeNS) {
               entityMatch = false;
             }
-            let reqPattern = reqValue.substring(reqValue.lastIndexOf(':') + 1);
-            let reqNSEntityArray = reqPattern.split('.');
+            let reqPattern = reqValue?.substring(reqValue?.lastIndexOf(':') + 1);
+            let reqNSEntityArray = reqPattern?.split('.');
             // firstElement could be either entity or namespace
             let reqNSOrEntity = reqNSEntityArray[0];
-            let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
-            if (reqNSOrEntity.toUpperCase() != requestEntityValue.toUpperCase()) {
+            let requestEntityValue = reqNSEntityArray[reqNSEntityArray?.length - 1];
+            if (reqNSOrEntity?.toUpperCase() != requestEntityValue?.toUpperCase()) {
               // request name space is present
               reqNS = reqNSOrEntity.toUpperCase();
             }
@@ -528,10 +530,10 @@ export class AccessController {
                 entityMatch = true;
               }
             }
-          } else if (entityMatch && requestAttribute.id === propertyURN && ruleAttribute.id === propertyURN) {
+          } else if (entityMatch && requestAttribute?.id === propertyURN && ruleAttribute?.id === propertyURN) {
             // check for matching URN property value
-            const rulePropertyValue = ruleAttribute.value.substring(ruleAttribute.value.lastIndexOf('#') + 1);
-            const requestPropertyValue = requestAttribute.value.substring(requestAttribute.value.lastIndexOf('#') + 1);
+            const rulePropertyValue = ruleAttribute?.value?.substring(ruleAttribute?.value?.lastIndexOf('#') + 1);
+            const requestPropertyValue = requestAttribute?.value?.substring(requestAttribute?.value?.lastIndexOf('#') + 1);
             if (rulePropertyValue === requestPropertyValue) {
               propertyMatch = true;
             }
@@ -539,36 +541,36 @@ export class AccessController {
         }
       }
 
-      if (operation === 'isAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
+      if (operation === 'isAllowed' && effect === Effect.DENY && (requestAttribute?.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && propertyMatch) {
         skipDenyRule = false; // Deny effect rule to be skipped only if the propertyMatch and effect is DENY
       }
 
       // if no match is found for the request attribute property in rule ==> this implies this is
       // an additional property in request which should be denied or masked
-      if (operation === 'isAllowed' && effect === Effect.PERMIT && (requestAttribute.id === propertyURN || !requestPropertiesExist)
+      if (operation === 'isAllowed' && effect === Effect.PERMIT && (requestAttribute?.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && !propertyMatch) {
         return false;
       }
 
       // for whatIsAllowed if decision is PERMIT and propertyMatch to false it implies
       // subject has requested additional properties requestAttribute.value add it to the maksPropertyList
-      if (operation === 'whatIsAllowed' && effect === Effect.PERMIT && (requestAttribute.id === propertyURN || !requestPropertiesExist)
+      if (operation === 'whatIsAllowed' && effect === Effect.PERMIT && (requestAttribute?.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && !propertyMatch) {
         if (!requestPropertiesExist) {
           return false; // since its not possible to evaluate what properties subject would read
         }
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
-        let maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
+        let maskPropExists = maskPropertyList.find((maskObj) => maskObj?.value === requestEntityURN);
         let maskProperty;
         // for masking if no request properties are specified
-        if (requestPropertiesExist && requestAttribute.value) {
-          maskProperty = requestAttribute.value;
+        if (requestPropertiesExist && requestAttribute?.value) {
+          maskProperty = requestAttribute?.value;
         } else if (!requestPropertiesExist) {
           maskProperty = rulePropertyValue;
         }
-        if (maskProperty.indexOf('#') <= -1) { // validate maskPropertyURN value
+        if (maskProperty?.indexOf('#') <= -1) { // validate maskPropertyURN value
           continue;
         }
         if (!maskPropExists) {
@@ -581,19 +583,19 @@ export class AccessController {
       // for whatIsAllowed if decision is deny and propertyMatch to true it implies
       // subject does not have access to the requestAttribute.value add it to the maksPropertyList
       // last condition (propertyMatch || !requestPropertiesExist) -> is to match Deny rule when user does not provide any req props
-      if (operation === 'whatIsAllowed' && effect === Effect.DENY && (requestAttribute.id === propertyURN || !requestPropertiesExist)
+      if (operation === 'whatIsAllowed' && effect === Effect.DENY && (requestAttribute?.id === propertyURN || !requestPropertiesExist)
         && entityMatch && rulePropertiesExist && (propertyMatch || !requestPropertiesExist)) {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
         const maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
         let maskProperty;
         // for masking if no request properties are specified
-        if (requestPropertiesExist && requestAttribute.value) {
+        if (requestPropertiesExist && requestAttribute?.value) {
           maskProperty = requestAttribute.value;
         } else if (!requestPropertiesExist) {
           maskProperty = rulePropertyValue;
         }
-        if (maskProperty.indexOf('#') <= -1) { // validate maskPropertyURN value
+        if (maskProperty?.indexOf('#') <= -1) { // validate maskPropertyURN value
           continue;
         }
         if (!maskPropExists) {
@@ -643,12 +645,12 @@ export class AccessController {
    * @param requestAttributes
    */
   private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[]): boolean {
-    for (let attribute of ruleAttributes) {
-      const id = attribute.id;
-      const value = attribute.value;
+    for (let attribute of ruleAttributes || []) {
+      const id = attribute?.id;
+      const value = attribute?.value;
       const match = !!requestAttributes.find((requestAttribute) => {
         // return requestAttribute.id == id && requestAttribute.value == value;
-        if (requestAttribute.id == id && requestAttribute.value == value) {
+        if (requestAttribute?.id == id && requestAttribute?.value == value) {
           return true;
         } else {
           return false;
@@ -703,7 +705,7 @@ export class AccessController {
     const subjectTokens = context.subject.tokens;
     const tokenFound = _.find(subjectTokens, { token });
     let redisHRScopesKey;
-    if (tokenFound && tokenFound.interactive) {
+    if (tokenFound?.interactive) {
       redisHRScopesKey = `cache:${subjectID}:hrScopes`;
     } else if (tokenFound && !tokenFound.interactive) {
       redisHRScopesKey = `cache:${subjectID}:${token}:hrScopes`;
@@ -772,30 +774,30 @@ export class AccessController {
     // default if hierarchicalRoleScopingURN is not configured then consider
     // to match the HR scopes
     let hierarchicalRoleScoping = 'true';
-    if (ruleSubAttributes && ruleSubAttributes.length === 0) {
+    if (ruleSubAttributes?.length === 0) {
       matches = true;
       return matches;
     }
-    for (let ruleSubAttribute of ruleSubAttributes) {
-      if (ruleSubAttribute.id === scopingEntityURN) {
+    for (let ruleSubAttribute of ruleSubAttributes || []) {
+      if (ruleSubAttribute?.id === scopingEntityURN) {
         // match the scoping entity value
         scopingEntExists = true;
-        for (let requestSubAttribute of requestSubAttributes) {
-          if (requestSubAttribute.value === ruleSubAttribute.value) {
+        for (let requestSubAttribute of requestSubAttributes || []) {
+          if (requestSubAttribute?.value === ruleSubAttribute?.value) {
             matches = true;
             break;
           }
         }
-      } else if (ruleSubAttribute.id === roleURN) {
+      } else if (ruleSubAttribute?.id === roleURN) {
         ruleRole = ruleSubAttribute.value;
-      } else if (ruleSubAttribute.id === hierarchicalRoleScopingURN) {
+      } else if (ruleSubAttribute?.id === hierarchicalRoleScopingURN) {
         hierarchicalRoleScoping = ruleSubAttribute.value;
       }
     }
 
-    let context = (request as any).context as ContextWithSubResolved;
+    let context = (request as any)?.context as ContextWithSubResolved;
     // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
-    if (context && context.subject && context.subject.token &&
+    if (context?.subject?.token &&
       _.isEmpty(context.subject.hierarchical_scopes)) {
       context = await this.createHRScope(context);
     }
@@ -804,7 +806,7 @@ export class AccessController {
       matches = false;
       // check the target scoping instance is present in
       // the context subject roleassociations and then update matches to true
-      if (context && context.subject && context.subject.role_associations) {
+      if (context?.subject?.role_associations) {
         let targetScopingInstance;
         requestSubAttributes.find((obj) => {
           if (obj?.id === scopingEntityURN && obj?.attributes?.length > 0) {
@@ -816,14 +818,14 @@ export class AccessController {
           }
         });
         // check in role_associations
-        const userRoleAssocs = context.subject.role_associations;
-        if (!_.isEmpty(userRoleAssocs)) {
+        const userRoleAssocs = context?.subject?.role_associations;
+        if (userRoleAssocs.length > 0) {
           for (let role of userRoleAssocs) {
-            const roleID = role.role;
-            for (let obj of role.attributes) {
+            const roleID = role?.role;
+            for (let obj of role.attributes || []) {
               if (obj?.id === scopingEntityURN && obj?.attributes?.length > 0) {
                 for (let ruleScopInstObj of obj.attributes) {
-                  if (ruleScopInstObj?.id == scopingInstanceURN && ruleScopInstObj.value == targetScopingInstance) {
+                  if (ruleScopInstObj?.id == scopingInstanceURN && ruleScopInstObj?.value == targetScopingInstance) {
                     if (!ruleRole || (ruleRole && ruleRole === roleID)) {
                       matches = true;
                       return matches;
@@ -836,15 +838,15 @@ export class AccessController {
         }
         if (!matches && hierarchicalRoleScoping && hierarchicalRoleScoping === 'true') {
           // check for HR scope
-          const hrScopes = context.subject.hierarchical_scopes;
+          const hrScopes = context?.subject?.hierarchical_scopes;
           if (!hrScopes || hrScopes.length === 0) {
             return matches;
           }
-          for (let hrScope of hrScopes) {
+          for (let hrScope of hrScopes || []) {
             if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
-              const userRoleAssocs = context.subject.role_associations;
+              const userRoleAssocs = context?.subject?.role_associations;
               if (!_.isEmpty(userRoleAssocs)) {
-                for (let role of userRoleAssocs) {
+                for (let role of userRoleAssocs || []) {
                   const roleID = role.role;
                   if (!ruleRole || (ruleRole && ruleRole === roleID)) {
                     matches = true;
@@ -858,12 +860,12 @@ export class AccessController {
       }
     } else if (!scopingEntExists) {
       // scoping entity does not exist - check for point 3.
-      if (context && context.subject) {
-        const userRoleAssocs = context.subject.role_associations;
-        if (!_.isEmpty(userRoleAssocs)) {
+      if (context?.subject) {
+        const userRoleAssocs = context?.subject.role_associations;
+        if (userRoleAssocs.length > 0) {
           const ruleSubAttributeObj = ruleSubAttributes?.find((obj) => obj.id === roleURN);
           for (let obj of userRoleAssocs) {
-            if (obj.role === ruleSubAttributeObj?.value) {
+            if (obj?.role === ruleSubAttributeObj?.value) {
               matches = true;
               return matches;
             }
@@ -881,10 +883,10 @@ export class AccessController {
 
   private checkTargetInstanceExists(hrScope: HierarchicalScope,
     targetScopingInstance: string): boolean {
-    if (hrScope.id === targetScopingInstance) {
+    if (hrScope?.id === targetScopingInstance) {
       return true;
     } else {
-      if (hrScope.children) {
+      if (hrScope?.children?.length > 0) {
         for (let child of hrScope.children) {
           if (this.checkTargetInstanceExists(child, targetScopingInstance)) {
             return true;
@@ -917,7 +919,7 @@ export class AccessController {
   */
   protected denyOverrides(effects: EffectEvaluation[]): EffectEvaluation {
     let effect, evaluation_cacheable;
-    for (let effectObj of effects) {
+    for (let effectObj of effects || []) {
       if (effectObj.effect === Effect.DENY) {
         effect = effectObj.effect;
         evaluation_cacheable = effectObj.evaluation_cacheable;
@@ -939,13 +941,13 @@ export class AccessController {
    */
   protected permitOverrides(effects: EffectEvaluation[]): EffectEvaluation {
     let effect, evaluation_cacheable;
-    for (let effectObj of effects) {
-      if (effectObj.effect === Effect.PERMIT) {
+    for (let effectObj of effects || []) {
+      if (effectObj?.effect === Effect.PERMIT) {
         effect = effectObj.effect;
         evaluation_cacheable = effectObj.evaluation_cacheable;
         break;
       } else {
-        effect = effectObj.effect;
+        effect = effectObj?.effect;
         evaluation_cacheable = effectObj.evaluation_cacheable;
       }
     }

@@ -113,9 +113,9 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     const result = await super.read(ReadRequest.fromPartial({ filters }), {});
 
     const rules = new Map<string, Rule>();
-    if (result && result.items) {
+    if (result?.items) {
       _.forEach(result.items, (rule) => {
-        if (!_.isEmpty(rule?.payload) && rule.payload && rule.payload.id) {
+        if (rule?.payload?.id) {
           rules.set(rule.payload.id, marshallResource(rule.payload, 'rule'));
         }
       });
@@ -168,9 +168,9 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     const result = await super.create(request, ctx);
     const policySets = _.cloneDeep(_accessController.policySets);
 
-    if (result && result.items) {
+    if (result?.items?.length > 0) {
       for (let item of result.items) {
-        const rule: Rule = marshallResource(item.payload, 'rule');
+        const rule: Rule = marshallResource(item?.payload, 'rule');
         for (let [, policySet] of policySets) {
           for (let [, policy] of (policySet).combinables) {
             if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
@@ -204,7 +204,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
+    if (acsResponse?.custom_query_args?.length > 0) {
       request.custom_queries = acsResponse.custom_query_args[0].custom_queries;
       request.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }
@@ -312,17 +312,17 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
       return { operation_status: acsResponse.operation_status };
     }
     deleteResponse = await super.delete(request, ctx);
-    if (request.ids) {
+    if (request?.ids?.length > 0) {
       for (let id of request.ids) {
         for (let [, policySet] of _accessController.policySets) {
           for (let [, policy] of policySet.combinables) {
-            if (policy.combinables.has(id)) {
+            if (policy?.combinables?.has(id)) {
               _accessController.removeRule(policySet.id, policy.id, id);
             }
           }
         }
       }
-    } else if (request.collection && request.collection === true) {
+    } else if (request?.collection && request.collection === true) {
       for (let [, policySet] of _accessController.policySets) {
         for (let [, policy] of policySet.combinables) {
           policy.combinables = new Map();
@@ -399,7 +399,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     const result = await super.create(request, ctx);
     const policySets = _.cloneDeep(_accessController.policySets);
 
-    if (result && result.items) {
+    if (result?.items?.length > 0) {
       for (let item of result.items) {
         for (let [, policySet] of policySets) {
           if (policySet.combinables.has(item.payload?.id)) {
@@ -408,7 +408,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
             if (_.has(item.payload, 'rules') && !_.isEmpty(item.payload.rules)) {
               policy.combinables = await ruleService.getRules(item.payload.rules);
 
-              if (policy.combinables.size != item.payload.rules.length) {
+              if (policy.combinables.size != item?.payload?.rules?.length) {
                 for (let id of item.payload.rules) {
                   if (!policy.combinables.has(id)) {
                     policy.combinables.set(id, null);
@@ -459,7 +459,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
+    if (acsResponse?.custom_query_args?.length > 0) {
       request.custom_queries = acsResponse.custom_query_args[0].custom_queries;
       request.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }
@@ -530,7 +530,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     const result = await super.read(ReadRequest.fromPartial({ filters }), {});
 
     const policies = new Map<string, PolicyWithCombinables>();
-    if (result && result.items) {
+    if (result?.items?.length > 0) {
       for (let i = 0; i < result.items.length; i += 1) {
         const policy: PolicyWithCombinables = marshallResource(result.items[i].payload, 'policy');
 
@@ -601,7 +601,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     }
     deleteResponse = await super.delete(request, ctx);
 
-    if (request.ids) {
+    if (request?.ids?.length > 0) {
       for (let id of request.ids) {
         for (let [, policySet] of _accessController.policySets) {
           if (policySet.combinables.has(id)) {
@@ -609,7 +609,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
           }
         }
       }
-    } else if (request.collection && request.collection === true) {
+    } else if (request?.collection && request.collection === true) {
       for (let [, policySet] of _accessController.policySets) {
         policySet.combinables = new Map();
         _accessController.updatePolicySet(policySet);
@@ -668,7 +668,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       return;
     }
 
-    const items = data.items;
+    const items = data?.items ? data.items : [];
     const policies = await policyService.load();
     const policySets = new Map<string, PolicySet>();
 
@@ -720,10 +720,10 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.create(request, ctx);
-    if (result && result.items) {
-      for (let i = 0; i < result.items.length; i += 1) {
-        const policySet = marshallResource(result.items[i]?.payload, 'policy_set');
-        const policyIDs = result.items[i]?.payload?.policies;
+    if (result?.items?.length > 0) {
+      for (let item of result.items) {
+        const policySet = marshallResource(item?.payload, 'policy_set');
+        const policyIDs = item?.payload?.policies;
         if (!_.isEmpty(policyIDs)) {
           policySet.combinables = await policyService.getPolicies(policyIDs);
           if (policySet.combinables.size != policyIDs.length) {
@@ -769,7 +769,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     const result = await super.update(request, ctx);
 
     // update in memory policies if no exception was thrown
-    for (let item of request.items) {
+    for (let item of request?.items) {
       let policySet = _accessController.policySets.get(item.id);
       let policies = policySet.combinables;
 
@@ -851,7 +851,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     }
     deleteResponse = await super.delete(request, ctx);
 
-    if (request.ids) {
+    if (request?.ids?.length > 0) {
       for (let id of request.ids) {
         _accessController.removePolicySet(id);
       }
@@ -882,7 +882,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    if (acsResponse?.custom_query_args && acsResponse.custom_query_args.length > 0) {
+    if (acsResponse?.custom_query_args?.length > 0) {
       request.custom_queries = acsResponse.custom_query_args[0].custom_queries;
       request.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
     }

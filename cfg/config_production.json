@@ -7,6 +7,12 @@
       },
       "dataStream": true,
       "source": "access-control-srv"
+    },
+    "console": {
+      "handleExceptions": false,
+      "level": "silly",
+      "colorize": true,
+      "prettyPrint": true
     }
   },
   "redis": {

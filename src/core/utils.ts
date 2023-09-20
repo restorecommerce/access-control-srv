@@ -43,7 +43,7 @@ export const conditionMatches = (condition: string, request: Request): boolean =
 };
 
 const loadPolicies = (document: any, accessController: AccessController): AccessController => {
-  const policySets = document.policy_sets;
+  const policySets = document?.policy_sets ? document.policy_sets : [];
 
   for (let policySetYaml of policySets) {
 
@@ -212,7 +212,7 @@ export async function checkAccessRequest(ctx: ACSClientContext, resource: Resour
   let subject = ctx.subject;
   // resolve subject id using findByToken api and update subject with id
   let dbSubject;
-  if (subject && subject.token) {
+  if (subject?.token) {
     const idsClient = await getUserServiceClient();
     if (idsClient) {
       dbSubject = await idsClient.findByToken({ token: subject.token });
@@ -264,7 +264,7 @@ export async function createMetadata(resources: any,
       });
   }
 
-  if (resources) {
+  if (resources.length > 0) {
     for (let resource of resources) {
       if (!resource.meta) {
         resource.meta = {};
