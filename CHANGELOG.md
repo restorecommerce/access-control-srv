@@ -1,3 +1,7 @@
+## 1.1.1 (September 22nd, 2023)
+
+- added null checks
+
 ## 1.1.0 (September 20th, 2023)
 
 - made all fields optionals in proto files

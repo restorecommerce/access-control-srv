@@ -264,7 +264,7 @@ export async function createMetadata(resources: any,
       });
   }
 
-  if (resources.length > 0) {
+  if (resources?.length > 0) {
     for (let resource of resources) {
       if (!resource.meta) {
         resource.meta = {};
@@ -272,10 +272,10 @@ export async function createMetadata(resources: any,
       if (action === AuthZAction.MODIFY || action === AuthZAction.DELETE) {
         let result = await service.readMetaData(resource.id);
         // update owner info
-        if (result.items.length === 1) {
+        if (result?.items?.length === 1) {
           let item = result.items[0].payload;
           resource.meta.owners = item.meta.owners;
-        } else if (result.items.length === 0) {
+        } else if (result?.items?.length === 0) {
           if (_.isEmpty(resource.id)) {
             resource.id = uuid.v4().replace(/-/g, '');
           }

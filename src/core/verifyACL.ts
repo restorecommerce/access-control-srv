@@ -48,7 +48,7 @@ export const verifyACLList = async (ruleTarget: Target,
       }
       if (ctxResource) {
         const meta = ctxResource.meta;
-        if (meta && meta.acls && meta.acls.length > 0) {
+        if (meta?.acls?.length > 0) {
           aclList = meta.acls;
         }
       }
@@ -98,7 +98,7 @@ export const verifyACLList = async (ruleTarget: Target,
 
   let subjectScopedEntityInstances = new Map<string, string[]>();
   let targetScopingEntities = [...targetScopeEntInstances.keys()]; // keys are the scopingEnt
-  for (let i = 0; i < roleAssociations.length; i += 1) {
+  for (let i = 0; i < roleAssociations?.length; i += 1) {
     const role: string = roleAssociations[i]?.role;
     const attributes: Attribute[] = roleAssociations[i]?.attributes || [];
     if (scopedRoles.includes(role)) {
@@ -205,7 +205,7 @@ export const verifyACLList = async (ruleTarget: Target,
       }
 
       // match atleast one of the subjectOrgInstance is present in targetInstances
-      if (subjectInstances && subjectInstances.length > 0) {
+      if (subjectInstances?.length > 0) {
         for (let subjectInstance of subjectInstances) {
           // validate atleast one of the subjectInstance is present in the targetInstances list
           // (same role can be assigned with multiple scoping instnaces hence subjectInstances is an array)

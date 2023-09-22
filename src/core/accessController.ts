@@ -248,14 +248,14 @@ export class AccessController {
                 }
               }
 
-              if (ruleEffects.length > 0) {
+              if (ruleEffects?.length > 0) {
                 policyEffects.push(this.decide(policy.combining_algorithm, ruleEffects));
               }
             }
           }
         }
 
-        if (policyEffects.length > 0) {
+        if (policyEffects?.length > 0) {
           effect = this.decide(policySet.combining_algorithm, policyEffects);
         }
       }
@@ -329,7 +329,7 @@ export class AccessController {
         // if there are multiple entities in the request.target.resources
         // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
         // to ensure there is an exact policy entity match for each of the requested entity
-        if (request?.target?.resources.length > 0 && exactMatch) {
+        if (request?.target?.resources?.length > 0 && exactMatch) {
           let noOfEntities = 0;
           const entityURN = this.urns.get('entity');
           for (let resourceAttribute of request.target.resources) {
@@ -498,7 +498,7 @@ export class AccessController {
             let nsEntityArray = pattern?.split('.');
             // firstElement could be either entity or namespace
             let nsOrEntity = nsEntityArray[0];
-            let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
+            let entityRegexValue = nsEntityArray[nsEntityArray?.length - 1];
             let reqNS, ruleNS;
             if (nsOrEntity?.toUpperCase() != entityRegexValue?.toUpperCase()) {
               // rule name space is present
@@ -819,7 +819,7 @@ export class AccessController {
         });
         // check in role_associations
         const userRoleAssocs = context?.subject?.role_associations;
-        if (userRoleAssocs.length > 0) {
+        if (userRoleAssocs?.length > 0) {
           for (let role of userRoleAssocs) {
             const roleID = role?.role;
             for (let obj of role.attributes || []) {
@@ -839,7 +839,7 @@ export class AccessController {
         if (!matches && hierarchicalRoleScoping && hierarchicalRoleScoping === 'true') {
           // check for HR scope
           const hrScopes = context?.subject?.hierarchical_scopes;
-          if (!hrScopes || hrScopes.length === 0) {
+          if (!hrScopes || hrScopes?.length === 0) {
             return matches;
           }
           for (let hrScope of hrScopes || []) {
@@ -861,8 +861,8 @@ export class AccessController {
     } else if (!scopingEntExists) {
       // scoping entity does not exist - check for point 3.
       if (context?.subject) {
-        const userRoleAssocs = context?.subject.role_associations;
-        if (userRoleAssocs.length > 0) {
+        const userRoleAssocs = context?.subject?.role_associations;
+        if (userRoleAssocs?.length > 0) {
           const ruleSubAttributeObj = ruleSubAttributes?.find((obj) => obj.id === roleURN);
           for (let obj of userRoleAssocs) {
             if (obj?.role === ruleSubAttributeObj?.value) {
