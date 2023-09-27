@@ -1,6 +1,6 @@
 = Access Control Service
 
-https://travis-ci.org/restorecommerce/access-control-srv?branch=master[image:https://img.shields.io/travis/restorecommerce/access-control-srv/master.svg?style=flat-square[Build Status]]
+https://github.com/restorecommerce/access-control-srv/actions/workflows/build.yaml[image:https://img.shields.io/github/actions/workflow/status/restorecommerce/access-control-srv/build.yaml?style=flat-square[Build Status]]
 https://depfu.com/repos/github/restorecommerce/access-control-srv?branch=master[image:https://img.shields.io/depfu/dependencies/github/restorecommerce/access-control-srv?style=flat-square[Dependencies]]
 https://coveralls.io/github/restorecommerce/access-control-srv?branch=master[image:https://img.shields.io/coveralls/github/restorecommerce/access-control-srv/master.svg?style=flat-square[Coverage Status]]
 
@@ -9,6 +9,6 @@ A microservice for access control.
 Please consult the documentation for using it:
 
 - *link:https://docs.restorecommerce.io/access-control-srv/index.html[Usage]*
-- *link:https://docs.restorecommerce.io/architecture/index.html[General Architecture]*
+- *link:https://docs.restorecommerce.io/architecture/index.html[Restorecommerce Architecture]*
 
 Part of link:https://github.com/restorecommerce[Restorecommerce].
