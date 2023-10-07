@@ -1,3 +1,7 @@
+## 1.2.0 (October 7th, 2023)
+
+- up node and dependencies
+
 ## 1.1.1 (September 22nd, 2023)
 
 - added null checks
