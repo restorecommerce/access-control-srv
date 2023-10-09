@@ -172,6 +172,7 @@ to link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/co
 and service resonsible for creating the hierarchical scopes will consume this message and send back `hierarchicalScopesResponse` which is then saved
 to redis link:https://github.com/restorecommerce/access-control-srv/blob/master/cfg/config.json#L8[subject] cache by this service.
 If the Subject https://docs.restorecommerce.io/identity-srv/index.html#api_user[role associations] are modified then this service invalidates both the subject cache and `acs-client` cache.
+This cache for storing subject and hierarchical scopes is mandatory for optimal performance of the service.
 
 `io.restorecommerce.access_control.Request`
 
