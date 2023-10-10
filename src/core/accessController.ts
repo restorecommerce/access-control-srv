@@ -168,7 +168,6 @@ export class AccessController {
             if (rules.size == 0 && !!policy.effect) {
               policyEffects.push({ effect: policy.effect, evaluation_cacheable: policy.evaluation_cacheable });
             }
-
             else {
               let evaluationCacheableRule = true;
               for (let [, rule] of policy.combinables) {
@@ -216,10 +215,9 @@ export class AccessController {
                       }
 
                       request.context = context || request.context;
-                      console.log('Validating the Condition.......', rule.condition);
-                      console.log('Req Target resources are...', JSON.stringify(request.target.resources));
+                      this.logger.debug('Validating rule condition', { name: rule.name, condition: rule.condition });
                       matches = conditionMatches(rule.condition, request);
-                      console.log('Matches result is..', matches);
+                      this.logger.debug('condition validation response', { matches });
                     }
                   } catch (err) {
                     this.logger.error('Caught an exception while applying rule condition to request', { code: err.code, message: err.message, stack: err.stack });
@@ -628,13 +626,16 @@ export class AccessController {
     operation: AccessControlOperation = 'isAllowed', maskPropertyList: Attribute[],
     effect: Effect = Effect.PERMIT, regexMatch?: boolean): Promise<boolean> {
     const requestTarget = request.target;
-    const subMatch = await this.checkSubjectMatches(ruleTarget.subjects, requestTarget.subjects, request);
-    const match = subMatch && this.attributesMatch(ruleTarget.actions, requestTarget.actions);
-    if (!match) {
+    const resourceMatch = this.resourceAttributesMatch(ruleTarget.resources,
+      requestTarget.resources, operation, maskPropertyList, effect, regexMatch);
+    if (!resourceMatch) {
       return false;
     }
-    return this.resourceAttributesMatch(ruleTarget.resources,
-      requestTarget.resources, operation, maskPropertyList, effect, regexMatch);
+    const subMatch = await this.checkSubjectMatches(ruleTarget.subjects, requestTarget.subjects, request);
+    if(!subMatch) {
+      return false;
+    }
+    return subMatch && this.attributesMatch(ruleTarget.actions, requestTarget.actions);
   }
 
   /**

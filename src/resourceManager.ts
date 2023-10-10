@@ -60,7 +60,7 @@ const marshallResource = (resource: any, resourceName: string): any => {
 
 const makeFilter = (ids: string[]): any => {
   return [{
-    filter: [{
+    filters: [{
       field: 'id',
       operation: FilterOperation.in,
       value: ids
