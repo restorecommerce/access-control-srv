@@ -1,3 +1,8 @@
+## 1.2.1 (October 10th, 2023)
+
+- added filter for rules
+- up log message
+
 ## 1.2.0 (October 7th, 2023)
 
 - up node and dependencies
