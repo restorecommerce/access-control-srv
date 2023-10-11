@@ -1,3 +1,7 @@
+## 1.2.1 (October 11th, 2023)
+
+- fix unit tests (revert the order of attributes match)
+
 ## 1.2.1 (October 10th, 2023)
 
 - added filter for rules

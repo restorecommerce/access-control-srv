@@ -360,7 +360,7 @@ export class AccessController {
                 continue;
               }
               let ruleRQ: RuleRQ;
-
+              this.logger.debug(`WhatIsAllowed Checking rule target and request target for ${rule.name}`);
               let matches = _.isEmpty(rule.target) || await this.targetMatches(rule.target, request, 'whatIsAllowed', obligations, rule.effect);
               // check for regex if there is no direct match
               if (!matches) {
@@ -626,16 +626,13 @@ export class AccessController {
     operation: AccessControlOperation = 'isAllowed', maskPropertyList: Attribute[],
     effect: Effect = Effect.PERMIT, regexMatch?: boolean): Promise<boolean> {
     const requestTarget = request.target;
-    const resourceMatch = this.resourceAttributesMatch(ruleTarget.resources,
-      requestTarget.resources, operation, maskPropertyList, effect, regexMatch);
-    if (!resourceMatch) {
-      return false;
-    }
     const subMatch = await this.checkSubjectMatches(ruleTarget.subjects, requestTarget.subjects, request);
-    if(!subMatch) {
+    const match = subMatch && this.attributesMatch(ruleTarget.actions, requestTarget.actions);
+    if (!match) {
       return false;
     }
-    return subMatch && this.attributesMatch(ruleTarget.actions, requestTarget.actions);
+    return this.resourceAttributesMatch(ruleTarget.resources,
+      requestTarget.resources, operation, maskPropertyList, effect, regexMatch);
   }
 
   /**
