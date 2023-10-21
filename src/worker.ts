@@ -46,6 +46,7 @@ import {
   HealthDefinition
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/health/v1/health';
 import { BindConfig } from '@restorecommerce/chassis-srv/lib/microservice/transport/provider/grpc';
+import { compareRoleAssociations, flushACSCache } from './core/utils';
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {
@@ -260,34 +261,8 @@ export class Worker {
           if (redisSubject) {
             const redisRoleAssocs = redisSubject.role_associations;
             const redisTokens = redisSubject.tokens;
-            let roleAssocEqual;
+            let roleAssocEqual = compareRoleAssociations(updatedRoleAssocs, redisRoleAssocs, that.logger);
             let tokensEqual;
-            for (let userRoleAssoc of updatedRoleAssocs || []) {
-              let found = false;
-              for (let redisRoleAssoc of redisRoleAssocs || []) {
-                if (redisRoleAssoc?.role === userRoleAssoc?.role) {
-                  let i = 0;
-                  const attrLenght = userRoleAssoc?.attributes?.length;
-                  for (let redisAttribute of redisRoleAssoc.attributes || []) {
-                    for (let userAttribute of userRoleAssoc.attributes) {
-                      if (userAttribute?.id === redisAttribute?.id && userAttribute?.value === redisAttribute?.value) {
-                        i++;
-                      }
-                    }
-                  }
-                  if (attrLenght === i) {
-                    found = true;
-                    roleAssocEqual = true;
-                    break;
-                  }
-                }
-              }
-              if (!found) {
-                that.logger.debug('Subject Role assocation has been updated', { userRoleAssoc });
-                roleAssocEqual = false;
-                break;
-              }
-            }
             // for interactive login after logout we receive userModified event
             // with empty tokens, so below check is not to evict cache for this case
             if (_.isEmpty(updatedTokens)) {
@@ -314,26 +289,15 @@ export class Worker {
               await that.accessController.evictHRScopes(msg.id); // flush HR scopes
               // TODO use tech user below once ACS check is implemented on chassis-srv for command-interface
               // Flush ACS Cache via flushCache Command
-              const payload = {
-                data: {
-                  db_index: that.cfg.get('authorization:cache:db-index'),
-                  pattern: msg.id
-                }
-              };
-              const eventObject = {
-                name: 'flush_cache',
-                payload: {}
-              };
-              const eventPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
-              eventObject.payload = {
-                type_url: 'payload',
-                value: eventPayload
-              };
-              await commandTopic.emit('flushCacheCommand', eventObject);
-              that.logger.info('ACS flush cache command event emitted to kafka topic successfully');
+              await flushACSCache(msg.id, that.cfg.get('authorization:cache:db-index'), commandTopic, that.logger);
             }
           }
         }
+      } else if (eventName === 'userDeleted') {
+        that.logger.info('Evicting HR scope for Subject', { id: msg.id });
+        await that.accessController.evictHRScopes(msg.id); // flush HR scopes
+        // delete ACS cache
+        await flushACSCache(msg.id, that.cfg.get('authorization:cache:db-index'), commandTopic, that.logger);
       } else {
         await that.commandInterface.command(msg, context);
       }

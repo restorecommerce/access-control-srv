@@ -140,6 +140,9 @@
       "userModified": {
         "messageObject": "io.restorecommerce.user.User"
       },
+      "userDeleted": {
+        "messageObject": "io.restorecommerce.user.Deleted"
+      },
       "topics": {
         "policy.resource": {
           "topic": "io.restorecommerce.policies.resource",
@@ -186,7 +189,8 @@
         "users.resource": {
           "topic": "io.restorecommerce.users.resource",
           "events": [
-            "userModified"
+            "userModified",
+            "userDeleted"
           ]
         }
       }

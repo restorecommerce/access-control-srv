@@ -18,6 +18,8 @@ import {
   UserServiceClient
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
 import { PolicySetWithCombinables, PolicyWithCombinables } from './interfaces';
+import { RoleAssociation } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+import { Topic } from '@restorecommerce/kafka-client';
 
 
 export const formatTarget = (target: any): Target => {
@@ -337,4 +339,83 @@ export const getAllValues = (obj: any, pushedValues: any): any => {
       getAllValues(value, pushedValues);
     }
   }
+};
+
+const nestedAttributesEqual = (redisAttributes, userAttributes) => {
+  if (!userAttributes) {
+    return true;
+  }
+  if (redisAttributes?.length > 0 && userAttributes?.length > 0) {
+    return userAttributes.every((obj) => redisAttributes.some((dbObj => dbObj.value === obj.value)));
+  } else if (redisAttributes?.length != userAttributes?.length) {
+    return false;
+  }
+};
+
+export const compareRoleAssociations = (userRoleAssocs: RoleAssociation[], redisRoleAssocs: RoleAssociation[], logger): boolean => {
+  let roleAssocsModified = false;
+  if (userRoleAssocs?.length != redisRoleAssocs?.length) {
+    roleAssocsModified = true;
+    logger.debug('Role associations length are not equal');
+  } else {
+    // compare each role and its association
+    if (userRoleAssocs?.length > 0 && redisRoleAssocs?.length > 0) {
+      for (let userRoleAssoc of userRoleAssocs) {
+        let found = false;
+        for (let redisRoleAssoc of redisRoleAssocs) {
+          if (redisRoleAssoc.role === userRoleAssoc.role) {
+            if (redisRoleAssoc?.attributes?.length > 0) {
+              for (let redisAttribute of redisRoleAssoc.attributes) {
+                const redisNestedAttributes = redisAttribute.attributes;
+                if (userRoleAssoc?.attributes?.length > 0) {
+                  for (let userAttribute of userRoleAssoc.attributes) {
+                    const userNestedAttributes = userAttribute.attributes;
+                    if (userAttribute.id === redisAttribute.id &&
+                      userAttribute.value === redisAttribute.value &&
+                      nestedAttributesEqual(redisNestedAttributes, userNestedAttributes)) {
+                      found = true;
+                      break;
+                    }
+                  }
+                }
+              }
+            } else {
+              found = true;
+              break;
+            }
+          }
+        }
+        if (!found) {
+          roleAssocsModified = true;
+        }
+        if (roleAssocsModified) {
+          logger.debug('Role associations objects are not equal');
+          break;
+        } else {
+          logger.debug('Role assocations not changed');
+        }
+      }
+    }
+  }
+  return roleAssocsModified;
+};
+
+export const flushACSCache = async (userId: string, db_index, commandTopic: Topic, logger) => {
+  const payload = {
+    data: {
+      db_index,
+      pattern: userId
+    }
+  };
+  const eventObject = {
+    name: 'flush_cache',
+    payload: {}
+  };
+  const eventPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
+  eventObject.payload = {
+    type_url: 'payload',
+    value: eventPayload
+  };
+  await commandTopic.emit('flushCacheCommand', eventObject);
+  logger.info('ACS flush cache command event emitted to kafka topic successfully');
 };

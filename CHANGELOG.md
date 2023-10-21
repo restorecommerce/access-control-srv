@@ -1,4 +1,8 @@
-## 1.2.1 (October 11th, 2023)
+## 1.2.3 (October 11th, 2023)
+
+- on user deletion delete HR scopes and ACS cache
+
+## 1.2.2 (October 11th, 2023)
 
 - fix unit tests (revert the order of attributes match)
 
