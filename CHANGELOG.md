@@ -1,4 +1,4 @@
-## 1.2.3 (October 11th, 2023)
+## 1.2.3 (October 21st, 2023)
 
 - on user deletion delete HR scopes and ACS cache
 
