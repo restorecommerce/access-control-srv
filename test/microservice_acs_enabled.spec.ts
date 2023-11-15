@@ -92,13 +92,13 @@ interface MethodWithOutput {
   output: any;
 };
 
-const PROTO_PATH = 'test/protos/io/restorecommerce/user.proto';
+const PROTO_PATH = 'node_modules/@restorecommerce/protos/io/restorecommerce/user.proto';;
 const PKG_NAME = 'io.restorecommerce.user';
 const SERVICE_NAME = 'UserService';
 
 const pkgDef: grpc.GrpcObject = grpc.loadPackageDefinition(
   proto_loader.loadSync(PROTO_PATH, {
-    includeDirs: ['test/protos'],
+    includeDirs: ['node_modules/@restorecommerce/protos/'],
     keepCase: true,
     longs: String,
     enums: String,

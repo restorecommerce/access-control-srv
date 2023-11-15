@@ -195,7 +195,6 @@ export class Worker {
     await server.start();
 
     this.logger.info('Access control service started correctly!');
-    this.logger.info('Loading resources...');
     await accessControlService.loadPolicies();
 
     const that = this;
