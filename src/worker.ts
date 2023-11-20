@@ -260,7 +260,7 @@ export class Worker {
           if (redisSubject) {
             const redisRoleAssocs = redisSubject.role_associations;
             const redisTokens = redisSubject.tokens;
-            let roleAssocEqual = compareRoleAssociations(updatedRoleAssocs, redisRoleAssocs, that.logger);
+            let roleAssocModified = compareRoleAssociations(updatedRoleAssocs, redisRoleAssocs, that.logger);
             let tokensEqual;
             // for interactive login after logout we receive userModified event
             // with empty tokens, so below check is not to evict cache for this case
@@ -283,7 +283,7 @@ export class Worker {
                 tokensEqual = true;
               }
             }
-            if (!roleAssocEqual || !tokensEqual || (updatedRoleAssocs?.length != redisRoleAssocs?.length)) {
+            if (roleAssocModified || !tokensEqual || (updatedRoleAssocs?.length != redisRoleAssocs?.length)) {
               that.logger.info('Evicting HR scope for Subject', { id: msg.id });
               await that.accessController.evictHRScopes(msg.id); // flush HR scopes
               // TODO use tech user below once ACS check is implemented on chassis-srv for command-interface
