@@ -136,17 +136,9 @@ export class AccessController {
         // if there are multiple entities in the request.target.resources
         // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
         // to ensure there is an exact policy entity match for each of the requested entity
-        if (request?.target?.resources?.length > 0 && exactMatch) {
-          let noOfEntities = 0;
-          const entityURN = this.urns.get('entity');
-          for (let resourceAttribute of request.target.resources) {
-            if (resourceAttribute.id === entityURN) {
-              noOfEntities = +1;
-            }
-          }
-          if (noOfEntities > 1) {
-            exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
-          }
+        const entityURN = this.urns.get('entity');
+        if (exactMatch && request?.target?.resources?.filter(att => att?.id === entityURN)?.length > 1) {
+          exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
         }
 
         for (let [, policyValue] of policySet.combinables) {
@@ -327,17 +319,9 @@ export class AccessController {
         // if there are multiple entities in the request.target.resources
         // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
         // to ensure there is an exact policy entity match for each of the requested entity
-        if (request?.target?.resources?.length > 0 && exactMatch) {
-          let noOfEntities = 0;
-          const entityURN = this.urns.get('entity');
-          for (let resourceAttribute of request.target.resources) {
-            if (resourceAttribute?.id === entityURN) {
-              noOfEntities = noOfEntities + 1;
-            }
-          }
-          if (noOfEntities > 1) {
-            exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
-          }
+        const entityURN = this.urns.get('entity');
+        if (exactMatch && request?.target?.resources?.filter(att => att?.id === entityURN)?.length > 1) {
+          exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
         }
 
         for (let [, policy] of value.combinables) {
