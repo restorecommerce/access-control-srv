@@ -1,3 +1,7 @@
+## 1.2.6 (November 21st, 2023)
+
+- Support for multiple operations in isAllowed
+
 ## 1.2.5 (November 21st, 2023)
 
 - restructure code
