@@ -1,3 +1,7 @@
+## 1.2.4 (November 21st, 2023)
+
+- up deps (for expires_in timestamp changes)
+
 ## 1.2.3 (October 21st, 2023)
 
 - on user deletion delete HR scopes and ACS cache
