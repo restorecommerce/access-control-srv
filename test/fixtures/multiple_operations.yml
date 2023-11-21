@@ -1,0 +1,47 @@
+  policy_sets:
+  - id: policySet
+    name: Global policy set containing 2 policies
+    description: A policy set
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides
+    policies:
+      - id: ExecutePolicy
+        name: Execute Policy
+        description: Policy with two rules targeting two Operations
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        rules:
+          - id: ruleAA1
+            name: Rule AA1
+            descripton: A rule targeting a execute action by a SimpleUser for `mutation.Test1`
+            target:
+              subjects:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:operation
+                  value: mutation.Test1
+              actions:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:execute
+            effect: PERMIT
+          - id: ruleAA2
+            name: Rule AA2
+            descripton: A rule targeting a execute action by a SimpleUser for `mutation.Test2`
+            target:
+              subjects:
+                - id: urn:restorecommerce:acs:names:role
+                  value: SimpleUser
+                - id: urn:restorecommerce:acs:names:roleScopingEntity
+                  value: urn:restorecommerce:acs:model:organization.Organization
+              resources:
+                - id: urn:restorecommerce:acs:names:operation
+                  value: mutation.Test1
+              actions:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:execute
+            effect: PERMIT
+          - id: ruleAA3
+            name: Fallback rule
+            description: Always deny
+            effect: DENY

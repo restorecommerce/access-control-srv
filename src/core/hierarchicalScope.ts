@@ -49,21 +49,21 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
 
   const ctxResources = context.resources || [];
   const reqTarget = request.target;
-  let currentResourceEntity: string;
+  let entityOrOperation: string;
   // iterating through all targeted resources and retrieve relevant owners instances
   for (let attribute of ruleTarget.resources || []) {
     if (attribute?.id == urns.get('entity')) { // resource type found
       logger.debug('Evaluating resource entity match');
-      currentResourceEntity = attribute?.value;
+      entityOrOperation = attribute?.value;
 
       let entitiesMatch = false;
       // iterating request resources to filter all resources of a given type
       for (let requestAttribute of reqTarget.resources || []) {
-        if (requestAttribute?.id == attribute?.id && requestAttribute?.value == currentResourceEntity) {
+        if (requestAttribute?.id == attribute?.id && requestAttribute?.value == entityOrOperation) {
           entitiesMatch = true; // a resource entity that matches the request and the rule's target
         } else if (requestAttribute?.id == attribute?.id) {
           // rule entity, get ruleNS and entityRegexValue for rule
-          const value = currentResourceEntity;
+          const value = entityOrOperation;
           let pattern = value?.substring(value?.lastIndexOf(':') + 1);
           let nsEntityArray = pattern?.split('.');
           // firstElement could be either entity or namespace
@@ -104,7 +104,6 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
           const instanceID = requestAttribute?.value;
           // found resource instance ID, iterating through the context to check if owners entities match the scoping entities
           let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
-          // ctxResource = ctxResource.instance;
           if (ctxResource) {
             ctxResource = ctxResource?.instance;
           } else {
@@ -122,38 +121,33 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
             logger.debug('Resource of targeted entity was not provided in context');
             return false; // resource of targeted entity was not provided in context
           }
-          // entitiesMatch = false;
         }
       }
     } else if (attribute?.id === urns.get('operation')) {
       logger.debug('Evaluating resource operation match');
-      currentResourceEntity = attribute?.value;
+      entityOrOperation = attribute?.value;
       for (let reqAttribute of reqTarget.resources || []) {
         // match Rule resource operation URN and operation name with request resource operation URN and operation name
         if (reqAttribute?.id === attribute?.id && reqAttribute?.value === attribute?.value) {
-          if (ctxResources?.length === 1) {
-            let meta;
-            if (ctxResources[0]?.instance) {
-              meta = ctxResources[0]?.instance?.meta;
-            } else if (ctxResources[0]?.meta) {
-              meta = ctxResources[0].meta;
-            }
-
+          // find context resource based
+          let ctxResource: Resource = _.find(ctxResources, ['id', entityOrOperation]);
+          if (ctxResource) {
+            const meta = ctxResource.meta;
             if (_.isEmpty(meta) || _.isEmpty(meta.owners)) {
-              logger.debug(`Owner information missing for hierarchical scope matching of operation ${attribute.value}, evaluation fails`);
+              logger.debug(`Owners information missing for hierarchical scope matching of entity ${attribute.value}, evaluation fails`);
               return false; // no ownership was passed, evaluation fails
             }
             scopedRoles = updateScopedRoles(meta, scopedRoles, urns, totalScopingEntities);
           } else {
-            logger.debug('Invalid resource passed', { resource: ctxResources });
-            return false;
+            logger.debug('Operation name was not provided in context');
+            return false; // Operation name was not provided in context
           }
         }
       }
     }
   }
 
-  if (_.isNil(currentResourceEntity) || _.isEmpty(currentResourceEntity)) {
+  if (_.isNil(entityOrOperation) || _.isEmpty(entityOrOperation)) {
     logger.debug('No Entity or operation name found');
     return false; // no entity found
   }

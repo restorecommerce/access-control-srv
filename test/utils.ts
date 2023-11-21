@@ -47,13 +47,25 @@ export const buildRequest = (opts: RequestOpts): Request => {
   }
 
   if (opts.actionType === 'urn:restorecommerce:acs:names:action:execute') {
-    resources = resources.concat([
-      {
-        id: 'urn:restorecommerce:acs:names:operation',
-        value: opts.resourceType as string,
-        attributes: []
-      }
-    ]);
+    if (typeof opts.resourceType === 'string') {
+      resources = resources.concat([
+        {
+          id: 'urn:restorecommerce:acs:names:operation',
+          value: opts.resourceType as string,
+          attributes: []
+        }
+      ]);
+    } else {
+      opts.resourceType.forEach((operationName) => {
+        resources = resources.concat([
+          {
+            id: 'urn:restorecommerce:acs:names:operation',
+            value: operationName,
+            attributes: []
+          }
+        ]);
+      });
+    }
   } else {
     if (typeof opts.resourceType === 'string') {
       resources = resources.concat([

@@ -7,7 +7,7 @@ import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
-import {  UserServiceDefinition, UserServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
+import { UserServiceDefinition, UserServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
 import { Request, Response, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 
 const cfg = createServiceConfig(process.cwd() + '/test');
@@ -517,7 +517,7 @@ describe('Testing access control core', () => {
         roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         roleScopingInstance: 'Org1',
         resourceType: 'mutation.executeTestMutation',
-        resourceID: 'TestMutate 1',
+        resourceID: 'mutation.executeTestMutation',
         actionType: 'urn:restorecommerce:acs:names:action:execute',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
@@ -531,7 +531,7 @@ describe('Testing access control core', () => {
         roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         roleScopingInstance: 'Org2',
         resourceType: 'mutation.executeTestMutation',
-        resourceID: 'TestMutate 1',
+        resourceID: 'mutation.executeTestMutation',
         actionType: 'urn:restorecommerce:acs:names:action:execute',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'
@@ -545,7 +545,7 @@ describe('Testing access control core', () => {
         roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         roleScopingInstance: 'Org1',
         resourceType: 'mutation.executeTestMutation',
-        resourceID: 'TestMutate 1',
+        resourceID: 'mutation.executeTestMutation',
         actionType: 'urn:restorecommerce:acs:names:action:execute',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: 'Org1'

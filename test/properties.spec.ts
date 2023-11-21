@@ -141,6 +141,64 @@ describe('testing access control', () => {
   after(async () => {
     await worker.stop();
   });
+
+  describe('testing isAllowed with multiple entities and different properties in each entity', () => {
+    before(async () => {
+      // disable authorization
+      cfg.set('authorization:enabled', false);
+      cfg.set('authorization:enforce', false);
+      updateConfig(cfg);
+      await create('./test/fixtures/multiple_operations.yml');
+    });
+    after(async () => {
+      await truncate();
+    });
+
+    it('should DENY executing multiple Operations for target scope which subject does not have access', async () => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org2',
+        resourceType: ['mutation.Test1', 'mutation.Test2'],
+        resourceID: ['mutation.Test1', 'mutation.Test2'],
+        actionType: 'urn:restorecommerce:acs:names:action:execute',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: ['Org1', 'Org1']
+      });
+      testUtils.marshallRequest(accessRequest);
+
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(Response_Decision.DENY);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+
+    it('should PERMIT executing multiple Operations for target scope which subject has access', async () => {
+      const accessRequest = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: ['mutation.Test1', 'mutation.Test2'],
+        resourceID: ['mutation.Test1', 'mutation.Test2'],
+        actionType: 'urn:restorecommerce:acs:names:action:execute',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: ['Org1', 'Org1']
+      });
+      testUtils.marshallRequest(accessRequest);
+
+      const result = await accessControlService.isAllowed(accessRequest);
+      should.exist(result);
+      should.exist(result.decision);
+      result.decision.should.equal(Response_Decision.PERMIT);
+      result.operation_status.code.should.equal(200);
+      result.operation_status.message.should.equal('success');
+    });
+  });
+
   describe('isAllowed() for single entity', () => {
     before(async () => {
       await create('./test/fixtures/properties.yml');
@@ -868,7 +926,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:read',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -913,7 +971,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:read',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -958,7 +1016,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:modify',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -1003,7 +1061,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:modify',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -1060,7 +1118,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:read',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -1123,7 +1181,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname', 'urn:restorecommerce:acs:model:location.Location#locdescription'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:read',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -1207,7 +1265,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:read',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -1230,7 +1288,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:read',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -1287,7 +1345,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:read',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
@@ -1315,7 +1373,7 @@ describe('testing access control', () => {
         roleScopingInstance: 'Org1',
         resourceType: ['urn:restorecommerce:acs:model:location.Location', 'urn:restorecommerce:acs:model:organization.Organization'],
         resourceProperty: [['urn:restorecommerce:acs:model:location.Location#locid', 'urn:restorecommerce:acs:model:location.Location#locname'],
-          ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
+        ['urn:restorecommerce:acs:model:organization.Organization#orgid', 'urn:restorecommerce:acs:model:organization.Organization#orgname', 'urn:restorecommerce:acs:model:organization.Organization#orgdescription']],
         resourceID: ['Bob', 'Org'],
         actionType: 'urn:restorecommerce:acs:names:action:read',
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
