@@ -1,3 +1,7 @@
+## 1.2.5 (November 21st, 2023)
+
+- restructure code
+
 ## 1.2.4 (November 21st, 2023)
 
 - up deps (for expires_in timestamp changes)

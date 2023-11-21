@@ -6,11 +6,11 @@ import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/
 import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
 import { Resource, ContextWithSubResolved } from './interfaces';
-import { getAllValues } from './utils';
+import { getAllValues, updateScopedRoles } from './utils';
 
 export const checkHierarchicalScope = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
-  const scopedRoles = new Map<string, Map<string, string[]>>(); // <role, <scopingEntity, scopingInstances[]>>
+  let scopedRoles = new Map<string, Map<string, string[]>>(); // <role, <scopingEntity, scopingInstances[]>>
   let role: string;
   const totalScopingEntities: string[] = [];
   const ruleSubject = ruleTarget.subjects || [];
@@ -113,35 +113,11 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
           }
           if (ctxResource) {
             const meta = ctxResource.meta;
-
             if (_.isEmpty(meta) || _.isEmpty(meta.owners)) {
               logger.debug(`Owners information missing for hierarchical scope matching of entity ${attribute.value}, evaluation fails`);
               return false; // no ownership was passed, evaluation fails
             }
-
-            let ownerEntity: string;
-            for (let owner of meta.owners) {
-              if (owner.id == urns.get('ownerEntity')) {
-                if (_.find(totalScopingEntities, e => e == owner.value)) {
-                  ownerEntity = owner.value;
-                  if (owner?.attributes?.length > 0) {
-                    for (let ownerInstObj of owner.attributes) {
-                      if (ownerInstObj.id == urns.get('ownerInstance') && !!ownerEntity) {
-                        for (let [role, entities] of scopedRoles) {
-                          if (entities.has(ownerEntity)) {
-                            const instances = entities.get(ownerEntity);
-                            instances.push(ownerInstObj.value);
-                            entities.set(ownerEntity, instances);
-                            scopedRoles.set(role, entities);
-                          }
-                        }
-                        ownerEntity = null;
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            scopedRoles = updateScopedRoles(meta, scopedRoles, urns, totalScopingEntities);
           } else {
             logger.debug('Resource of targeted entity was not provided in context');
             return false; // resource of targeted entity was not provided in context
@@ -167,29 +143,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               logger.debug(`Owner information missing for hierarchical scope matching of operation ${attribute.value}, evaluation fails`);
               return false; // no ownership was passed, evaluation fails
             }
-            let ownerEntity: string;
-            for (let owner of meta.owners) {
-              if (owner.id == urns.get('ownerEntity')) {
-                if (_.find(totalScopingEntities, e => e == owner.value)) {
-                  ownerEntity = owner.value;
-                  if (owner?.attributes?.length > 0) {
-                    for (let ownerInstObj of owner.attributes) {
-                      if (ownerInstObj.id == urns.get('ownerInstance') && !!ownerEntity) {
-                        for (let [role, entities] of scopedRoles) {
-                          if (entities.has(ownerEntity)) {
-                            const instances = entities.get(ownerEntity);
-                            instances.push(ownerInstObj.value);
-                            entities.set(ownerEntity, instances);
-                            scopedRoles.set(role, entities);
-                          }
-                        }
-                        ownerEntity = null;
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            scopedRoles = updateScopedRoles(meta, scopedRoles, urns, totalScopingEntities);
           } else {
             logger.debug('Invalid resource passed', { resource: ctxResources });
             return false;

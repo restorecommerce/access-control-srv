@@ -154,7 +154,7 @@ export class AccessController {
             || !policy.target) {
 
             const rules: Map<string, Rule> = policy.combinables;
-            this.logger.verbose(`Checking policy ${policy.name}...`);
+            this.logger.verbose(`Checking policy ${policy.name}`);
             // only apply a policy effect if there are no rules
             // combine rules otherwise
             if (rules.size == 0 && !!policy.effect) {
