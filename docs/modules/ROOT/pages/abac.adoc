@@ -146,11 +146,11 @@ that are spcified in the rules that have matched. For example:
 obligations:
   - id: urn:restorecommerce:acs:names:model:entity
     value: ...
-    attribute:
-    - id: urn:restorecommerce:acs:names:obligation:maskedProperty
-      value: urn:restorecommerce:acs:model:user.User#password
-    - id: urn:restorecommerce:acs:names:obligation:maskedProperty
-      value: urn:restorecommerce:acs:model:user.User#roleassociations
+    attributes:
+      - id: urn:restorecommerce:acs:names:obligation:maskedProperty
+        value: urn:restorecommerce:acs:model:user.User#password
+      - id: urn:restorecommerce:acs:names:obligation:maskedProperty
+        value: urn:restorecommerce:acs:model:user.User#roleassociations
 ----
 
 ==== URNs.
@@ -208,11 +208,12 @@ request:
       name: Alice
       role_associations:
         - role: admin
-        attributes: # a list of attributes associated with the role
-          - id: urn:restorecommerce:acs:names:roleScopingEntity
-            value: urn:restorecommerce:model:organization.Organization
-          - id: urn:restorecommerce:acs:names:roleScopeInstance
-            value: OrgA
+          attributes: # a list of attributes associated with the role
+            - id: urn:restorecommerce:acs:names:roleScopingEntity
+              value: urn:restorecommerce:model:organization.Organization
+              attributes:
+                - id: urn:restorecommerce:acs:names:roleScopeInstance
+                  value: OrgA
       hierarchical_scope: # sub-tree of the scoping entity
         - id: orgA
           children:
@@ -222,18 +223,20 @@ request:
         name: Device X
         description: A simple device
         meta:
-        created: <timestamp>
-        modified: <timestamp>
-        modified_by: RandomUser
-        owners:
-          - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-            value: urn:restorecommerce:model:organization.Organization
-          - id: urn:restorecommerce:acs:names:ownerInstance
-            value: OrgB
-          - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-            value: urn:restorecommerce:model:user.User
-          - id: urn:restorecommerce:acs:names:ownerInstance
-            value: RandomUser
+          created: <timestamp>
+          modified: <timestamp>
+          modified_by: RandomUser
+          owners:
+            - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+              value: urn:restorecommerce:model:organization.Organization
+              attributes:
+                - id: urn:restorecommerce:acs:names:ownerInstance
+                  value: OrgB
+            - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+              value: urn:restorecommerce:model:user.User
+              attributes:
+                - id: urn:restorecommerce:acs:names:ownerInstance
+                  value: RandomUser
 ----
 
 Policy set:
@@ -316,8 +319,9 @@ request:
             attributes: # a list of attributes associated with the role
               - id: urn:restorecommerce:acs:names:roleScopingEntity
                 value: urn:restorecommerce:model:organization.Organization
-              - id: urn:restorecommerce:acs:names:roleScopeInstance
-                value: OrgA
+                attributes:
+                  - id: urn:restorecommerce:acs:names:roleScopeInstance
+                    value: OrgA
         hierarchical_scope: # sub-tree of the scoping entity
           - id: orgA
             children:
@@ -381,7 +385,59 @@ policy_sets:
 
 ===== Operation based
 
-A rule using an operation attribute:
+Request and Rule using an operation attribute:
+
+[source,yml]
+----
+request:
+  target:
+    subjects:
+      - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
+        value: Alice
+      - id: urn:restorecommerce:acs:names:roleScopingEntity
+        value: urn:restorecommerce:model:organization.Organization
+      - id: urn:restorecommerce:acs:names:roleScopeInstance
+        value: OrgA
+    resources:
+      - id: urn:restorecommerce:acs:names:operation
+        value: mutation.orgDelete
+    actions:
+      - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+        value: urn:restorecommerce:acs:names:action:execute
+  context:
+    subject:
+      id: Alice
+      name: Alice
+      role_associations:
+        - role: admin
+          attributes: # a list of attributes associated with the role
+            - id: urn:restorecommerce:acs:names:roleScopingEntity
+              value: urn:restorecommerce:model:organization.Organization
+            attributes:
+              - id: urn:restorecommerce:acs:names:roleScopeInstance
+                value: OrgA
+      hierarchical_scope: # sub-tree of the scoping entity
+        - id: orgA
+          children:
+            - id: orgB
+    resources:
+      - id: mutation.orgDelete
+        meta:
+        created: <timestamp>
+        modified: <timestamp>
+        modified_by: RandomUser
+        owners:
+          - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+            value: urn:restorecommerce:model:organization.Organization
+            attributes:
+              - id: urn:restorecommerce:acs:names:ownerInstance
+                value: OrgA
+          - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+            value: urn:restorecommerce:model:user.User
+            attributes:
+              - id: urn:restorecommerce:acs:names:ownerInstance
+                value: RandomUser
+----
 
 [source,yml]
 ----
