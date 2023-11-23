@@ -41,7 +41,7 @@
     "@alenon/grpc-mock-server": "^3.1.7",
     "@grpc/proto-loader": "^0.7.10",
     "@types/lodash": "^4.14.202",
-    "@types/mocha": "^10.0.5",
+    "@types/mocha": "^10.0.6",
     "@types/nock": "^11.1.0",
     "@types/node": "^20.9.3",
     "@typescript-eslint/eslint-plugin": "^6.12.0",
