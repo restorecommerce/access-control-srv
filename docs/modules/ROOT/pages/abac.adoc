@@ -492,6 +492,9 @@ The URNs enumerated here are understood and used by the ACS.
 * `urn:restorecommerce:acs:names:ownerInstance` Specify an actual instance of an owner entity
 * `urn:restorecommerce:acs:names:model:entity` An entity (type)
 * `urn:restorecommerce:acs:names:model:property` A property of an entity
+* `urn:restorecommerce:acs:names:network:src:domain` A source domain in the WWW
+* `urn:restorecommerce:acs:names:network:src:ipv4Range` An IPv4 source address range
+* `urn:restorecommerce:acs:names:network:src:ipv6Range` An IPv6 source address range
 * `urn:restorecommerce:acs:names:operation` An operation (e. g. a mutation or query in a GraphQL API or a gRPC method)
 * `urn:restorecommerce:acs:names:action:read` Read access
 * `urn:restorecommerce:acs:names:action:modify` Modify (update) access
