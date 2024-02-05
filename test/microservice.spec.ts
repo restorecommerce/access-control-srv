@@ -5,26 +5,20 @@ import * as testUtils from './utils';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import { updateConfig } from '@restorecommerce/acs-client';
-import { createServiceConfig } from '@restorecommerce/service-config';
-import { createLogger } from '@restorecommerce/logger';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
 import { RuleServiceDefinition, RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
 import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { PolicySetWithCombinables, PolicyWithCombinables } from '../src/core/interfaces';
+import { cfg, logger } from './utils';
 
-let cfg: any;
-let logger;
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
 let accessControlService: AccessControlServiceClient;
 let rules, policies, policySets;
 
 const setupService = async (): Promise<void> => {
-  cfg = createServiceConfig(process.cwd() + '/test');
-  logger = createLogger(cfg.get('logger'));
-
   worker = new Worker();
   await worker.start(cfg, logger);
 

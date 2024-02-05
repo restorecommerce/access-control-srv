@@ -8,19 +8,15 @@ import { GrpcMockServer, ProtoUtils } from '@alenon/grpc-mock-server';
 import * as proto_loader from '@grpc/proto-loader';
 import * as grpc from '@grpc/grpc-js';
 import { Topic, Events } from '@restorecommerce/kafka-client';
-import { createServiceConfig } from '@restorecommerce/service-config';
-import { createLogger } from '@restorecommerce/logger';
 import { RuleServiceDefinition, RuleServiceClient, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
 import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { AccessControlServiceDefinition, AccessControlServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { AccessControlServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
+import { cfg, logger } from './utils';
 
-let cfg: any;
-let logger;
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
-let accessControlService: AccessControlServiceClient;
 let rules, policies, policySets;
 let userTopic: Topic;
 
@@ -92,7 +88,7 @@ interface MethodWithOutput {
   output: any;
 };
 
-const PROTO_PATH = 'node_modules/@restorecommerce/protos/io/restorecommerce/user.proto';;
+const PROTO_PATH = 'io/restorecommerce/user.proto';
 const PKG_NAME = 'io.restorecommerce.user';
 const SERVICE_NAME = 'UserService';
 
@@ -217,9 +213,6 @@ const startGrpcMockServer = async (methodWithOutput: MethodWithOutput[]) => {
 };
 
 const setupService = async (): Promise<void> => {
-  cfg = createServiceConfig(process.cwd() + '/test');
-  logger = createLogger(cfg.get('logger'));
-
   worker = new Worker();
   await worker.start(cfg, logger);
 
@@ -251,11 +244,13 @@ const load = async (policiesFile: string): Promise<void> => {
   policies = marshalled.policies;
   policySets = marshalled.policySets;
 
+  /*
   const acsCfg = cfg.get('client:acs-srv');
-  accessControlService = createClient({
+  createClient({
     ...acsCfg,
     logger
   }, AccessControlServiceDefinition, createChannel(acsCfg.address));
+  */
 };
 
 const truncate = async (): Promise<void> => {
@@ -347,27 +342,27 @@ describe('testing microservice', () => {
         });
         should.exist(result_policySet);
         should.exist(result_policySet.items);
-        result_policySet.items.should.be.length(policySets.length);
-        result_policySet.operation_status.code.should.equal(200);
-        result_policySet.operation_status.message.should.equal('success');
+        should.equal(result_policySet.items?.length, policySets.length);
+        should.equal(result_policySet.operation_status?.code, 200);
+        should.equal(result_policySet.operation_status?.message, 'success');
         const result_policy = await policyService.create({
           items: policies,
           subject
         });
         should.exist(result_policy);
         should.exist(result_policy.items);
-        result_policy.items.should.be.length(policies.length);
-        result_policy.operation_status.code.should.equal(200);
-        result_policy.operation_status.message.should.equal('success');
+        should.equal(result_policy.items?.length, policies.length);
+        should.equal(result_policy.operation_status?.code, 200);
+        should.equal(result_policy.operation_status?.message, 'success');
         const result_rule = await ruleService.create({
           items: rules,
           subject
         });
         should.exist(result_rule);
         should.exist(result_rule.items);
-        result_rule.items.should.be.length(rules.length);
-        result_rule.operation_status.code.should.equal(200);
-        result_rule.operation_status.message.should.equal('success');
+        should.equal(result_rule.items?.length, rules.length);
+        should.equal(result_rule.operation_status?.code, 200);
+        should.equal(result_rule.operation_status?.message, 'success');
       });
 
       it('should allow to create test rule with ACS enabled with valid scope in subject', async () => {
@@ -382,9 +377,9 @@ describe('testing microservice', () => {
         });
         should.exist(result);
         should.exist(result.items);
-        result.items.should.be.length(testRule.length);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        should.equal(result.items?.length, testRule.length);
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
       });
 
       it('should PERMIT to create 2 test rule with ACS enabled with valid scope in subject and delete them', async () => {
@@ -444,14 +439,19 @@ describe('testing microservice', () => {
         });
         should.exist(result);
         should.exist(result.items);
-        result.items.should.be.length(testRule2.length);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
-        const deleteResponse = await ruleService.delete({ ids: [result.items[0].payload.id, result.items[1].payload.id], subject });
-        deleteResponse.status[0].id.should.equal(result.items[0].payload.id);
-        deleteResponse.status[1].id.should.equal(result.items[1].payload.id);
-        deleteResponse.operation_status.code.should.equal(200);
-        deleteResponse.operation_status.message.should.equal('success');
+        should.equal(result.items?.length, testRule2.length);
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
+        const deleteResponse = await ruleService.delete(
+          { 
+            ids: result.items?.map(i => i.payload?.id ?? ''),
+            subject
+          }
+        );
+        should.equal(deleteResponse.status?.[0].id, result.items?.[0].payload?.id);
+        should.equal(deleteResponse.status?.[1].id, result.items?.[1].payload?.id);
+        should.equal(deleteResponse.operation_status?.code, 200);
+        should.equal(deleteResponse.operation_status?.message, 'success');
       });
 
       it('should DENY to create 2 test rule with ACS enabled with valid scope in subject and valid owner for 1st instance and invalid owner for 2nd instance', async () => {
@@ -510,8 +510,11 @@ describe('testing microservice', () => {
           subject
         });
         should.not.exist(result.items);
-        result.operation_status.code.should.equal(403);
-        result.operation_status.message.should.equal('Access not allowed for request with subject:admin_user_id, resource:rule, action:CREATE, target_scope:orgA; the response was DENY');
+        should.equal(result.operation_status?.code, 403);
+        should.equal(
+          result.operation_status?.message,
+          'Access not allowed for request with subject:admin_user_id, resource:rule, action:CREATE, target_scope:orgA; the response was DENY'
+        );
       });
 
       it('should throw an error when trying to create rule with invalid subject scope', async () => {
@@ -537,8 +540,11 @@ describe('testing microservice', () => {
         });
         should.exist(result);
         should.not.exist(result.items);
-        result.operation_status.code.should.equal(403);
-        result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:CREATE, target_scope:orgC; the response was DENY');
+        should.equal(result.operation_status?.code, 403);
+        should.equal(
+          result.operation_status?.message,
+          'Access not allowed for request with subject:user_id, resource:rule, action:CREATE, target_scope:orgC; the response was DENY'
+        );
       });
 
       it('should allow to update rule with valid subject scope', async () => {
@@ -560,9 +566,9 @@ describe('testing microservice', () => {
           subject
         });
         should.exist(result.items);
-        result.items[0].payload.name.should.equal('modified test rule for test entitiy');
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        should.equal(result.items?.[0]?.payload?.name, 'modified test rule for test entitiy');
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
       });
 
       it('should not allow to update rule with invalid subject scope', async () => {
@@ -583,8 +589,11 @@ describe('testing microservice', () => {
           subject
         });
         should.not.exist(result.items);
-        result.operation_status.code.should.equal(403);
-        result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY');
+        should.equal(result.operation_status?.code, 403);
+        should.equal(
+          result.operation_status?.message,
+          'Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY'
+        );
       });
 
       it('should allow to upsert rule with valid subject scope', async () => {
@@ -605,9 +614,9 @@ describe('testing microservice', () => {
           subject
         });
         should.exist(result.items);
-        result.items[0].payload.name.should.equal('upserted test rule for test entitiy');
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        should.equal(result.items?.[0]?.payload?.name, 'upserted test rule for test entitiy');
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
       });
 
       it('should not allow to upsert rule with invalid subject scope', async () => {
@@ -629,8 +638,11 @@ describe('testing microservice', () => {
           subject
         });
         should.not.exist(result.items);
-        result.operation_status.code.should.equal(403);
-        result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY');
+        should.equal(result.operation_status?.code, 403);
+        should.equal(
+          result.operation_status?.message,
+          'Access not allowed for request with subject:user_id, resource:rule, action:MODIFY, target_scope:orgC; the response was DENY'
+        );
       });
 
       it('should not allow to delete rule with invalid subject scope', async () => {
@@ -642,8 +654,11 @@ describe('testing microservice', () => {
           subject
         });
         should.not.exist(result.status);
-        result.operation_status.code.should.equal(403);
-        result.operation_status.message.should.equal('Access not allowed for request with subject:user_id, resource:rule, action:DELETE, target_scope:orgC; the response was DENY');
+        should.equal(result.operation_status?.code, 403);
+        should.equal(
+          result.operation_status?.message,
+          'Access not allowed for request with subject:user_id, resource:rule, action:DELETE, target_scope:orgC; the response was DENY'
+        );
       });
 
       it('should allow to delete rule with valid subject scope', async () => {
@@ -662,11 +677,11 @@ describe('testing microservice', () => {
           ids: [testRule[0].id],
           subject
         });
-        result.status[0].id.should.equal('test_rule_id');
-        result.status[0].code.should.equal(200);
-        result.status[0].message.should.equal('success');
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        should.equal(result.status?.[0].id, 'test_rule_id');
+        should.equal(result.status?.[0].code, 200);
+        should.equal(result.status?.[0].message, 'success');
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
       });
 
       // Create with two different scopes assigned for same role
@@ -720,10 +735,10 @@ describe('testing microservice', () => {
           subject: adminSubject
         });
         // validate result
-        result.items.should.be.length(1);
-        result.items[0].payload.name.should.equal('1 test rule for test entitiy');
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        should.equal(result.items?.length, 1);
+        should.equal(result.items?.[0]?.payload?.name, '1 test rule for test entitiy');
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
 
         let testRule2 = [{
           name: '2 test rule for test entitiy',
@@ -757,10 +772,10 @@ describe('testing microservice', () => {
           subject: adminSubject
         });
         // validate result2
-        result2.items.should.be.length(1);
-        result2.items[0].payload.name.should.equal('2 test rule for test entitiy');
-        result2.operation_status.code.should.equal(200);
-        result2.operation_status.message.should.equal('success');
+        should.equal(result2.items?.length, 1);
+        should.equal(result2.items?.[0]?.payload?.name, '2 test rule for test entitiy');
+        should.equal(result2.operation_status?.code, 200);
+        should.equal(result2.operation_status?.message, 'success');
       });
     });
   });

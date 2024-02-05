@@ -42,7 +42,7 @@ export class GraphQLAdapter implements ResourceAdapter {
           } else if (resourceAttribute.id == 'urn:oasis:names:tc:xacml:1.0:resource:resource-id' && match) {
             const resourceID = resourceAttribute.value;
             // when request is recived in accessControlService request.context is unmarshalled with unmarshallContext()
-            const resource = _.find((request.context as any).resources, r => r.id == resourceID);
+            const resource = _.find((request.context as any).resources ?? [], r => r.id == resourceID);
             filter.value = _.get(resource, property);
 
             queryFilters.push(filter);

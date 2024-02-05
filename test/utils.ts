@@ -4,10 +4,15 @@ import * as fs from 'fs';
 import * as core from '../src/core';
 import { formatTarget } from '../src/core/utils';
 export { formatTarget };
+import { createLogger } from '@restorecommerce/logger';
+import { createServiceConfig } from '@restorecommerce/service-config';
 import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
 import { Rule, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import { PolicyWithCombinables, PolicySetWithCombinables } from '../src/core/interfaces';
+
+export const cfg = createServiceConfig(process.cwd() + '/test');
+export const logger = createLogger(cfg.get('logger'));
 
 /**
  *

@@ -3,16 +3,13 @@ import nock from 'nock';
 import * as should from 'should';
 import * as core from '../src/core';
 import * as testUtils from './utils';
-import { createServiceConfig } from '@restorecommerce/service-config';
-import { createLogger } from '@restorecommerce/logger';
 import { Events } from '@restorecommerce/kafka-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
-import { UserServiceDefinition, UserServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
+import { UserServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
 import { Request, Response, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { cfg, logger } from './utils';
 
-const cfg = createServiceConfig(process.cwd() + '/test');
 const acConfig = require('./access_control.json');
-const logger = createLogger(cfg.get('logger'));
 
 let ac: core.AccessController;
 let request: Request;
@@ -23,14 +20,11 @@ const prepare = async (filepath: string): Promise<void> => {
   const events = new Events(kafkaConfig, logger); // Kafka
   await events.start();
   const userTopic = await events.topic(kafkaConfig.topics['user'].topic);
-  let userService: UserServiceClient;
   const grpcIDSConfig = cfg.get('client:user');
-  if (grpcIDSConfig) {
-    userService = createClient({
-      ...grpcIDSConfig,
-      logger
-    }, UserServiceDefinition, createChannel(grpcIDSConfig.address));
-  }
+  const userService = createClient({
+    ...grpcIDSConfig,
+    logger
+  }, UserServiceDefinition, createChannel(grpcIDSConfig.address));
   ac = new core.AccessController(logger, acConfig, userTopic, cfg, userService);
   testUtils.populate(ac, filepath);
 };
@@ -39,11 +33,11 @@ const requestAndValidate = async (ac: core.AccessController, request: Request, e
   const response: Response = await ac.isAllowed(request);
   should.exist(response);
   should.exist(response.decision);
-  const decision: Response_Decision = response.decision;
-  decision.should.equal(expectedDecision);
+  const decision = response.decision;
+  should.equal(decision, expectedDecision);
   if (!invalidContext) {
-    response.operation_status.code.should.equal(200);
-    response.operation_status.message.should.equal('success');
+    should.equal(response.operation_status?.code, 200);
+    should.equal(response.operation_status?.message, 'success');
   }
 };
 
@@ -412,7 +406,7 @@ describe('Testing access control core', () => {
         resourceID: 'Alice',
         actionType: 'urn:restorecommerce:acs:names:action:modify'
       });
-      request.context = null;
+      request.context = undefined;
 
       await requestAndValidate(ac, request, Response_Decision.DENY, true);
     });
@@ -623,7 +617,7 @@ describe('Testing access control core', () => {
       });
       (request.context as any).resources[0].address = 'Address 1';
       await requestAndValidate(ac, request, Response_Decision.PERMIT);
-      scope.isDone().should.equal(true);
+      should.equal(scope.isDone(), true);
     });
 
     it('should DENY based on query result', async () => {
@@ -657,7 +651,7 @@ describe('Testing access control core', () => {
       });
       (request.context as any).resources[0].address = 'Address 1';
       await requestAndValidate(ac, request, Response_Decision.DENY);
-      scope.isDone().should.equal(true);
+      should.equal(scope.isDone(), true);
     });
   });
 });

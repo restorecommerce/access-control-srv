@@ -544,9 +544,9 @@ export class AccessController {
         }
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
-        let maskPropExists = maskPropertyList.find((maskObj) => maskObj?.value === requestEntityURN);
-        let maskProperty;
+        const maskPropExists = maskPropertyList?.find((maskObj) => maskObj?.value === requestEntityURN);
         // for masking if no request properties are specified
+        let maskProperty;
         if (requestPropertiesExist && requestAttribute?.value) {
           maskProperty = requestAttribute?.value;
         } else if (!requestPropertiesExist) {
@@ -569,7 +569,7 @@ export class AccessController {
         && entityMatch && rulePropertiesExist && (propertyMatch || !requestPropertiesExist)) {
         // since there can be multiple rules for same entity below check is to find if maskPropertyList already
         // contains the entityValue from previous matching rule
-        const maskPropExists = maskPropertyList.find((maskObj) => maskObj.value === requestEntityURN);
+        const maskPropExists = maskPropertyList?.find((maskObj) => maskObj.value === requestEntityURN);
         let maskProperty;
         // for masking if no request properties are specified
         if (requestPropertiesExist && requestAttribute?.value) {
@@ -630,7 +630,7 @@ export class AccessController {
     for (let attribute of ruleAttributes || []) {
       const id = attribute?.id;
       const value = attribute?.value;
-      const match = !!requestAttributes.find((requestAttribute) => {
+      const match = !!requestAttributes?.find((requestAttribute) => {
         // return requestAttribute.id == id && requestAttribute.value == value;
         if (requestAttribute?.id == id && requestAttribute?.value == value) {
           return true;
@@ -678,14 +678,14 @@ export class AccessController {
     return await this.redisClient.set(key, value);
   }
 
-  async  createHRScope(context: ContextWithSubResolved): Promise<ContextWithSubResolved> {
+  async createHRScope(context: ContextWithSubResolved): Promise<ContextWithSubResolved> {
     if (context && !context.subject) {
       context.subject = {};
     }
     const token = context.subject.token;
     const subjectID = context.subject.id;
     const subjectTokens = context.subject.tokens;
-    const tokenFound = _.find(subjectTokens, { token });
+    const tokenFound = _.find(subjectTokens ?? [], { token });
     let redisHRScopesKey;
     if (tokenFound?.interactive) {
       redisHRScopesKey = `cache:${subjectID}:hrScopes`;
@@ -790,7 +790,7 @@ export class AccessController {
       // the context subject roleassociations and then update matches to true
       if (context?.subject?.role_associations) {
         let targetScopingInstance;
-        requestSubAttributes.find((obj) => {
+        requestSubAttributes?.find((obj) => {
           if (obj?.id === scopingEntityURN && obj?.attributes?.length > 0) {
             obj?.attributes?.filter((roleScopeInstObj) => {
               if (roleScopeInstObj?.id === scopingInstanceURN) {

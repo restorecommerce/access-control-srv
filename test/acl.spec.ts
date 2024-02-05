@@ -5,24 +5,19 @@ import * as testUtils from './utils';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import { updateConfig } from '@restorecommerce/acs-client';
-import { createServiceConfig } from '@restorecommerce/service-config';
-import { createLogger } from '@restorecommerce/logger';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
 import { RuleServiceDefinition, RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
 import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
 import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { cfg, logger } from './utils';
 
-let cfg: any;
-let logger;
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
 let accessControlService: AccessControlServiceClient;
 let rules, policies, policySets;
 
 const setupService = async (): Promise<void> => {
-  cfg = createServiceConfig(process.cwd() + '/test');
-  logger = createLogger(cfg.get('logger'));
 
   worker = new Worker();
   await worker.start(cfg, logger);
@@ -131,7 +126,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should DENY creating bucket resource with invalid ACL instances', async () => {
@@ -152,7 +147,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.DENY);
+        should.equal(result.decision, Response_Decision.DENY);
       });
 
       it('should PERMIT creating bucket resource with SubjectID ACL instances', async () => {
@@ -173,7 +168,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should PERMIT creating bucket resource with SubjectID ACL instances and valid Org Instances', async () => {
@@ -195,7 +190,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should DENY creating bucket resource with SubjectID ACL instances and Invalid Org Instances', async () => {
@@ -217,7 +212,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.DENY);
+        should.equal(result.decision, Response_Decision.DENY);
       });
 
       it('should PERMIT modifying bucket resource with reduced valid ACL instances', async () => {
@@ -238,7 +233,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should PERMIT modifying bucket resource with valid ACL and subject instances', async () => {
@@ -260,7 +255,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should DENY modifying bucket resource with invalid ACL instances', async () => {
@@ -281,7 +276,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.DENY);
+        should.equal(result.decision, Response_Decision.DENY);
       });
 
       it('should PERMIT deleting bucket resource with valid ACL instances', async () => {
@@ -302,7 +297,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should PERMIT deleting bucket resource with valid subject instance', async () => {
@@ -324,7 +319,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should DENY deleting bucket resource with no valid scope or subject id in ACL', async () => {
@@ -346,7 +341,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.DENY);
+        should.equal(result.decision, Response_Decision.DENY);
       });
 
       it('should PERMIT reading bucket resource by SimpleUser role (valid ACL List)', async () => {
@@ -367,7 +362,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should PERMIT reading bucket resource by SimpleUser role (ACL list contains valid subjectID)', async () => {
@@ -389,7 +384,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
+        should.equal(result.decision, Response_Decision.PERMIT);
       });
 
       it('should DENY reading bucket resource by SimpleUser role (ACL list does not contain target role scope)', async () => {
@@ -410,7 +405,7 @@ describe('testing ACL for microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.DENY);
+        should.equal(result.decision, Response_Decision.DENY);
       });
     });
   });

@@ -103,12 +103,12 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
         else if (requestAttribute?.id == urns?.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
           const instanceID = requestAttribute?.value;
           // found resource instance ID, iterating through the context to check if owners entities match the scoping entities
-          let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
+          let ctxResource: Resource = _.find(ctxResources ?? [], ['instance.id', instanceID]);
           if (ctxResource) {
             ctxResource = ctxResource?.instance;
           } else {
             // look up by ID
-            ctxResource = _.find(ctxResources, ['id', instanceID]);
+            ctxResource = _.find(ctxResources ?? [], ['id', instanceID]);
           }
           if (ctxResource) {
             const meta = ctxResource.meta;
@@ -130,7 +130,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
         // match Rule resource operation URN and operation name with request resource operation URN and operation name
         if (reqAttribute?.id === attribute?.id && reqAttribute?.value === attribute?.value) {
           // find context resource based
-          let ctxResource: Resource = _.find(ctxResources, ['id', entityOrOperation]);
+          let ctxResource: Resource = _.find(ctxResources ?? [], ['id', entityOrOperation]);
           if (ctxResource) {
             const meta = ctxResource.meta;
             if (_.isEmpty(meta) || _.isEmpty(meta.owners)) {
