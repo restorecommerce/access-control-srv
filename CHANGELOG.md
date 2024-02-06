@@ -1,3 +1,8 @@
+### 1.2.9 (February 6th, 2024)
+
+- bump deps
+- fix tests
+
 ### 1.2.8 (November 26th, 2023)
 
 - removed deprecated method in chassis-srv (collection.load)
