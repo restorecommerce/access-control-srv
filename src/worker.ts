@@ -45,7 +45,7 @@ import {
 import {
   HealthDefinition
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/health/v1/health.js';
-import { BindConfig } from '@restorecommerce/chassis-srv/lib/microservice/transport/provider/grpc.js';
+import { BindConfig } from '@restorecommerce/chassis-srv/lib/microservice/transport/provider/grpc/index.js';
 import { compareRoleAssociations, flushACSCache } from './core/utils.js';
 
 const capitalized = (collectionName: string): string => {

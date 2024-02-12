@@ -13,7 +13,8 @@ import {
   UserServiceClient
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user.js';
 
-import { ResourceAdapter, GraphQLAdapter } from './resource_adapters.js';
+import { ResourceAdapter } from './resource_adapters/adapter.js';
+import { GraphQLAdapter } from './resource_adapters/gql.js';
 import * as errors from './errors.js';
 import { checkHierarchicalScope } from './hierarchicalScope.js';
 import { Logger } from 'winston';

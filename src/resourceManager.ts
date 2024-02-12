@@ -1,7 +1,7 @@
 import * as _ from 'lodash-es';
 import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce/resource-base-interface';
 import { Topic, Events } from '@restorecommerce/kafka-client';
-import * as core from './core.js';
+import { AccessController } from './core/accessController';
 import { createMetadata, checkAccessRequest } from './core/utils.js';
 import { AuthZAction, Operation, ACSAuthZ, DecisionResponse, PolicySetRQResponse } from '@restorecommerce/acs-client';
 import { RedisClientType } from 'redis';
@@ -68,7 +68,7 @@ const makeFilter = (ids: string[]): any => {
   }];
 };
 
-let _accessController: core.AccessController;
+let _accessController: AccessController;
 let policySetService: PolicySetService,
   policyService: PolicyService,
   ruleService: RuleService;
@@ -930,7 +930,7 @@ export class ResourceManager {
   authZ: any;
 
   constructor(cfg: any, logger: Logger, events: Events, db: any,
-    accessController: core.AccessController, redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
+    accessController: AccessController, redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
     _accessController = accessController;
     this.cfg = cfg;
     this.logger = logger;

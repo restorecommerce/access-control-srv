@@ -1,12 +1,11 @@
 import * as _ from 'lodash-es';
 import { Server } from '@restorecommerce/chassis-srv';
 import { Events } from '@restorecommerce/kafka-client';
-
 import { CommandInterface } from '@restorecommerce/chassis-srv';
 import { ResourceManager } from './resourceManager.js';
 import { RedisClientType } from 'redis';
-
-import * as core from './core.js';
+import { AccessController } from './core/accessController.js'
+import { loadPoliciesFromDoc } from './core/utils.js'
 import { Logger } from 'winston';
 import {
   AccessControlServiceImplementation, ReverseQuery,
@@ -21,8 +20,8 @@ export class AccessControlService implements AccessControlServiceImplementation 
   cfg: any;
   logger: Logger;
   resourceManager: ResourceManager;
-  accessController: core.AccessController;
-  constructor(cfg: any, logger: Logger, resourceManager: ResourceManager, accessController: core.AccessController) {
+  accessController: AccessController;
+  constructor(cfg: any, logger: Logger, resourceManager: ResourceManager, accessController: AccessController) {
     this.cfg = cfg;
     this.logger = logger;
     this.resourceManager = resourceManager;
@@ -42,7 +41,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
     switch (loadType) {
       case 'local':
         const path: string = policiesCfg?.path;
-        this.accessController = await core?.utils?.loadPoliciesFromDoc(this.accessController, path);
+        this.accessController = await loadPoliciesFromDoc(this.accessController, path);
         this.logger.silly('Policies from local files loaded');
         break;
       case 'database':
