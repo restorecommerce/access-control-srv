@@ -6,6 +6,7 @@ module.exports = {
     ],
   },
   rules: {
-    '@typescript-eslint/consistent-type-imports': 0
+    '@typescript-eslint/consistent-type-imports': 0,
+    '@typescript-eslint/consistent-type-exports': 0
   }
 };

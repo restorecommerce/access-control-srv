@@ -4,8 +4,8 @@ import { Events } from '@restorecommerce/kafka-client';
 import { CommandInterface } from '@restorecommerce/chassis-srv';
 import { ResourceManager } from './resourceManager.js';
 import { RedisClientType } from 'redis';
-import { AccessController } from './core/accessController.js'
-import { loadPoliciesFromDoc } from './core/utils.js'
+import { AccessController } from './core/accessController.js';
+import { loadPoliciesFromDoc } from './core/utils.js';
 import { Logger } from 'winston';
 import {
   AccessControlServiceImplementation, ReverseQuery,

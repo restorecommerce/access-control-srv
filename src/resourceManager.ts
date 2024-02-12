@@ -1,7 +1,7 @@
 import * as _ from 'lodash-es';
 import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce/resource-base-interface';
 import { Topic, Events } from '@restorecommerce/kafka-client';
-import { AccessController } from './core/accessController';
+import { AccessController } from './core/accessController.js';
 import { createMetadata, checkAccessRequest } from './core/utils.js';
 import { AuthZAction, Operation, ACSAuthZ, DecisionResponse, PolicySetRQResponse } from '@restorecommerce/acs-client';
 import { RedisClientType } from 'redis';
