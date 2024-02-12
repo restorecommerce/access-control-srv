@@ -2,17 +2,17 @@
 
 import * as mocha from 'mocha';
 import * as should from 'should';
-import { Worker } from '../src/worker';
-import * as testUtils from './utils';
+import { Worker } from '../src/worker.js';
+import * as testUtils from './utils.js';
 import * as yaml from 'js-yaml';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { updateConfig } from '@restorecommerce/acs-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
-import { RuleServiceDefinition, RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
-import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { cfg, logger } from './utils';
+import { RuleServiceDefinition, RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
+import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
+import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
+import { cfg, logger } from './utils.js';
 
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;

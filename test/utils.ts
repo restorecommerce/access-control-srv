@@ -1,15 +1,15 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import * as yaml from 'js-yaml';
-import * as fs from 'fs';
-import * as core from '../src/core';
-import { formatTarget } from '../src/core/utils';
+import * as fs from 'node:fs';
+import { AccessController } from '../src/core/accessController.js';
+import { formatTarget } from '../src/core/utils.js';
 export { formatTarget };
 import { createLogger } from '@restorecommerce/logger';
 import { createServiceConfig } from '@restorecommerce/service-config';
-import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
-import { Rule, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { PolicyWithCombinables, PolicySetWithCombinables } from '../src/core/interfaces';
+import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
+import { Rule, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { PolicyWithCombinables, PolicySetWithCombinables } from '../src/core/interfaces.js';
 
 export const cfg = createServiceConfig(process.cwd() + '/test');
 export const logger = createLogger(cfg.get('logger'));
@@ -375,7 +375,7 @@ export const marshallRequest = (request: Request): void => {
 };
 
 
-export const populate = (accessController: core.AccessController, filepath: string): core.AccessController => {
+export const populate = (accessController: AccessController, filepath: string): AccessController => {
   const rawObject = yaml.load(fs.readFileSync(filepath));
   const policySets = rawObject.policy_sets;
 

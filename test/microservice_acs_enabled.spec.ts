@@ -1,6 +1,6 @@
 import * as should from 'should';
-import { Worker } from '../src/worker';
-import * as testUtils from './utils';
+import { Worker } from '../src/worker.js';
+import * as testUtils from './utils.js';
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import { updateConfig } from '@restorecommerce/acs-client';
@@ -8,12 +8,11 @@ import { GrpcMockServer, ProtoUtils } from '@alenon/grpc-mock-server';
 import * as proto_loader from '@grpc/proto-loader';
 import * as grpc from '@grpc/grpc-js';
 import { Topic, Events } from '@restorecommerce/kafka-client';
-import { RuleServiceDefinition, RuleServiceClient, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
-import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { AccessControlServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { RuleServiceDefinition, RuleServiceClient, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
+import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
-import { cfg, logger } from './utils';
+import { cfg, logger } from './utils.js';
 
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;

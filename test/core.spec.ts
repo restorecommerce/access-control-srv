@@ -1,17 +1,17 @@
 import * as mocha from 'mocha';
 import nock from 'nock';
 import * as should from 'should';
-import * as core from '../src/core';
-import * as testUtils from './utils';
+import { AccessController } from '../src/core/accessController.js';
+import * as testUtils from './utils.js';
 import { Events } from '@restorecommerce/kafka-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
-import { UserServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
-import { Request, Response, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { cfg, logger } from './utils';
+import { UserServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user.js';
+import { Request, Response, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
+import { cfg, logger } from './utils.js';
 
 const acConfig = require('./access_control.json');
 
-let ac: core.AccessController;
+let ac: AccessController;
 let request: Request;
 
 // Helper functions
@@ -25,11 +25,11 @@ const prepare = async (filepath: string): Promise<void> => {
     ...grpcIDSConfig,
     logger
   }, UserServiceDefinition, createChannel(grpcIDSConfig.address));
-  ac = new core.AccessController(logger, acConfig, userTopic, cfg, userService);
+  ac = new AccessController(logger, acConfig, userTopic, cfg, userService);
   testUtils.populate(ac, filepath);
 };
 
-const requestAndValidate = async (ac: core.AccessController, request: Request, expectedDecision: Response_Decision, invalidContext?: boolean): Promise<void> => {
+const requestAndValidate = async (ac: AccessController, request: Request, expectedDecision: Response_Decision, invalidContext?: boolean): Promise<void> => {
   const response: Response = await ac.isAllowed(request);
   should.exist(response);
   should.exist(response.decision);
