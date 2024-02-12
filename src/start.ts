@@ -1,9 +1,15 @@
-import Cluster from '@restorecommerce/cluster-service';
-import { createServiceConfig } from '@restorecommerce/service-config';
+import { Worker } from './worker.js';
 
-const cfg = createServiceConfig(process.cwd());
-const server = new Cluster(cfg);
-server.run('./lib/worker');
+const worker = new Worker();
+const logger = worker.logger;
+worker.start().then().catch((err) => {
+  logger.error('startup error', err);
+  process.exit(1);
+});
+
 process.on('SIGINT', () => {
-  server.stop();
+  worker.stop().then().catch((err) => {
+    logger.error('shutdown error', err);
+    process.exit(1);
+  });
 });

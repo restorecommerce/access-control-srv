@@ -1,24 +1,24 @@
 import * as _ from 'lodash';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import * as yaml from 'js-yaml';
-import { AccessController } from './accessController';
+import { AccessController } from './accessController.js';
 import { AuthZAction, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse, Obligation, ACSClientContext, Resource } from '@restorecommerce/acs-client';
-import { Subject } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
-import { Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+import { Subject } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
+import { Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { createServiceConfig } from '@restorecommerce/service-config';
 import { createLogger } from '@restorecommerce/logger';
 import { createClient, createChannel } from '@restorecommerce/grpc-client';
-import { FilterOp } from '@restorecommerce/resource-base-interface/lib/core/interfaces';
+import { FilterOp } from '@restorecommerce/resource-base-interface/lib/core/interfaces.js';
 import * as uuid from 'uuid';
 import nodeEval from 'node-eval';
-import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { Rule, Target, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
+import { Rule, Target, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import {
   UserServiceDefinition,
   UserServiceClient
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
-import { PolicySetWithCombinables, PolicyWithCombinables } from './interfaces';
-import { RoleAssociation } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user.js';
+import { PolicySetWithCombinables, PolicyWithCombinables } from './interfaces.js';
+import { RoleAssociation } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import { Topic } from '@restorecommerce/kafka-client';
 
 

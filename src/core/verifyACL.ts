@@ -1,12 +1,12 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { Logger } from 'winston';
-import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
+import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
+import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 import { AccessController } from '.';
-import { Resource, ContextWithSubResolved } from './interfaces';
+import { Resource, ContextWithSubResolved } from './interfaces.js';
 import traverse from 'traverse';
-import { getAllValues } from './utils';
+import { getAllValues } from './utils.js';
 
 export const verifyACLList = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {

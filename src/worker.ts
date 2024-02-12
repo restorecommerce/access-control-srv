@@ -1,52 +1,52 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import * as chassis from '@restorecommerce/chassis-srv';
 import { createLogger } from '@restorecommerce/logger';
 import { Logger } from 'winston';
 import { Events, registerProtoMeta } from '@restorecommerce/kafka-client';
-import { AccessControlCommandInterface, AccessControlService } from './accessControlService';
-import { ResourceManager } from './resourceManager';
+import { AccessControlCommandInterface, AccessControlService } from './accessControlService.js';
+import { ResourceManager } from './resourceManager.js';
 import { createClient, RedisClientType } from 'redis';
-import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base';
+import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base.js';
 
 import * as core from './core';
 import { ACSAuthZ, initAuthZ, initializeCache } from '@restorecommerce/acs-client';
 import { createChannel, createClient as grpcCreateClient } from '@restorecommerce/grpc-client';
 import {
   FindByTokenRequest, UserServiceClient, UserServiceDefinition
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user.js';
 import {
   RoleAssociation
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import {
   RuleServiceDefinition,
   protoMetadata as ruleMeta
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import {
   PolicyServiceDefinition,
   protoMetadata as policyMeta
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
 import {
   PolicySetServiceDefinition,
   protoMetadata as policySetMeta
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import {
   AccessControlServiceDefinition,
   protoMetadata as accessControlMeta
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import {
   CommandInterfaceServiceDefinition,
   protoMetadata as commandInterfaceMeta
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
-import { protoMetadata as reflectionMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/reflection/v1alpha/reflection';
-import { protoMetadata as authMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface.js';
+import { protoMetadata as reflectionMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/reflection/v1alpha/reflection.js';
+import { protoMetadata as authMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import {
   protoMetadata as userMeta
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user.js';
 import {
   HealthDefinition
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/health/v1/health';
-import { BindConfig } from '@restorecommerce/chassis-srv/lib/microservice/transport/provider/grpc';
-import { compareRoleAssociations, flushACSCache } from './core/utils';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/health/v1/health.js';
+import { BindConfig } from '@restorecommerce/chassis-srv/lib/microservice/transport/provider/grpc.js';
+import { compareRoleAssociations, flushACSCache } from './core/utils.js';
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {

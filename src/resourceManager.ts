@@ -1,28 +1,28 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce/resource-base-interface';
 import { Topic, Events } from '@restorecommerce/kafka-client';
-import * as core from './core';
-import { createMetadata, checkAccessRequest } from './core/utils';
+import * as core from './core.js';
+import { createMetadata, checkAccessRequest } from './core/utils.js';
 import { AuthZAction, Operation, ACSAuthZ, DecisionResponse, PolicySetRQResponse } from '@restorecommerce/acs-client';
 import { RedisClientType } from 'redis';
 import { Logger } from 'winston';
 import {
   Response_Decision
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import {
   PolicySetServiceImplementation,
-  PolicySetList, PolicySetListResponse, PolicySet, PolicySetResponse
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
+  PolicySetList, PolicySetListResponse, PolicySet
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import {
   PolicyServiceImplementation,
   PolicyList, PolicyListResponse, Policy
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
 import {
   RuleServiceImplementation,
   RuleList, RuleListResponse, Rule
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { ReadRequest, Filter_Operation, DeepPartial, DeleteRequest, DeleteResponse } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/resource_base';
-import { PolicyWithCombinables, PolicySetWithCombinables } from './core/interfaces';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { ReadRequest, Filter_Operation, DeepPartial, DeleteRequest, DeleteResponse } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/resource_base.js';
+import { PolicyWithCombinables, PolicySetWithCombinables } from './core/interfaces.js';
 
 
 export interface IAccessControlResourceService<T> {

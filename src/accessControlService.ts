@@ -1,21 +1,21 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import { Server } from '@restorecommerce/chassis-srv';
 import { Events } from '@restorecommerce/kafka-client';
 
 import { CommandInterface } from '@restorecommerce/chassis-srv';
-import { ResourceManager } from './resourceManager';
+import { ResourceManager } from './resourceManager.js';
 import { RedisClientType } from 'redis';
 
-import * as core from './core';
+import * as core from './core.js';
 import { Logger } from 'winston';
 import {
   AccessControlServiceImplementation, ReverseQuery,
   Request, Response, DeepPartial, Response_Decision
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import {
   CommandInterfaceServiceImplementation
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface';
-import { PolicySetWithCombinables } from './core/interfaces';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface.js';
+import { PolicySetWithCombinables } from './core/interfaces.js';
 
 export class AccessControlService implements AccessControlServiceImplementation {
   cfg: any;

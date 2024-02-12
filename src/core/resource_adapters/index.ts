@@ -1,4 +1,4 @@
-import { ResourceAdapter } from './adapter';
-import { GraphQLAdapter } from './gql';
+import { ResourceAdapter } from './adapter.js';
+import { GraphQLAdapter } from './gql.js';
 
 export { ResourceAdapter, GraphQLAdapter };

@@ -1,24 +1,26 @@
-import * as _ from 'lodash';
-import { PolicySetWithCombinables, PolicyWithCombinables, AccessControlOperation } from './interfaces';
-import { CombiningAlgorithm, AccessControlConfiguration, EffectEvaluation, ContextWithSubResolved } from './interfaces';
-import { Request, Response, Response_Decision, ReverseQuery } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { Rule, RuleRQ, ContextQuery, Effect, Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { Policy, PolicyRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
-import { PolicySetRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
-import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+import * as _ from 'lodash-es';
+import {
+  PolicySetWithCombinables, PolicyWithCombinables, AccessControlOperation,
+  CombiningAlgorithm, AccessControlConfiguration, EffectEvaluation, ContextWithSubResolved
+} from './interfaces.js';
+import { Request, Response, Response_Decision, ReverseQuery } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
+import { Rule, RuleRQ, ContextQuery, Effect, Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { Policy, PolicyRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
+import { PolicySetRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
+import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import {
   UserServiceClient
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user';
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user.js';
 
-import { ResourceAdapter, GraphQLAdapter } from './resource_adapters';
-import * as errors from './errors';
-import { checkHierarchicalScope } from './hierarchicalScope';
+import { ResourceAdapter, GraphQLAdapter } from './resource_adapters.js';
+import * as errors from './errors.js';
+import { checkHierarchicalScope } from './hierarchicalScope.js';
 import { Logger } from 'winston';
 import { createClient, RedisClientType } from 'redis';
 import { Topic } from '@restorecommerce/kafka-client';
-import { verifyACLList } from './verifyACL';
-import { conditionMatches } from './utils';
+import { verifyACLList } from './verifyACL.js';
+import { conditionMatches } from './utils.js';
 
 export class AccessController {
   policySets: Map<string, PolicySetWithCombinables>;

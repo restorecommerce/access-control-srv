@@ -1,12 +1,12 @@
-import * as _ from 'lodash';
+import * as _ from 'lodash-es';
 import traverse from 'traverse';
 import { Logger } from 'winston';
 import { AccessController } from '.';
-import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control';
-import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
-import { Resource, ContextWithSubResolved } from './interfaces';
-import { getAllValues, updateScopedRoles } from './utils';
+import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
+import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
+import { Resource, ContextWithSubResolved } from './interfaces.js';
+import { getAllValues, updateScopedRoles } from './utils.js';
 
 export const checkHierarchicalScope = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {

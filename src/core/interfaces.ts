@@ -1,8 +1,8 @@
-import { Effect, Rule } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule';
-import { Policy } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy';
-import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set';
-import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute';
-import { RoleAssociation as RoleAssociations, HierarchicalScope, Tokens } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth';
+import { Effect, Rule } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { Policy } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
+import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
+import { RoleAssociation as RoleAssociations, HierarchicalScope, Tokens } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 
 export interface PolicyWithCombinables extends Policy {
   combinables: Map<string, Rule>;
