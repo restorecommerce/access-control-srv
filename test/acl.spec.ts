@@ -1,6 +1,6 @@
 import * as mocha from 'mocha';
 import * as should from 'should';
-import { Worker } from '../lib/worker.js';
+import { Worker } from '../src/worker';
 import * as testUtils from './utils.js';
 import * as yaml from 'js-yaml';
 import * as fs from 'node:fs';

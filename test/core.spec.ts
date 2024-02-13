@@ -9,7 +9,33 @@ import { UserServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/gen
 import { Request, Response, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { cfg, logger } from './utils.js';
 
-const acConfig = require('./access_control.json');
+const acConfig = {
+  "combiningAlgorithms": [
+    {
+      "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:deny-overrides",
+      "method": "denyOverrides"
+    },
+    {
+      "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides",
+      "method": "permitOverrides"
+    },
+    {
+      "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:first-applicable",
+      "method": "firstApplicable"
+    }
+  ],
+  "urns": {
+    "roleScopingEntity": "urn:restorecommerce:acs:names:roleScopingEntity",
+    "roleScopingInstance": "urn:restorecommerce:acs:names:roleScopingInstance",
+    "hierarchicalRoleScoping": "urn:restorecommerce:acs:names:hierarchicalRoleScoping",
+    "ownerEntity": "urn:restorecommerce:acs:names:ownerIndicatoryEntity",
+    "ownerInstance": "urn:restorecommerce:acs:names:ownerInstance",
+    "resourceID": "urn:oasis:names:tc:xacml:1.0:resource:resource-id",
+    "entity": "urn:restorecommerce:acs:names:model:entity",
+    "role": "urn:restorecommerce:acs:names:role",
+    "operation": "urn:restorecommerce:acs:names:operation"
+  }
+};
 
 let ac: AccessController;
 let request: Request;
