@@ -1,6 +1,6 @@
-import * as _ from 'lodash-es';
-import * as yaml from 'js-yaml';
-import * as fs from 'node:fs';
+import _ from 'lodash-es';
+import yaml from 'js-yaml';
+import fs from 'node:fs';
 import { AccessController } from '../src/core/accessController.js';
 import { formatTarget } from '../src/core/utils.js';
 export { formatTarget };

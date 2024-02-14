@@ -1,9 +1,8 @@
-import * as mocha from 'mocha';
-import * as should from 'should';
+import should from 'should';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
-import * as yaml from 'js-yaml';
-import * as fs from 'node:fs';
+import yaml from 'js-yaml';
+import fs from 'node:fs';
 import { updateConfig } from '@restorecommerce/acs-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
 import { RuleServiceDefinition, RuleServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';

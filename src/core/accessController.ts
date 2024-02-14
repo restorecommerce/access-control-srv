@@ -1,4 +1,4 @@
-import * as _ from 'lodash-es';
+import _ from 'lodash-es';
 import {
   PolicySetWithCombinables, PolicyWithCombinables, AccessControlOperation,
   CombiningAlgorithm, AccessControlConfiguration, EffectEvaluation, ContextWithSubResolved

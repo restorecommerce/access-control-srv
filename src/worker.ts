@@ -1,4 +1,4 @@
-import * as _ from 'lodash-es';
+import _ from 'lodash-es';
 import * as chassis from '@restorecommerce/chassis-srv';
 import { createLogger } from '@restorecommerce/logger';
 import { Logger } from 'winston';
@@ -7,8 +7,7 @@ import { AccessControlCommandInterface, AccessControlService } from './accessCon
 import { ResourceManager } from './resourceManager.js';
 import { createClient, RedisClientType } from 'redis';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base.js';
-
-import * as core from './core';
+import { AccessController } from './core/accessController.js';
 import { ACSAuthZ, initAuthZ, initializeCache } from '@restorecommerce/acs-client';
 import { createChannel, createClient as grpcCreateClient } from '@restorecommerce/grpc-client';
 import {
@@ -84,7 +83,7 @@ export class Worker {
   server: chassis.Server;
   events: Events;
   commandInterface: AccessControlCommandInterface;
-  accessController: core.AccessController;
+  accessController: AccessController;
   redisClient: RedisClientType<any, any>;
   authZ: ACSAuthZ;
   offsetStore: chassis.OffsetStore;
@@ -143,7 +142,7 @@ export class Worker {
         logger: this.logger
       }, UserServiceDefinition, channel);
     }
-    this.accessController = new core.AccessController(this.logger,
+    this.accessController = new AccessController(this.logger,
       this.cfg.get('policies:options'), userTopic, this.cfg, userService);
 
     // resources

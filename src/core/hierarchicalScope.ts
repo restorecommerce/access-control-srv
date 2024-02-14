@@ -1,4 +1,4 @@
-import * as _ from 'lodash-es';
+import _ from 'lodash-es';
 import traverse from 'traverse';
 import { Logger } from 'winston';
 import { AccessController } from '.';

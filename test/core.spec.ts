@@ -1,6 +1,5 @@
-import * as mocha from 'mocha';
 import nock from 'nock';
-import * as should from 'should';
+import should from 'should';
 import { AccessController } from '../src/core/accessController.js';
 import * as testUtils from './utils.js';
 import { Events } from '@restorecommerce/kafka-client';

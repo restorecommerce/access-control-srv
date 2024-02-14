@@ -1,6 +1,6 @@
-import * as _ from 'lodash';
-import * as fs from 'node:fs';
-import * as yaml from 'js-yaml';
+import _ from 'lodash-es';
+import fs from 'node:fs';
+import yaml from 'js-yaml';
 import { AccessController } from './accessController.js';
 import { AuthZAction, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse, Obligation, ACSClientContext, Resource } from '@restorecommerce/acs-client';
 import { Subject } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';

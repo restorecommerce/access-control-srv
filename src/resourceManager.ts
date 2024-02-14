@@ -1,4 +1,4 @@
-import * as _ from 'lodash-es';
+import _ from 'lodash-es';
 import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce/resource-base-interface';
 import { Topic, Events } from '@restorecommerce/kafka-client';
 import { AccessController } from './core/accessController.js';

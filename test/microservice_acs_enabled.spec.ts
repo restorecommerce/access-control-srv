@@ -1,12 +1,12 @@
-import * as should from 'should';
+import should from 'should';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
-import * as yaml from 'js-yaml';
-import * as fs from 'fs';
+import yaml from 'js-yaml';
+import fs from 'node:fs';
 import { updateConfig } from '@restorecommerce/acs-client';
 import { GrpcMockServer, ProtoUtils } from '@alenon/grpc-mock-server';
-import * as proto_loader from '@grpc/proto-loader';
-import * as grpc from '@grpc/grpc-js';
+import proto_loader from '@grpc/proto-loader';
+import grpc from '@grpc/grpc-js';
 import { Topic, Events } from '@restorecommerce/kafka-client';
 import { RuleServiceDefinition, RuleServiceClient, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
