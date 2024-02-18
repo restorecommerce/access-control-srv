@@ -95,7 +95,7 @@ as demanding such evaluation would require a replication of this functionality a
 
   # To identify role scoping entity
   - id         ex: urn:restorecommerce:acs:names:roleScopingEntity
-  - value      ex: urn:restorecommerce:model:organization.Organization
+  - value      ex: urn:restorecommerce:acs:model:organization.Organization
 
   # To identify role scoping instance
   - id         ex: urn:restorecommerce:acs:names:roleScopeInstance
@@ -103,7 +103,7 @@ as demanding such evaluation would require a replication of this functionality a
 - resources
   # To identify a domain model type
   - id         ex: maskedProperty
-  - value      ex: urn:restorecommerce:model:user.User
+  - value      ex: urn:restorecommerce:acs:model:user.User
 
   # To identify a single resource by its ID
   - id         ex: urn:oasis:names:tc:xacml:1.0:resource:resource-id
@@ -191,7 +191,7 @@ request:
       - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
         value: Alice
       - id: urn:restorecommerce:acs:names:roleScopingEntity
-        value: urn:restorecommerce:model:organization.Organization
+        value: urn:restorecommerce:acs:model:organization.Organization
       - id: urn:restorecommerce:acs:names:roleScopeInstance
         value: OrgB
     resources:
@@ -210,7 +210,7 @@ request:
         - role: admin
           attributes: # a list of attributes associated with the role
             - id: urn:restorecommerce:acs:names:roleScopingEntity
-              value: urn:restorecommerce:model:organization.Organization
+              value: urn:restorecommerce:acs:model:organization.Organization
               attributes:
                 - id: urn:restorecommerce:acs:names:roleScopeInstance
                   value: OrgA
@@ -228,12 +228,12 @@ request:
           modified_by: RandomUser
           owners:
             - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-              value: urn:restorecommerce:model:organization.Organization
+              value: urn:restorecommerce:acs:model:organization.Organization
               attributes:
                 - id: urn:restorecommerce:acs:names:ownerInstance
                   value: OrgB
             - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-              value: urn:restorecommerce:model:user.User
+              value: urn:restorecommerce:acs:model:user.User
               attributes:
                 - id: urn:restorecommerce:acs:names:ownerInstance
                   value: RandomUser
@@ -265,7 +265,7 @@ policy_sets:
                 - id: urn:restorecommerce:acs:names:role
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
-                  value: urn:restorecommerce:model:organization.Organization
+                  value: urn:restorecommerce:acs:model:organization.Organization
                 - id: urn:restorecommerce:acs:names:hierarchicalRoleScoping
                   value: 'true'
           effect: PERMIT
@@ -293,7 +293,7 @@ request:
         - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
           value: Alice
         - id: urn:restorecommerce:acs:names:roleScopingEntity
-          value: urn:restorecommerce:model:organization.Organization
+          value: urn:restorecommerce:acs:model:organization.Organization
         - id: urn:restorecommerce:acs:names:roleScopeInstance
           value: OrgA
       resources:
@@ -318,7 +318,7 @@ request:
           - role: admin
             attributes: # a list of attributes associated with the role
               - id: urn:restorecommerce:acs:names:roleScopingEntity
-                value: urn:restorecommerce:model:organization.Organization
+                value: urn:restorecommerce:acs:model:organization.Organization
                 attributes:
                   - id: urn:restorecommerce:acs:names:roleScopeInstance
                     value: OrgA
@@ -358,7 +358,7 @@ policy_sets:
                 - id: urn:restorecommerce:acs:names:role
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
-                  value: urn:restorecommerce:model:organization.Organization
+                  value: urn:restorecommerce:acs:model:organization.Organization
           effect: PERMIT
     - name: Country Policy
       description: A policy which contains country-related rules
@@ -379,7 +379,7 @@ policy_sets:
                 - id: urn:restorecommerce:acs:names:role
                   value: admin
                 - id: urn:restorecommerce:acs:names:roleScopingEntity
-                  value: urn:restorecommerce:model:organization.Organization
+                  value: urn:restorecommerce:acs:model:organization.Organization
           effect: PERMIT
 ----
 
@@ -395,7 +395,7 @@ request:
       - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
         value: Alice
       - id: urn:restorecommerce:acs:names:roleScopingEntity
-        value: urn:restorecommerce:model:organization.Organization
+        value: urn:restorecommerce:acs:model:organization.Organization
       - id: urn:restorecommerce:acs:names:roleScopeInstance
         value: OrgA
     resources:
@@ -412,7 +412,7 @@ request:
         - role: admin
           attributes: # a list of attributes associated with the role
             - id: urn:restorecommerce:acs:names:roleScopingEntity
-              value: urn:restorecommerce:model:organization.Organization
+              value: urn:restorecommerce:acs:model:organization.Organization
             attributes:
               - id: urn:restorecommerce:acs:names:roleScopeInstance
                 value: OrgA
@@ -428,12 +428,12 @@ request:
         modified_by: RandomUser
         owners:
           - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-            value: urn:restorecommerce:model:organization.Organization
+            value: urn:restorecommerce:acs:model:organization.Organization
             attributes:
               - id: urn:restorecommerce:acs:names:ownerInstance
                 value: OrgA
           - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
-            value: urn:restorecommerce:model:user.User
+            value: urn:restorecommerce:acs:model:user.User
             attributes:
               - id: urn:restorecommerce:acs:names:ownerInstance
                 value: RandomUser
@@ -456,7 +456,7 @@ rules:
           - id: urn:restorecommerce:acs:names:role
             value: admin
           - id: urn:restorecommerce:acs:names:roleScopingEntity
-            value: urn:restorecommerce:model:organization.Organization
+            value: urn:restorecommerce:acs:model:organization.Organization
     effect: PERMIT
 ----
 

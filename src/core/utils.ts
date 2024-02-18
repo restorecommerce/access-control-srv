@@ -214,7 +214,7 @@ export async function checkAccessRequest(ctx: ACSClientContext, resource: Resour
 /* eslint-disable prefer-arrow-functions/prefer-arrow-functions */
 export async function checkAccessRequest(ctx: ACSClientContext, resource: Resource[], action: AuthZAction,
   operation: Operation): Promise<DecisionResponse | PolicySetRQResponse> {
-  let subject = ctx.subject;
+  let subject = ctx.subject as Subject;
   // resolve subject id using findByToken api and update subject with id
   let dbSubject;
   if (subject?.token) {
@@ -229,7 +229,7 @@ export async function checkAccessRequest(ctx: ACSClientContext, resource: Resour
 
   let result: DecisionResponse | PolicySetRQResponse;
   try {
-    result = await accessRequest(subject, resource, action, ctx, operation);
+    result = await accessRequest(subject, resource, action, ctx, { operation });
   } catch (err) {
     return {
       decision: Response_Decision.DENY,
