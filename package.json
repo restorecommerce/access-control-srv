@@ -85,7 +85,8 @@
     "tsctests": "tsc -d -p tsconfig.test.json",
     "build:tsc": "esbuild ./src/start.ts --bundle --platform=node --outfile=lib/start.cjs --minify --tree-shaking=true --sourcemap=inline",
     "build:clean": "rimraf lib",
-    "build": "npm-run-all lint build:clean build:tsc"
+    "build": "npm-run-all lint build:clean build:tsc",
+    "prepare": "node -e \"try { require('husky').install() } catch (e) {}\""
   },
   "engines": {
     "node": ">= 20.8.0"
