@@ -149,7 +149,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
 
   if (_.isNil(entityOrOperation) || _.isEmpty(entityOrOperation)) {
     logger.debug('No Entity or operation name found');
-    return false; // no entity found
+    // return false; // no entity found
   }
 
   // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
@@ -266,6 +266,10 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
           }
         }
       });
+    }
+
+    if (!check) {
+      logger.debug('Subject not in HR Scope!');
     }
   }
 
