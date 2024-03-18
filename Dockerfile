@@ -26,7 +26,4 @@ COPY --chown=node:node --from=build $APP_HOME/lib/ $APP_HOME/lib/
 
 EXPOSE 50051
 
-USER root
-USER node
-
 CMD [ "node", "./lib/start.cjs" ]
