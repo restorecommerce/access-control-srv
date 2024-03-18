@@ -148,7 +148,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   }
 
   if (_.isNil(entityOrOperation) || _.isEmpty(entityOrOperation)) {
-    logger.debug('No Entity or operation name found');
+    logger.debug('No entity or operation name found');
     // return false; // no entity found
   }
 
@@ -179,7 +179,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
             for (let roleScopeInstObj of attribute.attributes) { // role-attributes-attributes -> roleScopingInstance
               if (roleScopeInstObj.id == urns.get('roleScopingInstance') && !!scopingEntity) {  // if scoping instance is found within the attributes
                 const instances = entities.get(scopingEntity);
-                if (!_.isEmpty(_.remove(instances, i => i == roleScopeInstObj.value))) { // if any element was removed
+                if (!_.isEmpty(_.remove(instances, (i: string) => i == roleScopeInstObj.value))) { // if any element was removed
                   if (_.isEmpty(instances)) {
                     entities.delete(scopingEntity);
                     if (entities.size == 0) {
@@ -217,11 +217,11 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   if (!check && hierarchicalRoleScopeCheck && hierarchicalRoleScopeCheck === 'true') {
     const hierarchicalScopes = context.subject.hierarchical_scopes;
     for (let hierarchicalScope of hierarchicalScopes) {
-      let subTreeRole = null;
+      let subTreeRole: string = null;
       let level = -1;
       traverse(hierarchicalScope).forEach(function (node: any): void { // depth-first search
         let subtreeFound = false;
-        if (!!node.id) {
+        if (node.id) {
           if (level > -1 && this.level >= level) {
             subTreeRole = null;
             level = -1;
@@ -239,7 +239,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
             }
             if (subtreeFound) {
               const entities = scopedRoles.get(subTreeRole);
-              let eligibleOrgScopes = [];
+              let eligibleOrgScopes: string[] = [];
               getAllValues(node, eligibleOrgScopes);
               if (entities) {
                 for (let [entity, instances] of entities) {

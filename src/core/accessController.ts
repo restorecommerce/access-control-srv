@@ -30,17 +30,23 @@ export class AccessController {
   resourceAdapter: ResourceAdapter;
   redisClient: RedisClientType<any, any>;
   userTopic: Topic;
-  waiting: any[];
+  waiting: any;
   cfg: any;
   userService: UserServiceClient;
-  constructor(private logger: Logger, opts: AccessControlConfiguration,
-    userTopic: Topic, cfg: any, userService: UserServiceClient) {
+
+  constructor(
+    private logger: Logger,
+    opts: AccessControlConfiguration,
+    userTopic: Topic,
+    cfg: any,
+    userService: UserServiceClient
+  ) {
     this.policySets = new Map<string, PolicySetWithCombinables>();
     this.combiningAlgorithms = new Map<string, any>();
 
     logger.info('Parsing combining algorithms from access control configuration...');
     //  parsing URNs and mapping them to functions
-    const combiningAlgorithms: CombiningAlgorithm[] = opts?.combiningAlgorithms || [];
+    const combiningAlgorithms: CombiningAlgorithm[] = opts?.combiningAlgorithms ?? [];
     for (let ca of combiningAlgorithms) {
       const urn = ca.urn;
       const method = ca.method;
@@ -115,14 +121,17 @@ export class AccessController {
 
       // policyEffect needed to evalute if the properties should be PERMIT / DENY
       let policyEffect: Effect;
-      if ((!!policySet.target && await this.targetMatches(policySet.target, request, 'isAllowed', obligations))
-        || !policySet.target) {
+      if (
+        !policySet.target
+        || await this.targetMatches(policySet.target, request, 'isAllowed', obligations)
+      ) {
         let exactMatch = false;
         for (let [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
           if (policy.effect) {
             policyEffect = policy.effect;
-          } else if (policy.combining_algorithm) {
+          }
+          else if (policy.combining_algorithm) {
             const method = this.combiningAlgorithms.get(policy.combining_algorithm);
             if (method === 'permitOverrides') {
               policyEffect = Effect.PERMIT;
@@ -130,7 +139,11 @@ export class AccessController {
               policyEffect = Effect.DENY;
             }
           }
-          if (!!policy.target && await this.targetMatches(policy.target, request, 'isAllowed', obligations, policyEffect)) {
+
+          if (
+            policy.target
+            && await this.targetMatches(policy.target, request, 'isAllowed', obligations, policyEffect)
+          ) {
             exactMatch = true;
             break;
           }
@@ -151,11 +164,18 @@ export class AccessController {
             continue;
           }
           const ruleEffects: EffectEvaluation[] = [];
-          if ((!!policy.target && exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', obligations, policyEffect))
+          if (
+            !policy.target
+            || (
+              exactMatch
+              && await this.targetMatches(policy.target, request, 'isAllowed', obligations, policyEffect)
+            )
             // regex match
-            || (!!policy.target && !exactMatch && await this.targetMatches(policy.target, request, 'isAllowed', obligations, policyEffect, true))
-            || !policy.target) {
-
+            || (
+              !exactMatch
+              && await this.targetMatches(policy.target, request, 'isAllowed', obligations, policyEffect, true)
+            )
+          ) {
             const rules: Map<string, Rule> = policy.combinables;
             this.logger.verbose(`Checking policy ${policy.name}`);
             // only apply a policy effect if there are no rules
@@ -184,19 +204,26 @@ export class AccessController {
                 }
 
                 if (matches) {
-                  this.logger.verbose(`Checking rule ${rule.name}`);
+                  this.logger.verbose(`Checking rule HR Scope for ${rule.name}`);
                   if (matches && rule.target) {
                     matches = await checkHierarchicalScope(rule.target, request, this.urns, this, this.logger);
                   }
 
                   try {
-                    if (matches && !_.isEmpty(rule.condition)) {
+                    if (matches && rule.condition?.length) {
                       // context query is only checked when a rule exists
                       let context: any;
-                      if (!_.isEmpty(rule.context_query) && this.resourceAdapter) {
+                      if (
+                        this.resourceAdapter
+                        && (
+                          rule.context_query?.filters?.length
+                          || rule.context_query?.query?.length
+                        )
+                      ) {
                         context = await this.pullContextResources(rule.context_query, request);
 
                         if (_.isNil(context)) {
+                          this.logger.debug('Context query response is empty!');
                           return {  // deny by default
                             decision: Response_Decision.DENY,
                             obligations,
@@ -209,12 +236,12 @@ export class AccessController {
                         }
                       }
 
-                      request.context = context || request.context;
+                      request.context = context ?? request.context;
                       this.logger.debug('Validating rule condition', { name: rule.name, condition: rule.condition });
                       matches = conditionMatches(rule.condition, request);
                       this.logger.debug('condition validation response', { matches });
                     }
-                  } catch (err) {
+                  } catch (err: any) {
                     this.logger.error('Caught an exception while applying rule condition to request', { code: err.code, message: err.message, stack: err.stack });
                     return {  // if an exception is caught deny by default
                       decision: Response_Decision.DENY,
@@ -296,7 +323,10 @@ export class AccessController {
     let obligations: Attribute[] = [];
     for (let [, value] of this.policySets) {
       let pSet: PolicySetRQ;
-      if (_.isEmpty(value.target) || await this.targetMatches(value.target, request, 'whatIsAllowed', obligations)) {
+      if (
+        _.isEmpty(value.target)
+        || await this.targetMatches(value.target, request, 'whatIsAllowed', obligations)
+      ) {
         pSet = _.merge({}, { combining_algorithm: value.combining_algorithm }, _.pick(value, ['id', 'target', 'effect'])) as any;
         pSet.policies = [];
 
