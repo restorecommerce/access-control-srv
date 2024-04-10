@@ -764,136 +764,39 @@ export class AccessController {
   }
 
   /**
-   * Check if the attributes of subject from a rule, policy
-   * or policy set match the attributes from a request.
+   * Check if the Rule's Subject Role matches with atleast
+   * one of the user role associations role value
    *
    * @param ruleAttributes
    * @param requestSubAttributes
+   * @param request
    */
   private async checkSubjectMatches(ruleSubAttributes: Attribute[],
     requestSubAttributes: Attribute[], request: Request): Promise<boolean> {
-    // 1) Check if the rule subject entity exists, if so then check
-    // request->target->subject->orgInst or roleScopeInst matches with
-    // context->subject->role_associations->roleScopeInst or hierarchical_scope
-    // 2) if 1 is true then subject match is considered
-    // 3) If rule subject entity does not exist (as for master data resources)
-    // then check context->subject->role_associations->role against
-    // Rule->subject->role
-    const scopingEntityURN = this.urns.get('roleScopingEntity'); // urn:restorecommerce:acs:names:roleScopingEntity
-    const scopingInstanceURN = this.urns.get('roleScopingInstance'); // urn:restorecommerce:acs:names:roleScopingInstance
-    const hierarchicalRoleScopingURN = this.urns.get('hierarchicalRoleScoping');
+    // Just check the Role value matches here in subject
     const roleURN = this.urns.get('role');
-    let matches = false;
-    let scopingEntExists = false;
-    let ruleRole;
-    // default if hierarchicalRoleScopingURN is not configured then consider
-    // to match the HR scopes
-    let hierarchicalRoleScoping = 'true';
+    let ruleRole: string;
     if (ruleSubAttributes?.length === 0) {
-      matches = true;
-      return matches;
+      return true;
     }
-    for (let ruleSubAttribute of ruleSubAttributes || []) {
-      if (ruleSubAttribute?.id === scopingEntityURN) {
-        // match the scoping entity value
-        scopingEntExists = true;
-        for (let requestSubAttribute of requestSubAttributes || []) {
-          if (requestSubAttribute?.value === ruleSubAttribute?.value) {
-            matches = true;
-            break;
-          }
-        }
-      } else if (ruleSubAttribute?.id === roleURN) {
-        ruleRole = ruleSubAttribute.value;
-      } else if (ruleSubAttribute?.id === hierarchicalRoleScopingURN) {
-        hierarchicalRoleScoping = ruleSubAttribute.value;
+    ruleSubAttributes?.forEach((subjectObject) => {
+      if(subjectObject?.id === roleURN) {
+        ruleRole = subjectObject?.value;
       }
+    });
+
+    // must be a rule subject targetted to specific user
+    if (!ruleRole && this.attributesMatch(ruleSubAttributes, requestSubAttributes)) {
+      this.logger.debug('Rule subject targetted to specific user', ruleSubAttributes);
+      return true;
     }
 
-    let context = (request as any)?.context as ContextWithSubResolved;
-    // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
-    if (context?.subject?.token &&
-      _.isEmpty(context.subject.hierarchical_scopes)) {
-      context = await this.createHRScope(context);
-    }
-
-    if (scopingEntExists && matches) {
-      matches = false;
-      // check the target scoping instance is present in
-      // the context subject roleassociations and then update matches to true
-      if (context?.subject?.role_associations) {
-        let targetScopingInstance;
-        requestSubAttributes?.find((obj) => {
-          if (obj?.id === scopingEntityURN && obj?.attributes?.length > 0) {
-            obj?.attributes?.filter((roleScopeInstObj) => {
-              if (roleScopeInstObj?.id === scopingInstanceURN) {
-                targetScopingInstance = roleScopeInstObj?.value;
-              }
-            });
-          }
-        });
-        // check in role_associations
-        const userRoleAssocs = context?.subject?.role_associations;
-        if (userRoleAssocs?.length > 0) {
-          for (let role of userRoleAssocs) {
-            const roleID = role?.role;
-            for (let obj of role.attributes || []) {
-              if (obj?.id === scopingEntityURN && obj?.attributes?.length > 0) {
-                for (let ruleScopInstObj of obj.attributes) {
-                  if (ruleScopInstObj?.id == scopingInstanceURN && ruleScopInstObj?.value == targetScopingInstance) {
-                    if (!ruleRole || (ruleRole && ruleRole === roleID)) {
-                      matches = true;
-                      return matches;
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        if (!matches && hierarchicalRoleScoping && hierarchicalRoleScoping === 'true') {
-          // check for HR scope
-          const hrScopes = context?.subject?.hierarchical_scopes;
-          if (!hrScopes || hrScopes?.length === 0) {
-            return matches;
-          }
-          for (let hrScope of hrScopes || []) {
-            if (this.checkTargetInstanceExists(hrScope, targetScopingInstance)) {
-              const userRoleAssocs = context?.subject?.role_associations;
-              if (!_.isEmpty(userRoleAssocs)) {
-                for (let role of userRoleAssocs || []) {
-                  const roleID = role.role;
-                  if (!ruleRole || (ruleRole && ruleRole === roleID)) {
-                    matches = true;
-                    return matches;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    } else if (!scopingEntExists) {
-      // scoping entity does not exist - check for point 3.
-      if (context?.subject) {
-        const userRoleAssocs = context?.subject?.role_associations;
-        if (userRoleAssocs?.length > 0) {
-          const ruleSubAttributeObj = ruleSubAttributes?.find((obj) => obj.id === roleURN);
-          for (let obj of userRoleAssocs) {
-            if (obj?.role === ruleSubAttributeObj?.value) {
-              matches = true;
-              return matches;
-            }
-          }
-        }
-      }
-      // must be a rule subject targetted to specific user
-      if (!matches && this.attributesMatch(ruleSubAttributes, requestSubAttributes)) {
-        return true;
-      }
+    if(!ruleRole) {
+      this.logger.warn('Invalid Rule as Rule Subject attributes array contains other id, value pairs without role', ruleSubAttributes);
       return false;
     }
-    return matches;
+    const context = (request as any)?.context as ContextWithSubResolved;
+    return context?.subject?.role_associations?.some((roleObj) => roleObj?.role === ruleRole);
   }
 
   private checkTargetInstanceExists(hrScope: HierarchicalScope,

@@ -6,44 +6,31 @@ import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/
 import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 import { Resource, ContextWithSubResolved } from './interfaces.js';
-import { getAllValues, updateScopedRoles } from './utils.js';
 
 export const checkHierarchicalScope = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
-  let scopedRoles = new Map<string, Map<string, string[]>>(); // <role, <scopingEntity, scopingInstances[]>>
-  let role: string;
-  const totalScopingEntities: string[] = [];
-  const ruleSubject = ruleTarget.subjects || [];
-  let hierarchicalRoleScopeCheck = 'true';
-  // retrieving all role scoping entities from the rule's subject
-  for (let attribute of ruleSubject) {
-    if (attribute.id == urns.get('role')) {
-      role = attribute.value;
-      if (!scopedRoles.has(role)) {
-        scopedRoles.set(role, new Map<string, string[]>());
-      }
-    }
-    if (attribute.id == urns.get('roleScopingEntity') && !!role) {
-      const scopingEntity = attribute.value;
-
-      totalScopingEntities.push(scopingEntity);
-      const scopingEntities = scopedRoles.get(role);
-      scopingEntities.set(scopingEntity, []);
-      scopedRoles.set(role, scopingEntities);
-      role = null;
-    }
-    if (attribute.id === urns.get('hierarchicalRoleScoping')) {
-      hierarchicalRoleScopeCheck = attribute.value;
-    }
-  }
-
-  if (_.isEmpty(totalScopingEntities)) {
+  // 1) create a Map of resourceID with Owners for resource IDs which have the rule entity matching
+  // 2) In HR scope match validate the Owner indicatory entity with vale from matching users Rule's role for
+  //    matching role scoping enitty with instance
+  let resourceIdOwnersMap = new Map<string, Attribute[]>();
+  if (ruleTarget?.subjects?.length === 0) {
     logger.debug('Scoping entity not found in rule subject hence hierarchical scope check not needed');
     return true; // no scoping entities specified in rule, request ignored
   }
+  let hierarchicalRoleScopeCheck = 'true'; // default is to check for HR scope for all resources
+  let ruleRole: string;
+  const roleURN = urns.get('role');
+  ruleTarget?.subjects?.forEach((subjectObject) => {
+    if (subjectObject?.id === roleURN) {
+      ruleRole = subjectObject?.value;
+    } else if (subjectObject?.id === urns.get('hierarchicalRoleScoping')) {
+      hierarchicalRoleScopeCheck = subjectObject.value;
+    }
+  });
 
   let context = (request as any).context as ContextWithSubResolved;
   if (_.isEmpty(context)) {
+    logger.debug('Empty context, evaluation fails');
     return false; // no context was provided, evaluation fails
   }
 
@@ -116,7 +103,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               logger.debug(`Owners information missing for hierarchical scope matching of entity ${attribute.value}, evaluation fails`);
               return false; // no ownership was passed, evaluation fails
             }
-            scopedRoles = updateScopedRoles(meta, scopedRoles, urns, totalScopingEntities);
+            resourceIdOwnersMap.set(instanceID, meta.owners);
           } else {
             logger.debug('Resource of targeted entity was not provided in context');
             return false; // resource of targeted entity was not provided in context
@@ -137,7 +124,7 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
               logger.debug(`Owners information missing for hierarchical scope matching of entity ${attribute.value}, evaluation fails`);
               return false; // no ownership was passed, evaluation fails
             }
-            scopedRoles = updateScopedRoles(meta, scopedRoles, urns, totalScopingEntities);
+            resourceIdOwnersMap.set(entityOrOperation, meta.owners);
           } else {
             logger.debug('Operation name was not provided in context');
             return false; // Operation name was not provided in context
@@ -147,14 +134,8 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
     }
   }
 
-  if (_.isNil(entityOrOperation) || _.isEmpty(entityOrOperation)) {
+  if (!entityOrOperation) {
     logger.debug('No entity or operation name found');
-    // return false; // no entity found
-  }
-
-  // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
-  if (context?.subject?.token && _.isEmpty(context.subject.hierarchical_scopes)) {
-    context = await accessController.createHRScope(context);
   }
 
   const roleAssociations = context?.subject?.role_associations;
@@ -162,116 +143,76 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
     logger.debug('Role Associations not found');
     return false; // impossible to evaluate context
   }
-  const treeNodes = new Map<string, Map<string, string[]>>(); // <role, <entity, hierarchicalTreeNodes>>
 
-  for (let i = 0; i < roleAssociations.length; i += 1) {
-    const role: string = roleAssociations[i].role;
-    const attributes: Attribute[] = roleAssociations[i].attributes || [];
+  // get all user role association mapping matching the ruleRole -> (Rule Subject's Role)
+  const reducedUserRoleAssocs = roleAssociations.filter((obj) => obj.role === ruleRole);
 
-    if (scopedRoles.has(role)) {
-      const entities = scopedRoles.get(role);
-      let scopingEntity: string;
-      // let roleSubNodes = []; // sub nodes to be queried in case hierarchical resource is not found
-      for (let attribute of attributes) {
-        if (attribute.id == urns.get('roleScopingEntity') && entities.has(attribute.value)) {
-          scopingEntity = attribute.value;
-          if (attribute?.attributes?.length > 0) {
-            for (let roleScopeInstObj of attribute.attributes) { // role-attributes-attributes -> roleScopingInstance
-              if (roleScopeInstObj.id == urns.get('roleScopingInstance') && !!scopingEntity) {  // if scoping instance is found within the attributes
-                const instances = entities.get(scopingEntity);
-                if (!_.isEmpty(_.remove(instances, (i: string) => i == roleScopeInstObj.value))) { // if any element was removed
-                  if (_.isEmpty(instances)) {
-                    entities.delete(scopingEntity);
-                    if (entities.size == 0) {
-                      scopedRoles.delete(role);
-                    }
-                  }
-                } else {
-                  if (!treeNodes.has(role)) {
-                    treeNodes.set(role, new Map<string, string[]>());
-                  }
-                  const nodesByEntity = treeNodes.get(role);
-                  if (!nodesByEntity.has(scopingEntity)) {
-                    nodesByEntity.set(scopingEntity, []);
-                  }
-                  const nodes = nodesByEntity.get(scopingEntity);
-                  nodes.push(roleScopeInstObj.value);
-                  nodesByEntity.set(scopingEntity, nodes);
-                  treeNodes.set(role, nodesByEntity);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    else {
-      if (i == roleAssociations.length - 1 && scopedRoles.size > 0 && treeNodes.size === 0) {
-        logger.debug('Subject does not have one of the required roles in its context');
-        return false; // user does not have one of the required roles in its context
-      }
-    }
-  }
-
-  let check = scopedRoles.size == 0;
-  if (!check && hierarchicalRoleScopeCheck && hierarchicalRoleScopeCheck === 'true') {
-    const hierarchicalScopes = context.subject.hierarchical_scopes;
-    for (let hierarchicalScope of hierarchicalScopes) {
-      let subTreeRole: string = null;
-      let level = -1;
-      traverse(hierarchicalScope).forEach(function (node: any): void { // depth-first search
-        let subtreeFound = false;
-        if (node.id) {
-          if (level > -1 && this.level >= level) {
-            subTreeRole = null;
-            level = -1;
-          } else {
-            if (!subTreeRole) {
-              for (let [role, nodes] of treeNodes) {
-                for (let [, instances] of nodes) {
-                  if (_.includes(instances, node.id)) {
-                    subTreeRole = role;
-                    subtreeFound = true;
-                    break;
-                  }
-                }
-              }
-            }
-            if (subtreeFound) {
-              const entities = scopedRoles.get(subTreeRole);
-              let eligibleOrgScopes: string[] = [];
-              getAllValues(node, eligibleOrgScopes);
-              if (entities) {
-                for (let [entity, instances] of entities) {
-                  for (let instance of instances) {
-                    if (eligibleOrgScopes.indexOf(instance) > -1) {
-                      instances = instances.filter(e => e != instance);
-                    }
-                  }
-                  if (instances.length === 0) {
-                    entities.delete(entity);
-                    break;
-                  }
-                }
-              }
-              if (entities && entities.size == 0) {
-                scopedRoles.delete(subTreeRole);
-                if (scopedRoles.size == 0) {
-                  check = true;
-                  this.stop(); // stopping traversal, no more scoped roles need to be checked
-                }
-              }
-              // inside hierarchical sub
-            }
-          }
-        }
+  // verify for exact match, if not then verify from HR scopes
+  let deleteMapEntries = [];
+  for (let [resourceId, owners] of resourceIdOwnersMap) {
+    const entityScopingInstMatch = owners?.some((ownerObj) => {
+      reducedUserRoleAssocs?.some((roleObj) => {
+        // check if roleScoping Entity matches the Owner's role scoping entity (ex: Organization / User / Klasse etc)
+        // and check if roleScoping Instance matches with owner instance
+        roleObj?.attributes?.some((roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
+          && ownerObj?.id === urns.get('ownerEntity') && roleAttributeObject?.value === ownerObj?.value
+          && roleAttributeObject?.attributes?.some((roleInstObj) =>
+            roleInstObj?.id === urns.get('roleScopingInstance') && ownerObj?.attributes?.find((ownerInstObj) => ownerInstObj?.value === roleInstObj?.value)));
       });
+    });
+    if (entityScopingInstMatch) {
+      // its not safe to remove entries while iterating, so add entries to array to delete later
+      deleteMapEntries.push(resourceId);
     }
+  }
+  deleteMapEntries.forEach((entry) => resourceIdOwnersMap.delete(entry));
 
-    if (!check) {
-      logger.debug('Subject not in HR Scope!');
+  if (resourceIdOwnersMap.size === 0) {
+    logger.info('Role scoping entities and instances matched');
+    return true;
+  }
+
+  // verify HR scope match
+  if (resourceIdOwnersMap.size > 0 && hierarchicalRoleScopeCheck === 'true') {
+    // reset deleteMapEntries
+    deleteMapEntries = [];
+    // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
+    if (context?.subject?.token && _.isEmpty(context.subject.hierarchical_scopes)) {
+      context = await accessController.createHRScope(context);
+    }
+    const reducedHRScopes = context?.subject?.hierarchical_scopes?.filter((hrObj) => hrObj?.role === ruleRole);
+    for (let [resourceId, owners] of resourceIdOwnersMap) {
+      // validate scoping Entity first
+      let ownerInstance: string;
+      const entityMatch = owners?.some((ownerObj) => {
+        reducedUserRoleAssocs?.some((roleObj) => {
+          if (roleObj?.attributes?.some((roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
+            && ownerObj?.id === urns.get('ownerEntity') && roleAttributeObject?.value === ownerObj?.value)) {
+            ownerObj?.attributes?.forEach((obj) => ownerInstance = obj.value);
+            return true;
+          }
+        });
+      });
+      // validate the ownerInstance from HR scope tree for matched scoping entity
+      if (entityMatch && ownerInstance) {
+        traverse(reducedHRScopes).forEach((node: any) => { // depth-first search
+          if (node?.id === ownerInstance) {
+            deleteMapEntries.push(resourceId);
+          }
+        });
+      }
     }
   }
 
-  return check;
+  deleteMapEntries.forEach((entry) => resourceIdOwnersMap.delete(entry));
+
+  if (resourceIdOwnersMap.size === 0) {
+    logger.info('Role scoping entities and instances matched from HR scopes');
+    return true;
+  }
+
+  if (resourceIdOwnersMap.size > 0) {
+    logger.debug('Subject not in HR Scope!');
+    return false;
+  }
 };

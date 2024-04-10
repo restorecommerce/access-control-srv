@@ -422,25 +422,3 @@ export const flushACSCache = async (userId: string, db_index, commandTopic: Topi
   await commandTopic.emit('flushCacheCommand', eventObject);
   logger.info('ACS flush cache command event emitted to kafka topic successfully');
 };
-
-export const updateScopedRoles = (meta, scopedRoles, urns: Map<string, string>, totalScopingEntities: string[]): Map<string, Map<string, string[]>> => {
-  meta.owners.filter((owner) => owner.id === urns.get('ownerEntity') && _.find(totalScopingEntities, e => e === owner.value)).forEach(
-    (owner) => {
-      let ownerEntity = owner.value;
-      owner.attributes.filter(((ownerInstObj) => ownerInstObj.id == urns.get('ownerInstance') && !!ownerEntity)).forEach(
-        (ownerInstObj) => {
-          scopedRoles.forEach((entities, role) => {
-            if (entities.has(ownerEntity)) {
-              const instances = entities.get(ownerEntity);
-              instances.push(ownerInstObj.value);
-              entities.set(ownerEntity, instances);
-              scopedRoles.set(role, entities);
-            }
-          });
-          ownerEntity = null;
-        }
-      );
-    }
-  );
-  return scopedRoles;
-};
