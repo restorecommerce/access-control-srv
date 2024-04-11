@@ -381,6 +381,22 @@ describe('testing microservice', () => {
         should.equal(result.operation_status?.message, 'success');
       });
 
+      it('should allow to create test rule with ACS enabled without providing scope in subject', async () => {
+        // enable authorization
+        cfg.set('authorization:enabled', true);
+        cfg.set('authorization:enforce', true);
+        updateConfig(cfg);
+        const result = await ruleService.create({
+          items: testRule,
+          subject
+        });
+        should.exist(result);
+        should.exist(result.items);
+        should.equal(result.items?.length, testRule.length);
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
+      });
+
       it('should PERMIT to create 2 test rule with ACS enabled with valid scope in subject and delete them', async () => {
         let testRule2 = [{
           name: '1 test rule for test entitiy',
@@ -432,6 +448,77 @@ describe('testing microservice', () => {
           }
         }];
         subject.scope = 'mainOrg';
+        const result = await ruleService.create({
+          items: testRule2,
+          subject
+        });
+        should.exist(result);
+        should.exist(result.items);
+        should.equal(result.items?.length, testRule2.length);
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
+        const deleteResponse = await ruleService.delete(
+          { 
+            ids: result.items?.map(i => i.payload?.id ?? ''),
+            subject
+          }
+        );
+        should.equal(deleteResponse.status?.[0].id, result.items?.[0].payload?.id);
+        should.equal(deleteResponse.status?.[1].id, result.items?.[1].payload?.id);
+        should.equal(deleteResponse.operation_status?.code, 200);
+        should.equal(deleteResponse.operation_status?.message, 'success');
+      });
+
+      it('should PERMIT to create 2 test rule with ACS enabled with out providing scope in subject and delete them', async () => {
+        let testRule2 = [{
+          name: '1 test rule for test entitiy',
+          description: '1 test rule',
+          target: {
+            subjects: [{
+              id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
+              value: 'test-r-id'
+            }],
+            resources: [{
+              id: 'urn:restorecommerce:acs:names:model:entity',
+              value: 'urn:restorecommerce:acs:model:test.Test'
+            }]
+          },
+          effect: Effect.PERMIT,
+          meta: {
+            owners: [{
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'orgA'
+              }]
+            }]
+          }
+        }, {
+          name: '2 test rule for test entitiy',
+          description: '2 test rule',
+          target: {
+            subjects: [{
+              id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
+              value: 'test-r-id'
+            }],
+            resources: [{
+              id: 'urn:restorecommerce:acs:names:model:entity',
+              value: 'urn:restorecommerce:acs:model:test.Test'
+            }]
+          },
+          effect: Effect.PERMIT,
+          meta: {
+            owners: [{
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'orgB'
+              }]
+            }]
+          }
+        }];
         const result = await ruleService.create({
           items: testRule2,
           subject
@@ -516,12 +603,103 @@ describe('testing microservice', () => {
         );
       });
 
+      it('should DENY to create 2 test rule with ACS enabled without providing scope in subject and valid owner for 1st instance and invalid owner for 2nd instance', async () => {
+        let testRule2 = [{
+          name: '1 test rule for test entitiy',
+          description: '1 test rule',
+          target: {
+            subjects: [{
+              id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
+              value: 'test-r-id'
+            }],
+            resources: [{
+              id: 'urn:restorecommerce:acs:names:model:entity',
+              value: 'urn:restorecommerce:acs:model:test.Test'
+            }]
+          },
+          effect: Effect.PERMIT,
+          meta: {
+            owners: [{
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'orgA'
+              }]
+            }]
+          }
+        }, {
+          name: '2 test rule for test entitiy',
+          description: '2 test rule',
+          target: {
+            subjects: [{
+              id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
+              value: 'test-r-id'
+            }],
+            resources: [{
+              id: 'urn:restorecommerce:acs:names:model:entity',
+              value: 'urn:restorecommerce:acs:model:test.Test'
+            }]
+          },
+          effect: Effect.PERMIT,
+          meta: {
+            owners: [{
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'INVALID' // invalid owner org instance
+              }]
+            }]
+          }
+        }];
+        const result = await ruleService.create({
+          items: testRule2,
+          subject
+        });
+        should.not.exist(result.items);
+        should.equal(result.operation_status?.code, 403);
+        should.equal(
+          result.operation_status?.message,
+          'Access not allowed for request with subject:admin_user_id, resource:rule, action:CREATE, target_scope:orgA; the response was DENY'
+        );
+      });
+
       it('should throw an error when trying to create rule with invalid subject scope', async () => {
         // change subject to normal user
         subject.id = 'user_id';
         subject.role_associations[0].role = 'user-r-id';
         subject.token = 'user_token';
         subject.scope = 'orgC';
+        const user = {
+          payload: {
+            id: subject.id,
+            tokens: [{ token: 'user_token' }],
+            role_associations: subject.role_associations
+          },
+          status: {
+            code: 200,
+            message: 'success'
+          }
+        };
+        const result = await ruleService.create({
+          items: testRule,
+          subject
+        });
+        should.exist(result);
+        should.not.exist(result.items);
+        should.equal(result.operation_status?.code, 403);
+        should.equal(
+          result.operation_status?.message,
+          'Access not allowed for request with subject:user_id, resource:rule, action:CREATE, target_scope:orgC; the response was DENY'
+        );
+      });
+
+      it('should throw an error when trying to create rule with out providing scope in subject', async () => {
+        // change subject to normal user
+        subject.id = 'user_id';
+        subject.role_associations[0].role = 'user-r-id';
+        subject.token = 'user_token';
         const user = {
           payload: {
             id: subject.id,
@@ -766,6 +944,99 @@ describe('testing microservice', () => {
         }];
 
         adminSubject.scope = 'org2';
+        const result2 = await ruleService.create({
+          items: testRule2,
+          subject: adminSubject
+        });
+        // validate result2
+        should.equal(result2.items?.length, 1);
+        should.equal(result2.items?.[0]?.payload?.name, '2 test rule for test entitiy');
+        should.equal(result2.operation_status?.code, 200);
+        should.equal(result2.operation_status?.message, 'success');
+      });
+
+       // Create with two different scopes assigned for same role
+       it('should PERMIT to create test rule with ACS enabled without providing scope in subject with multilple instances assigned to same role', async () => {
+        let testRule1 = [{
+          name: '1 test rule for test entitiy',
+          description: '1 test rule',
+          target: {
+            subjects: [{
+              id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
+              value: 'test-r-id'
+            }],
+            resources: [{
+              id: 'urn:restorecommerce:acs:names:model:entity',
+              value: 'urn:restorecommerce:acs:model:test.Test'
+            }]
+          },
+          effect: Effect.PERMIT,
+          meta: {
+            owners: [{
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'org1'
+              }]
+            }]
+          }
+        }];
+        // For admin-r-id role Assign two RoleScoped instances (Same Role with 2 different scopes assigned)
+        adminSubject.role_associations[0].attributes[0].attributes = [{
+          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+          value: 'org1'
+        }, {
+          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
+          value: 'org2'
+        }];
+        // corresponding HR scopes for two different Orgs
+        adminSubject.hierarchical_scopes = [{
+          id: 'org1',
+          role: 'admin-r-id',
+          children: []
+        }, {
+          id: 'org2',
+          role: 'admin-r-id',
+          children: []
+        }];
+
+        const result = await ruleService.create({
+          items: testRule1,
+          subject: adminSubject
+        });
+        // validate result
+        should.equal(result.items?.length, 1);
+        should.equal(result.items?.[0]?.payload?.name, '1 test rule for test entitiy');
+        should.equal(result.operation_status?.code, 200);
+        should.equal(result.operation_status?.message, 'success');
+
+        let testRule2 = [{
+          name: '2 test rule for test entitiy',
+          description: '2 test rule',
+          target: {
+            subjects: [{
+              id: 'urn:oasis:names:tc:xacml:1.0:subject:subject-id',
+              value: 'test-r-id'
+            }],
+            resources: [{
+              id: 'urn:restorecommerce:acs:names:model:entity',
+              value: 'urn:restorecommerce:acs:model:test.Test'
+            }]
+          },
+          effect: Effect.PERMIT,
+          meta: {
+            owners: [{
+              id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+              value: 'urn:restorecommerce:acs:model:organization.Organization',
+              attributes: [{
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'org2'
+              }]
+            }]
+          }
+        }];
+
         const result2 = await ruleService.create({
           items: testRule2,
           subject: adminSubject
