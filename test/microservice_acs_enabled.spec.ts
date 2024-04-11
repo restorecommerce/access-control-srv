@@ -956,7 +956,7 @@ describe('testing microservice', () => {
       });
 
        // Create with two different scopes assigned for same role
-       it('should PERMIT to create test rule with ACS enabled without providing scope in subject with multilple instances assigned to same role', async () => {
+       it('should PERMIT to create test rule with ACS enabled with multiple owners without providing scope in subject with multilple instances assigned to same role', async () => {
         let testRule1 = [{
           name: '1 test rule for test entitiy',
           description: '1 test rule',
@@ -978,6 +978,12 @@ describe('testing microservice', () => {
               attributes: [{
                 id: 'urn:restorecommerce:acs:names:ownerInstance',
                 value: 'org1'
+              }, {
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'org2'
+              }, {
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'org3'
               }]
             }]
           }
@@ -1031,7 +1037,13 @@ describe('testing microservice', () => {
               value: 'urn:restorecommerce:acs:model:organization.Organization',
               attributes: [{
                 id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'org1'
+              }, {
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
                 value: 'org2'
+              }, {
+                id: 'urn:restorecommerce:acs:names:ownerInstance',
+                value: 'org3'
               }]
             }]
           }
