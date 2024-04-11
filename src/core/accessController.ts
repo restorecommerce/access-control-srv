@@ -803,21 +803,6 @@ export class AccessController {
     return context?.subject?.role_associations?.some((roleObj) => roleObj?.role === ruleRole);
   }
 
-  private checkTargetInstanceExists(hrScope: HierarchicalScope,
-    targetScopingInstance: string): boolean {
-    if (hrScope?.id === targetScopingInstance) {
-      return true;
-    } else {
-      if (hrScope?.children?.length > 0) {
-        for (let child of hrScope.children) {
-          if (this.checkTargetInstanceExists(child, targetScopingInstance)) {
-            return true;
-          }
-        }
-      }
-    }
-  }
-
   /**
    * A list of rules or policies provides a list of Effects.
    * This method is invoked to evaluate the final effect

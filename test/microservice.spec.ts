@@ -538,7 +538,7 @@ describe('testing microservice', () => {
         orgRule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
         orgRule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
       });
-      it('should return only DENY rules for both Location and Organization resource with resource IDs with invalid target scoping instance', async (): Promise<void> => {
+      it('should return PERMIT and DENY rules for both Location and Organization resource with resource IDs with invalid target scoping instance', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
           subjectRole: 'SimpleUser',
@@ -556,23 +556,31 @@ describe('testing microservice', () => {
         should.exist(result.policy_sets);
         result.policy_sets.should.be.length(1);
 
+        // as evaluation of target scope is done in acs-client for read operations - with returned Reversequery PolicySet read response
+        // both PERMIT and DENY rules are returned
         should.exist(result.policy_sets[0].policies);
         result.policy_sets[0].policies.should.be.length(2); // location and Org Policy
         result.policy_sets[0].policies[0].id.should.equal('policyA');
         result.policy_sets[0].policies[1].id.should.equal('policyB');
         should.exist(result.policy_sets[0].policies[0].rules);
-        result.policy_sets[0].policies[0].rules.should.have.length(1);
-        result.policy_sets[0].policies[1].rules.should.have.length(1); // ruleAA6 DENY for Organization resource
+        result.policy_sets[0].policies[0].rules.should.have.length(2); // ruleAA1 PERMIT and rule AA3 DENY for location resource
+        result.policy_sets[0].policies[1].rules.should.have.length(2); // ruleAA5 PERMIT and ruleAA6 DENY for Organization resource
 
-        // validate Location Deny Rule
-        const rule = result.policy_sets[0].policies[0].rules[0];
-        rule.id.should.equal('ruleAA3');
-        rule.effect.should.equal('DENY');
+        // validate Location Rules
+        const rule1 = result.policy_sets[0].policies[0].rules[0];
+        rule1.id.should.equal('ruleAA1');
+        rule1.effect.should.equal('PERMIT');
+        const rule2 = result.policy_sets[0].policies[0].rules[1];
+        rule2.id.should.equal('ruleAA3');
+        rule2.effect.should.equal('DENY');
 
-        // validate Organization Deny Rule
-        const orgRule = result.policy_sets[0].policies[1].rules[0];
-        orgRule.id.should.equal('ruleAA6');
-        orgRule.effect.should.equal('DENY');
+        // validate Organization Rules
+        const rule3 = result.policy_sets[0].policies[1].rules[0];
+        rule3.id.should.equal('ruleAA5');
+        rule3.effect.should.equal('PERMIT');
+        const rule4 = result.policy_sets[0].policies[1].rules[1];
+        rule4.id.should.equal('ruleAA6');
+        rule4.effect.should.equal('DENY');
       });
       it('should return only fallback rule when targets don\'t match', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({

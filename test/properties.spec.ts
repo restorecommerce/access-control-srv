@@ -158,6 +158,7 @@ describe('testing access control', () => {
         ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
         ownerInstance: ['Org1', 'Org1']
       });
+      (accessRequest.context.subject as any).hierarchical_scopes = [{ id: 'Org3', children: [] }];
       testUtils.marshallRequest(accessRequest);
 
       const result = await accessControlService.isAllowed(accessRequest);
