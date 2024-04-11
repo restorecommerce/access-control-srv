@@ -51,11 +51,8 @@ policy_sets:
                 }) != null;"
           - id: ruleAA3
             name: Rule AA3
-            descripton: A rule targeting a user's 'modify' permission regarding a User account
+            descripton: A fallback rule targeting a user's 'modify' permission regarding a User account
             target:
-              subjects:
-                - id: urn:restorecommerce:acs:names:role
-                  value: SimpleUser
               resources:
                 - id: urn:restorecommerce:acs:names:model:entity
                   value: urn:restorecommerce:acs:model:user.User

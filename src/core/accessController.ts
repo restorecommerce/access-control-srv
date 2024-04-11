@@ -776,7 +776,7 @@ export class AccessController {
     // Just check the Role value matches here in subject
     const roleURN = this.urns.get('role');
     let ruleRole: string;
-    if (ruleSubAttributes?.length === 0) {
+    if (!ruleSubAttributes || ruleSubAttributes.length === 0) {
       return true;
     }
     ruleSubAttributes?.forEach((subjectObject) => {
@@ -792,10 +792,14 @@ export class AccessController {
     }
 
     if(!ruleRole) {
-      this.logger.warn('Invalid Rule as Rule Subject attributes array contains other id, value pairs without role', ruleSubAttributes);
+      this.logger.warn(`Subject does not match with rule attributes`, ruleSubAttributes);
       return false;
     }
     const context = (request as any)?.context as ContextWithSubResolved;
+    if(!context?.subject?.role_associations) {
+      this.logger.warn('Subject role associations missing', ruleSubAttributes);
+      return false;
+    }
     return context?.subject?.role_associations?.some((roleObj) => roleObj?.role === ruleRole);
   }
 

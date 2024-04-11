@@ -14,19 +14,27 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   //    matching role scoping enitty with instance
   let resourceIdOwnersMap = new Map<string, Attribute[]>();
   if (ruleTarget?.subjects?.length === 0) {
-    logger.debug('Scoping entity not found in rule subject hence hierarchical scope check not needed');
+    logger.debug('Rule subject not configured, hence hierarchical scope check not needed');
     return true; // no scoping entities specified in rule, request ignored
   }
   let hierarchicalRoleScopeCheck = 'true'; // default is to check for HR scope for all resources
   let ruleRole: string;
   const roleURN = urns.get('role');
+  let ruleRoleScopingEntity: string; // target scoping entity to match from owners and role associations
   ruleTarget?.subjects?.forEach((subjectObject) => {
     if (subjectObject?.id === roleURN) {
       ruleRole = subjectObject?.value;
     } else if (subjectObject?.id === urns.get('hierarchicalRoleScoping')) {
       hierarchicalRoleScopeCheck = subjectObject.value;
+    } else if (subjectObject?.id === urns.get('roleScopingEntity')) {
+      ruleRoleScopingEntity = subjectObject.value;
     }
   });
+
+  if (!ruleRoleScopingEntity) {
+    logger.debug('Scoping entity not found in rule subject hence hierarchical scope check not needed');
+    return true; // no scoping entities specified in rule, request ignored
+  }
 
   let context = (request as any).context as ContextWithSubResolved;
   if (_.isEmpty(context)) {
@@ -151,13 +159,15 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   let deleteMapEntries = [];
   for (let [resourceId, owners] of resourceIdOwnersMap) {
     const entityScopingInstMatch = owners?.some((ownerObj) => {
-      reducedUserRoleAssocs?.some((roleObj) => {
-        // check if roleScoping Entity matches the Owner's role scoping entity (ex: Organization / User / Klasse etc)
+      return reducedUserRoleAssocs?.some((roleObj) => {
+        // check if Rule's roleScoping Entity matches the Owner's role scoping entity and RoleAssociation RoleScoping entity (ex: Organization / User / Klasse etc)
         // and check if roleScoping Instance matches with owner instance
-        roleObj?.attributes?.some((roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
-          && ownerObj?.id === urns.get('ownerEntity') && roleAttributeObject?.value === ownerObj?.value
+        const match = roleObj?.attributes?.some((roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
+          && ownerObj?.id === urns.get('ownerEntity') && ownerObj.value === ruleRoleScopingEntity && ownerObj.value === roleAttributeObject?.value
           && roleAttributeObject?.attributes?.some((roleInstObj) =>
             roleInstObj?.id === urns.get('roleScopingInstance') && ownerObj?.attributes?.find((ownerInstObj) => ownerInstObj?.value === roleInstObj?.value)));
+        logger.debug('Match result for comparing owner indicatory entity and instance with role scoping entity and instance', { match });
+        return match;
       });
     });
     if (entityScopingInstMatch) {
@@ -185,9 +195,9 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
       // validate scoping Entity first
       let ownerInstance: string;
       const entityMatch = owners?.some((ownerObj) => {
-        reducedUserRoleAssocs?.some((roleObj) => {
+        return reducedUserRoleAssocs?.some((roleObj) => {
           if (roleObj?.attributes?.some((roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
-            && ownerObj?.id === urns.get('ownerEntity') && roleAttributeObject?.value === ownerObj?.value)) {
+            && ownerObj?.id === urns.get('ownerEntity') && ownerObj.value === ruleRoleScopingEntity && ownerObj.value === roleAttributeObject?.value)) {
             ownerObj?.attributes?.forEach((obj) => ownerInstance = obj.value);
             return true;
           }
@@ -212,7 +222,8 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
   }
 
   if (resourceIdOwnersMap.size > 0) {
-    logger.debug('Subject not in HR Scope!');
+    const resourceIdOwners = Array.from(resourceIdOwnersMap).map(([resourceId, owners]) => ({ resourceId, owners }));
+    logger.info('Subject not in HR Scope', resourceIdOwners);
     return false;
   }
 };
