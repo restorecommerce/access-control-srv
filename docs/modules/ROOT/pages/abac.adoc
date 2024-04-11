@@ -93,11 +93,7 @@ as demanding such evaluation would require a replication of this functionality a
   - id         ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
   - value      ex: <subject identifier>
 
-  # To identify role scoping entity
-  - id         ex: urn:restorecommerce:acs:names:roleScopingEntity
-  - value      ex: urn:restorecommerce:acs:model:organization.Organization
-
-  # To identify role scoping instance
+  # To identify role scoping instance (optional)
   - id         ex: urn:restorecommerce:acs:names:roleScopeInstance
     value:     ex: <organization identifier>
 - resources
@@ -190,10 +186,6 @@ request:
     subjects:
       - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
         value: Alice
-      - id: urn:restorecommerce:acs:names:roleScopingEntity
-        value: urn:restorecommerce:acs:model:organization.Organization
-      - id: urn:restorecommerce:acs:names:roleScopeInstance
-        value: OrgB
     resources:
       - id: urn:restorecommerce:acs:names:model:entity
         value: urn:restorecommerce:model:device.Device
@@ -283,7 +275,8 @@ which according to the policy's combining algorithm means access should be grant
 
 The operation `whatIsAllowed` is used when there is not a specific target resource for a request, for example, when Subject aims to see as much resources as possible.
 This example illustrates permissible actions on two resource entities `Address` and `Country` for Subject `Alice` who has the role `admin` within the scoping entity
-`Organization` with ID 'OrgA'.
+`Organization` with ID 'OrgA'. The target role scoping instance in subjects below `OrgA` is optional for `whatIsAllowed`, if it is provided then filters are created by https://github.com/restorecommerce/libs/tree/next/packages/acs-client[`acs-client`] based on
+this target role scope instance if not all applicable filters are returned from `acs-client` 
 
 [source,yml]
 ----
@@ -292,8 +285,6 @@ request:
       subjects:
         - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
           value: Alice
-        - id: urn:restorecommerce:acs:names:roleScopingEntity
-          value: urn:restorecommerce:acs:model:organization.Organization
         - id: urn:restorecommerce:acs:names:roleScopeInstance
           value: OrgA
       resources:
@@ -394,8 +385,6 @@ request:
     subjects:
       - id: ex: urn:oasis:names:tc:xacml:1.0:subject:subject-id
         value: Alice
-      - id: urn:restorecommerce:acs:names:roleScopingEntity
-        value: urn:restorecommerce:acs:model:organization.Organization
       - id: urn:restorecommerce:acs:names:roleScopeInstance
         value: OrgA
     resources:
