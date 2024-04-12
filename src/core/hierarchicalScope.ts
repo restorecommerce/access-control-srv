@@ -192,25 +192,31 @@ export const checkHierarchicalScope = async (ruleTarget: Target,
     }
     const reducedHRScopes = context?.subject?.hierarchical_scopes?.filter((hrObj) => hrObj?.role === ruleRole);
     for (let [resourceId, owners] of resourceIdOwnersMap) {
-      // validate scoping Entity first
-      let ownerInstances: string[] = [];
-      const entityMatch = owners?.some((ownerObj) => {
-        return reducedUserRoleAssocs?.some((roleObj) => {
-          if (roleObj?.attributes?.some((roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
-            && ownerObj?.id === urns.get('ownerEntity') && ownerObj.value === ruleRoleScopingEntity && ownerObj.value === roleAttributeObject?.value)) {
-            ownerObj?.attributes?.forEach((obj) => ownerInstances.push(obj.value));
-            return true;
-          }
-        });
-      });
+      const ownerInstances: string[] = owners.filter(
+        owner => reducedUserRoleAssocs?.some((roleObj) => {
+          return roleObj?.attributes?.some(
+            (roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
+              && owner?.id === urns.get('ownerEntity')
+              && owner?.value === ruleRoleScopingEntity
+              && owner?.value === roleAttributeObject?.value
+          );
+        }
+        )
+      ).flatMap(
+        owner => owner?.attributes?.filter(
+          attr => attr?.id === urns.get('ownerInstance')
+        ).map(
+          attr => attr?.value
+        )
+      );
       // validate the ownerInstance from HR scope tree for matched scoping entity
-      if (entityMatch && ownerInstances?.length > 0) {
-        traverse(reducedHRScopes).forEach((node: any) => { // depth-first search
+      traverse(reducedHRScopes).forEach(
+        (node: any) => { // depth-first search
           if (ownerInstances.includes(node?.id)) {
             deleteMapEntries.push(resourceId);
           }
-        });
-      }
+        }
+      );
     }
   }
 
