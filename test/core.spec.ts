@@ -368,6 +368,38 @@ describe('Testing access control core', () => {
       await requestAndValidate(ac, request, Response_Decision.PERMIT);
     });
 
+    it('should INDETERMINATE based on rule R6 as subject HR scope does not match', async () => {
+      request = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceID: 'Random',
+        actionType: 'urn:restorecommerce:acs:names:action:modify',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org4' // does not exist in HR scope
+      });
+
+      await requestAndValidate(ac, request, Response_Decision.INDETERMINATE);
+    });
+
+    it('should PERMIT based on rule R6 as subject HR scope matches', async () => {
+      request = testUtils.buildRequest({
+        subjectID: 'Alice',
+        subjectRole: 'SimpleUser',
+        roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        roleScopingInstance: 'Org1',
+        resourceType: 'urn:restorecommerce:acs:model:location.Location',
+        resourceID: 'Random',
+        actionType: 'urn:restorecommerce:acs:names:action:modify',
+        ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+        ownerInstance: 'Org2' // exist in HR scope
+      });
+
+      await requestAndValidate(ac, request, Response_Decision.PERMIT);
+    });
+
     it('should DENY based on Rule BA2', async () => {
       request = testUtils.buildRequest({
         subjectID: 'External Bob',

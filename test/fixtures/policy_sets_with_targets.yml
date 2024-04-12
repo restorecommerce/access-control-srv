@@ -80,3 +80,30 @@ policy_sets:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:read
             effect: PERMIT
+  - id: PS3
+    name: 'Policy set C'
+    description: 'A policy set targeting Org scoping with Subject scoping defined on Policy level instead of Rule'
+    combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides      
+    policies:
+      - id: P3
+        name: Policy with Org Scoping for Location Resource
+        description: A Policy targeting access for Org scope users for Location resource
+        combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+        target:
+          subjects:
+            - id: urn:restorecommerce:acs:names:role
+              value: SimpleUser
+            - id: urn:restorecommerce:acs:names:roleScopingEntity
+              value: urn:restorecommerce:acs:model:organization.Organization
+          resources:
+            - id: urn:restorecommerce:acs:names:model:entity
+              value: urn:restorecommerce:acs:model:location.Location
+        rules:
+          - id: R6
+            name: Rule 5
+            description: A rule targeting 'modify' actions on Location resource
+            target:
+              actions:
+                - id: urn:oasis:names:tc:xacml:1.0:action:action-id
+                  value: urn:restorecommerce:acs:names:action:modify
+            effect: PERMIT

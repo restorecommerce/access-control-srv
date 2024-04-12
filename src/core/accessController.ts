@@ -178,6 +178,14 @@ export class AccessController {
           ) {
             const rules: Map<string, Rule> = policy.combinables;
             this.logger.verbose(`Checking policy ${policy.name}`);
+            let policySubjectMatch: boolean;
+            // Subject set on Policy validate HR scope matching
+            if (policy?.target?.subjects?.length > 0) {
+              this.logger.verbose(`Checking Policy subject HR Scope match for ${policy.name}`);
+              policySubjectMatch = await checkHierarchicalScope(policy.target, request, this.urns, this, this.logger);
+            } else {
+              policySubjectMatch = true;
+            }
             // only apply a policy effect if there are no rules
             // combine rules otherwise
             if (rules.size == 0 && !!policy.effect) {
@@ -259,7 +267,7 @@ export class AccessController {
                     matches = await verifyACLList(rule.target, request, this.urns, this, this.logger);
                   }
 
-                  if (matches) {
+                  if (matches && policySubjectMatch) {
                     if (!evaluationCacheableRule) {
                       evaluation_cacheable = evaluationCacheableRule;
                     }
@@ -780,7 +788,7 @@ export class AccessController {
       return true;
     }
     ruleSubAttributes?.forEach((subjectObject) => {
-      if(subjectObject?.id === roleURN) {
+      if (subjectObject?.id === roleURN) {
         ruleRole = subjectObject?.value;
       }
     });
@@ -791,12 +799,12 @@ export class AccessController {
       return true;
     }
 
-    if(!ruleRole) {
+    if (!ruleRole) {
       this.logger.warn(`Subject does not match with rule attributes`, ruleSubAttributes);
       return false;
     }
     const context = (request as any)?.context as ContextWithSubResolved;
-    if(!context?.subject?.role_associations) {
+    if (!context?.subject?.role_associations) {
       this.logger.warn('Subject role associations missing', ruleSubAttributes);
       return false;
     }
