@@ -37,20 +37,6 @@ export const buildRequest = (opts: RequestOpts): Request => {
     }
   ]);
 
-  if (opts.roleScopingEntity && opts.roleScopingInstance) {
-    subjects = subjects.concat([
-      {
-        id: 'urn:restorecommerce:acs:names:roleScopingEntity',
-        value: opts.roleScopingEntity,
-        attributes: [{
-          id: 'urn:restorecommerce:acs:names:roleScopingInstance',
-          value: opts.targetScopingInstance ? opts.targetScopingInstance : opts.roleScopingInstance,
-          attributes: []
-        }]
-      }
-    ]);
-  }
-
   if (opts.actionType === 'urn:restorecommerce:acs:names:action:execute') {
     if (typeof opts.resourceType === 'string') {
       resources = resources.concat([
