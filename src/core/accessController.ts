@@ -781,6 +781,12 @@ export class AccessController {
    */
   private async checkSubjectMatches(ruleSubAttributes: Attribute[],
     requestSubAttributes: Attribute[], request: Request): Promise<boolean> {
+    let context = (request as any)?.context as ContextWithSubResolved;
+    // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
+    if (context?.subject?.token &&
+      _.isEmpty(context.subject.hierarchical_scopes)) {
+      context = await this.createHRScope(context);
+    }
     // Just check the Role value matches here in subject
     const roleURN = this.urns.get('role');
     let ruleRole: string;
@@ -803,7 +809,6 @@ export class AccessController {
       this.logger.warn(`Subject does not match with rule attributes`, ruleSubAttributes);
       return false;
     }
-    const context = (request as any)?.context as ContextWithSubResolved;
     if (!context?.subject?.role_associations) {
       this.logger.warn('Subject role associations missing', ruleSubAttributes);
       return false;
