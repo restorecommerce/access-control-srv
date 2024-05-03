@@ -730,23 +730,16 @@ export class AccessController {
     let redisHRScopesKey;
     if (tokenFound?.interactive) {
       redisHRScopesKey = `cache:${subjectID}:hrScopes`;
-    } else if (tokenFound && !tokenFound.interactive) {
+    }
+    else if (tokenFound && !tokenFound.interactive) {
       redisHRScopesKey = `cache:${subjectID}:${token}:hrScopes`;
     }
-    let timeout = this.cfg.get('authorization:hrReqTimeout');
-    if (!timeout) {
-      timeout = 300000;
+    else {
+      return context;
     }
-    let hrScopes: any;
-    try {
-      hrScopes = await this.getRedisKey(redisHRScopesKey);
-    } catch (err) {
-      this.logger.info(`Subject or HR Scope not persisted in redis in acs`);
-    }
-    let keyExist;
-    if (redisHRScopesKey) {
-      keyExist = await this.redisClient.exists(redisHRScopesKey);
-    }
+    const timeout = this.cfg.get('authorization:hrReqTimeout') ?? 300000;
+    const keyExist = await this.redisClient.exists(redisHRScopesKey);
+
     if (!keyExist) {
       const date = new Date().toISOString();
       const tokenDate = token + ':' + date;
@@ -759,14 +752,19 @@ export class AccessController {
           }, timeout);
           this.waiting[tokenDate].push({ resolve, reject, timeoutId });
         });
+        const subjectHRScopes = await this.getRedisKey(redisHRScopesKey);
+        Object.assign(context.subject, { hierarchical_scopes: subjectHRScopes });
       } catch (err) {
         // unhandled promise rejection for timeout
         this.logger.error(`Error creating Hierarchical scope for subject ${tokenDate}`);
       }
-      const subjectHRScopes = await this.getRedisKey(redisHRScopesKey);
-      Object.assign(context.subject, { hierarchical_scopes: subjectHRScopes });
     } else {
-      Object.assign(context.subject, { hierarchical_scopes: hrScopes });
+      try {
+        const subjectHRScopes = await this.getRedisKey(redisHRScopesKey);
+        Object.assign(context.subject, { hierarchical_scopes: subjectHRScopes });
+      } catch (err) {
+        this.logger.info(`Subject or HR Scope not persisted in redis in acs`);
+      }
     }
     return context;
   }
