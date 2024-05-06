@@ -20,6 +20,7 @@ import {
 import { PolicySetWithCombinables, PolicyWithCombinables } from './interfaces.js';
 import { RoleAssociation } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import { Topic } from '@restorecommerce/kafka-client';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 
 
 export const formatTarget = (target: any): Target => {
@@ -184,7 +185,7 @@ const getUserServiceClient = async () => {
     // identity-srv client to resolve subject ID by token
     const grpcIDSConfig = cfg.get('client:user');
     const loggerCfg = cfg.get('logger');
-    loggerCfg.esTransformer = (msg) => {
+    loggerCfg.esTransformer = (msg: any) => {
       msg.fields = JSON.stringify(msg.fields);
       return msg;
     };
@@ -230,7 +231,7 @@ export async function checkAccessRequest(ctx: ACSClientContext, resource: Resour
   let result: DecisionResponse | PolicySetRQResponse;
   try {
     result = await accessRequest(subject, resource, action, ctx, { operation, roleScopingEntityURN: cfg?.get('authorization:urns:roleScopingEntityURN') });
-  } catch (err) {
+  } catch (err: any) {
     return {
       decision: Response_Decision.DENY,
       obligations: [],
@@ -344,12 +345,12 @@ export const getAllValues = (obj: any, pushedValues: any): any => {
   }
 };
 
-const nestedAttributesEqual = (redisAttributes, userAttributes) => {
+const nestedAttributesEqual = (redisAttributes: Attribute[], userAttributes: Attribute[]) => {
   if (!userAttributes) {
     return true;
   }
   if (redisAttributes?.length > 0 && userAttributes?.length > 0) {
-    return userAttributes.every((obj) => redisAttributes.some((dbObj => dbObj.value === obj.value)));
+    return userAttributes.every((obj) => redisAttributes.some((dbObj) => dbObj.value === obj.value));
   } else if (redisAttributes?.length != userAttributes?.length) {
     return false;
   }

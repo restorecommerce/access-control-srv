@@ -67,7 +67,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
 
     try {
       return this.accessController.isAllowed(acsRequest);
-    } catch (err) { // deny if any error occurs
+    } catch (err: any) { // deny if any error occurs
       this.logger.error('Error evaluating isAllowed request', { code: err.code, message: err.message, stack: err.stack });
       return {
         decision: Response_Decision.DENY,
@@ -88,7 +88,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
     let whatisAllowedResponse: ReverseQuery;
     try {
       whatisAllowedResponse = await this.accessController.whatIsAllowed(acsRequest);
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error('Error evaluating whatIsAllowed request', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
@@ -118,7 +118,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
 
     try {
       return JSON.parse(object.value.toString());
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error('Error unmarshalling object', { code: err.code, message: err.message, stack: err.stack });
       throw err;
     }
