@@ -139,6 +139,25 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     return result;
   }
 
+  async superUpsert(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
+    const result = await super.upsert(request, ctx);
+    const policySets = _.cloneDeep(_accessController.policySets);
+
+    if (result?.items?.length > 0) {
+      for (let item of result.items) {
+        const rule: Rule = marshallResource(item?.payload, 'rule');
+        for (let [, policySet] of policySets) {
+          for (let [, policy] of (policySet).combinables) {
+            if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
+              _accessController.updateRule(policySet.id, policy.id, rule);
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }
+
   async create(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
     let subject = request.subject;
     // update meta data for owner information
@@ -369,6 +388,35 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
    */
   async load(): Promise<Map<string, PolicyWithCombinables>> {
     return this.getPolicies();
+  }
+
+  async superUpsert(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+    const result = await super.upsert(request, ctx);
+    const policySets = _.cloneDeep(_accessController.policySets);
+
+    if (result?.items?.length > 0) {
+      for (let item of result.items) {
+        for (let [, policySet] of policySets) {
+          if (policySet.combinables.has(item.payload?.id)) {
+            const policy: PolicyWithCombinables = marshallResource(item.payload, 'policy');
+
+            if (_.has(item.payload, 'rules') && !_.isEmpty(item.payload.rules)) {
+              policy.combinables = await ruleService.getRules(item.payload.rules);
+
+              if (policy.combinables.size != item?.payload?.rules?.length) {
+                for (let id of item.payload.rules) {
+                  if (!policy.combinables.has(id)) {
+                    policy.combinables.set(id, null);
+                  }
+                }
+              }
+            }
+            _accessController.updatePolicy(policySet.id, policy);
+          }
+        }
+      }
+    }
+    return result;
   }
 
   async create(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
@@ -692,6 +740,28 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     }
 
     return policySets;
+  }
+
+  async superUpsert(request: PolicySetList, context: any): Promise<DeepPartial<PolicySetListResponse>> {
+    const result = await super.upsert(request, context);
+    if (result?.items?.length > 0) {
+      for (let item of result.items) {
+        const policySet = marshallResource(item?.payload, 'policy_set');
+        const policyIDs = item?.payload?.policies;
+        if (!_.isEmpty(policyIDs)) {
+          policySet.combinables = await policyService.getPolicies(policyIDs);
+          if (policySet.combinables.size != policyIDs.length) {
+            for (let id of policyIDs) {
+              if (!policySet.combinables.has(id)) {
+                policySet.combinables.set(id, null);
+              }
+            }
+          }
+        }
+        _accessController.updatePolicySet(policySet);
+      }
+    }
+    return result;
   }
 
   async create(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {

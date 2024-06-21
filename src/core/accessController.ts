@@ -8,7 +8,6 @@ import { Rule, RuleRQ, ContextQuery, Effect, Target } from '@restorecommerce/rc-
 import { Policy, PolicyRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
 import { PolicySetRQ } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
-import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import {
   UserServiceClient
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/user.js';

@@ -1,0 +1,16 @@
+- id: super_admin_rule_id
+  name: SuperAdmins Rule
+  description: Permit anything for Super Admins
+  target:
+    subjects:
+      - id: urn:restorecommerce:acs:names:role
+        value: superadministrator-r-id
+  effect: PERMIT
+  evaluation_cacheable: true
+  meta:
+    owners:
+      - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+        value: urn:bmslsa:acs:model:organization.Organization
+        attributes:
+          - id: urn:restorecommerce:acs:names:ownerInstance
+            value: system

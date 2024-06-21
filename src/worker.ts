@@ -46,6 +46,8 @@ import {
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/health/v1/health.js';
 import { BindConfig } from '@restorecommerce/chassis-srv/lib/microservice/transport/provider/grpc/index.js';
 import { compareRoleAssociations, flushACSCache } from './core/utils.js';
+import * as fs from 'node:fs';
+import yaml from 'js-yaml';
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {
@@ -188,6 +190,49 @@ export class Worker {
     this.events = events;
     this.server = server;
     await server.start();
+
+    // load seed policy_sets, policies and rules if it exists
+    const seedDataConfig = this.cfg.get('seed_data');
+    if (seedDataConfig) {
+      const entities = Object.keys(seedDataConfig);
+      for (let entity of entities) {
+        const filePath = seedDataConfig[entity];
+        await new Promise<void>((resolve, reject) => {
+          fs.readFile(filePath, (err, data) => {
+            if (err) {
+              this.logger.error(`Failed loading seed ${entity} file`, err);
+              reject(err);
+              return;
+            }
+
+            let seedData;
+            try {
+              seedData = yaml.load(data, 'utf8');
+            } catch (err) {
+              this.logger.error(`Error parsing seed ${entity} file`, err);
+              reject(err);
+              return;
+            }
+            this.logger.info(`Loaded ${seedData?.length} seed ${entity}`);
+
+            // get respective service object for upserting resource
+            const service = resourceManager.getResourceService(entity);
+
+            service.superUpsert({ items: seedData }, undefined)
+              .then(() => {
+                this.logger.info(`Seed ${entity} upserted successfully`);
+                resolve();
+              })
+              .catch(err => {
+                this.logger.error(`Failed upserting seed ${entity} file`, err);
+                reject(err);
+              });
+          });
+        }).catch((err) => {
+          this.logger.error(`Failed upserting seed ${entity} file`, err);
+        });;
+      }
+    }
 
     this.logger.info('Access control service started correctly!');
     await accessControlService.loadPolicies();

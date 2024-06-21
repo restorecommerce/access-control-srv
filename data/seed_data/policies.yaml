@@ -1,0 +1,14 @@
+- id: super_admin_policy_id
+  name: Super Admin Policy
+  description: Targets actions for all resources
+  rules:
+    - super_admin_rule_id
+  combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
+  evaluation_cacheable: true
+  meta:
+    owners:
+      - id: urn:restorecommerce:acs:names:ownerIndicatoryEntity
+        value: urn:restorecommerce:acs:model:organization.Organization
+        attributes:
+          - id: urn:restorecommerce:acs:names:ownerInstance
+            value: system
