@@ -315,5 +315,10 @@
         "entities": ["rules", "policies", "policy_sets"]
       }
     ]
+  },
+  "seed_data": {
+    "policy_set" : "./data/seed_data/policy_sets.yaml",
+    "policy": "./data/seed_data/policies.yaml",
+    "rule": "./data/seed_data/rules.yaml"
   }
 }

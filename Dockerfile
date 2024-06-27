@@ -22,6 +22,7 @@ ARG APP_HOME=/home/node/srv
 WORKDIR $APP_HOME
 
 COPY --chown=node:node ./cfg $APP_HOME/cfg/
+COPY --chown=node:node ./data $APP_HOME/data/
 COPY --chown=node:node --from=build $APP_HOME/lib/ $APP_HOME/lib/
 
 EXPOSE 50051
