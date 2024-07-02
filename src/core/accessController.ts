@@ -114,6 +114,13 @@ export class AccessController {
         context.subject.role_associations = subject.payload.role_associations;
       }
     }
+
+    // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
+    if (context?.subject?.token &&
+      _.isEmpty(context.subject.hierarchical_scopes)) {
+      context = await this.createHRScope(context);
+    }
+
     for (let [, value] of this.policySets) {
       const policySet: PolicySetWithCombinables = value;
       let policyEffects: EffectEvaluation[] = [];
@@ -326,6 +333,11 @@ export class AccessController {
         (context.subject as any).tokens = subject.payload.tokens;
         context.subject.role_associations = subject.payload.role_associations;
       }
+    }
+    // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
+    if (context?.subject?.token &&
+      _.isEmpty(context.subject.hierarchical_scopes)) {
+      context = await this.createHRScope(context);
     }
     let obligations: Attribute[] = [];
     for (let [, value] of this.policySets) {
@@ -779,11 +791,6 @@ export class AccessController {
   private async checkSubjectMatches(ruleSubAttributes: Attribute[],
     requestSubAttributes: Attribute[], request: Request): Promise<boolean> {
     let context = (request as any)?.context as ContextWithSubResolved;
-    // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
-    if (context?.subject?.token &&
-      _.isEmpty(context.subject.hierarchical_scopes)) {
-      context = await this.createHRScope(context);
-    }
     // Just check the Role value matches here in subject
     const roleURN = this.urns.get('role');
     let ruleRole: string;
