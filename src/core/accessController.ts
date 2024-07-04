@@ -20,7 +20,8 @@ import { Logger } from 'winston';
 import { createClient, RedisClientType } from 'redis';
 import { Topic } from '@restorecommerce/kafka-client';
 import { verifyACLList } from './verifyACL.js';
-import { conditionMatches } from './utils.js';
+import { conditionMatches, loadPoliciesFromDoc } from './utils.js';
+import { PolicySetService, ResourceManager } from '../resourceManager.js';
 
 export class AccessController {
   policySets: Map<string, PolicySetWithCombinables>;
@@ -73,6 +74,24 @@ export class AccessController {
     this.userTopic = userTopic;
     this.waiting = [];
     this.userService = userService;
+  }
+
+  async loadPolicies(resourceManager: ResourceManager): Promise<void> {
+    const policiesCfg = this.cfg.get('policies');
+    const loadType = policiesCfg?.type;
+    switch (loadType) {
+      case 'local':
+        const path: string = policiesCfg?.path;
+        await loadPoliciesFromDoc(this, path);
+        this.logger.silly('Policies from local files loaded');
+        break;
+      case 'database':
+        const policySetService: PolicySetService = resourceManager.getResourceService('policy_set');
+        const policySets: Map<string, PolicySetWithCombinables> = await policySetService.load() || new Map();
+        this.policySets = policySets;
+        this.logger.silly('Policies from database loaded');
+        break;
+    }
   }
 
   clearPolicies(): void {

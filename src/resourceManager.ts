@@ -108,6 +108,22 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     return this.getRules();
   }
 
+  // async reloadRules(result: DeepPartial<RuleListResponse>): Promise<void> {
+  //   const policySets = _.cloneDeep(_accessController.policySets);
+  //   if (result?.items?.length > 0) {
+  //     for (let item of result.items) {
+  //       const rule: Rule = marshallResource(item?.payload, 'rule');
+  //       for (let [, policySet] of policySets) {
+  //         for (let [, policy] of (policySet).combinables) {
+  //           if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
+  //             _accessController.updateRule(policySet.id, policy.id, rule);
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
   async getRules(ruleIDs?: string[]): Promise<Map<string, Rule>> {
     const filters = ruleIDs ? makeFilter(ruleIDs) : {};
     const result = await super.read(ReadRequest.fromPartial({ filters }), {});
@@ -141,20 +157,8 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
 
   async superUpsert(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
     const result = await super.upsert(request, ctx);
-    const policySets = _.cloneDeep(_accessController.policySets);
-
-    if (result?.items?.length > 0) {
-      for (let item of result.items) {
-        const rule: Rule = marshallResource(item?.payload, 'rule');
-        for (let [, policySet] of policySets) {
-          for (let [, policy] of (policySet).combinables) {
-            if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
-              _accessController.updateRule(policySet.id, policy.id, rule);
-            }
-          }
-        }
-      }
-    }
+    // const policySets: Map<string, PolicySetWithCombinables> = await policySetService.load() || new Map();
+    // this.policySets = policySets;
     return result;
   }
 
@@ -185,20 +189,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.create(request, ctx);
-    const policySets = _.cloneDeep(_accessController.policySets);
-
-    if (result?.items?.length > 0) {
-      for (let item of result.items) {
-        const rule: Rule = marshallResource(item?.payload, 'rule');
-        for (let [, policySet] of policySets) {
-          for (let [, policy] of (policySet).combinables) {
-            if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
-              _accessController.updateRule(policySet.id, policy.id, rule);
-            }
-          }
-        }
-      }
-    }
+    await this.reloadRules(result);
     return result;
   }
 
@@ -257,6 +248,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.update(request, ctx);
+    await this.reloadRules(result);
     return result;
   }
 
@@ -285,7 +277,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.upsert(request, ctx);
+    const result = await this.superUpsert(request, ctx);
     return result;
   }
 
@@ -390,32 +382,35 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     return this.getPolicies();
   }
 
+  // async reloadPolicies(result: DeepPartial<PolicyListResponse>): Promise<void> {
+  //   const policySets = _.cloneDeep(_accessController.policySets);
+  //   if (result?.items?.length > 0) {
+  //     for (let item of result.items) {
+  //       for (let [, policySet] of policySets) {
+  //         if (policySet.combinables.has(item.payload?.id)) {
+  //           const policy: PolicyWithCombinables = marshallResource(item.payload, 'policy');
+
+  //           if (_.has(item.payload, 'rules') && !_.isEmpty(item.payload.rules)) {
+  //             policy.combinables = await ruleService.getRules(item.payload.rules);
+
+  //             if (policy.combinables.size != item?.payload?.rules?.length) {
+  //               for (let id of item.payload.rules) {
+  //                 if (!policy.combinables.has(id)) {
+  //                   policy.combinables.set(id, null);
+  //                 }
+  //               }
+  //             }
+  //           }
+  //           _accessController.updatePolicy(policySet.id, policy);
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
   async superUpsert(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
     const result = await super.upsert(request, ctx);
-    const policySets = _.cloneDeep(_accessController.policySets);
-
-    if (result?.items?.length > 0) {
-      for (let item of result.items) {
-        for (let [, policySet] of policySets) {
-          if (policySet.combinables.has(item.payload?.id)) {
-            const policy: PolicyWithCombinables = marshallResource(item.payload, 'policy');
-
-            if (_.has(item.payload, 'rules') && !_.isEmpty(item.payload.rules)) {
-              policy.combinables = await ruleService.getRules(item.payload.rules);
-
-              if (policy.combinables.size != item?.payload?.rules?.length) {
-                for (let id of item.payload.rules) {
-                  if (!policy.combinables.has(id)) {
-                    policy.combinables.set(id, null);
-                  }
-                }
-              }
-            }
-            _accessController.updatePolicy(policySet.id, policy);
-          }
-        }
-      }
-    }
+    await _accessController.loadPolicies();
     return result;
   }
 
@@ -445,30 +440,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.create(request, ctx);
-    const policySets = _.cloneDeep(_accessController.policySets);
-
-    if (result?.items?.length > 0) {
-      for (let item of result.items) {
-        for (let [, policySet] of policySets) {
-          if (policySet.combinables.has(item.payload?.id)) {
-            const policy: PolicyWithCombinables = marshallResource(item.payload, 'policy');
-
-            if (_.has(item.payload, 'rules') && !_.isEmpty(item.payload.rules)) {
-              policy.combinables = await ruleService.getRules(item.payload.rules);
-
-              if (policy.combinables.size != item?.payload?.rules?.length) {
-                for (let id of item.payload.rules) {
-                  if (!policy.combinables.has(id)) {
-                    policy.combinables.set(id, null);
-                  }
-                }
-              }
-            }
-            _accessController.updatePolicy(policySet.id, policy);
-          }
-        }
-      }
-    }
+    await this.reloadPolicies(result);
 
     return result;
   }
@@ -541,6 +513,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.update(request, ctx);
+    await this.reloadPolicies(result);
     return result;
   }
 
@@ -569,7 +542,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.upsert(request, ctx);
+    const result = await this.superUpsert(request, ctx);
     return result;
   }
 
@@ -985,7 +958,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    const result = await super.upsert(request, ctx);
+    const result = await this.superUpsert(request, ctx);
     return result;
   }
 }
