@@ -106,6 +106,17 @@ export class Worker {
       _.assign({}, kafkaConfig, policySetConfig, policyConfig, ruleConfig));
 
     kafkaConfig = this.cfg.get('events:kafka');
+    const acsEvents = [
+      'policy_setCreated',
+      'policy_setModified',
+      'policy_setDeleted',
+      'policyCreated',
+      'policyModified',
+      'policyDeleted',
+      'ruleCreated',
+      'ruleModified',
+      'ruleDeleted',
+    ];
     const hierarchicalScopesResponse = 'hierarchicalScopesResponse';
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
@@ -225,13 +236,14 @@ export class Worker {
 
     this.logger.info('Access control service started correctly!');
     await accessControlService.loadPolicies();
-    this.logger.info('Access control service policies loaded successfully');
 
     const that = this;
     const commandTopic = await events.topic(this.cfg.get('events:kafka:topics:command:topic'));
     const eventListener = async (msg: any,
       context: any, config: any, eventName: string): Promise<any> => {
-      if (eventName === hierarchicalScopesResponse) {
+      if (acsEvents.indexOf(eventName) > -1) {
+        await accessControlService.loadPolicies();
+      } else if (eventName === hierarchicalScopesResponse) {
         // Add subject_id to waiting list
         const hierarchical_scopes = msg?.hierarchical_scopes ? msg.hierarchical_scopes : [];
         const tokenDate = msg?.token;

@@ -2,7 +2,7 @@ import _ from 'lodash-es';
 import { Server } from '@restorecommerce/chassis-srv';
 import { Events } from '@restorecommerce/kafka-client';
 import { CommandInterface } from '@restorecommerce/chassis-srv';
-import { ResourceManager, PolicySetService } from './resourceManager.js';
+import { ResourceManager } from './resourceManager.js';
 import { RedisClientType } from 'redis';
 import { AccessController } from './core/accessController.js';
 import { loadPoliciesFromDoc } from './core/utils.js';
@@ -35,7 +35,22 @@ export class AccessControlService implements AccessControlServiceImplementation 
   }
   async loadPolicies(): Promise<void> {
     this.logger.info('Loading policies');
-    this.accessController.loadPolicies(this.resourceManager);
+
+    const policiesCfg = this.cfg.get('policies');
+    const loadType = policiesCfg?.type;
+    switch (loadType) {
+      case 'local':
+        const path: string = policiesCfg?.path;
+        this.accessController = await loadPoliciesFromDoc(this.accessController, path);
+        this.logger.silly('Policies from local files loaded');
+        break;
+      case 'database':
+        const policySetService = this.resourceManager.getResourceService('policy_set');
+        const policySets: Map<string, PolicySetWithCombinables> = await policySetService.load() || new Map();
+        this.accessController.policySets = policySets;
+        this.logger.silly('Policies from database loaded');
+        break;
+    }
   }
 
   clearPolicies(): void {
