@@ -257,6 +257,8 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.update(request, ctx);
+    _accessController.policySets = await policySetService.load() || new Map();
+    this.logger.info('Reloaded Rules after update operation');
     return result;
   }
 
@@ -286,6 +288,8 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.upsert(request, ctx);
+    _accessController.policySets = await policySetService.load() || new Map();
+    this.logger.info('Reloaded Rules after upsert operation');
     return result;
   }
 
@@ -541,6 +545,8 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.update(request, ctx);
+    _accessController.policySets = await policySetService.load() || new Map();
+    this.logger.info('Reloaded Policies after update operation');
     return result;
   }
 
@@ -570,6 +576,8 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.upsert(request, ctx);
+    _accessController.policySets = await policySetService.load() || new Map();
+    this.logger.info('Reloaded Policies after upsert operation');
     return result;
   }
 
@@ -986,6 +994,8 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.upsert(request, ctx);
+    _accessController.policySets = await policySetService.load() || new Map();
+    this.logger.info('Reloaded PolicySet after upsert operation');
     return result;
   }
 }
