@@ -277,7 +277,7 @@
           "method": "firstApplicable"
         }
       ],
-      "prioritizedAlgorithem": "prioritizedAlgorithem"
+      "prioritizedAlgorithm": "prioritizedAlgorithm"
     }
   },
   "adapter": {

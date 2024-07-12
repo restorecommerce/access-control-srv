@@ -22,6 +22,12 @@ import { Topic } from '@restorecommerce/kafka-client';
 import { verifyACLList } from './verifyACL.js';
 import { conditionMatches } from './utils.js';
 
+export enum CombinationAlgorithm {
+  PERMIT_OVERRIDES = 'permitOverrides',
+  DENY_OVERRIDES = 'denyOverrides',
+  FIRST_APPLICABLE = 'firstApplicable',
+}
+
 export class AccessController {
   policySets: Map<string, PolicySetWithCombinables>;
   combiningAlgorithms: Map<string, any>;
@@ -139,9 +145,9 @@ export class AccessController {
           }
           else if (policy.combining_algorithm) {
             const method = this.combiningAlgorithms.get(policy.combining_algorithm);
-            if (method === 'permitOverrides') {
+            if (method === CombinationAlgorithm.PERMIT_OVERRIDES) {
               policyEffect = Effect.PERMIT;
-            } else if (method === 'denyOverrides') {
+            } else if (method === CombinationAlgorithm.DENY_OVERRIDES) {
               policyEffect = Effect.DENY;
             }
           }
@@ -163,7 +169,7 @@ export class AccessController {
           exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
         }
 
-        const prioritizedAlgorithem = this.cfg.get('policies:options:priorizedAlgorithem');
+        const prioritizedAlgorithm = this.cfg.get('policies:options:prioritizedAlgorithm');
         for (let [, policyValue] of policySet.combinables) {
           const policy: PolicyWithCombinables = policyValue;
           if (!policy) {
@@ -292,26 +298,55 @@ export class AccessController {
 
         const method = this.combiningAlgorithms.get(policySet.combining_algorithm);
         if (policyEffects?.length > 0) {
-          effect = this.decide(method, policyEffects);
+          const e = this.decide(method, policyEffects);
+          /**
+           * Propagate the internal combiningAlgorithm to the outer level! 
+           * Policy-Sets of hte same nature will combine their results and act as one.
+           * If only one of many permitting Policy-Sets emits PERMIT, it counts for all.
+           * If only one of many denying Policy-Sets emits DENY, it counts for all.
+           * Finally the prioritizedAlgorithm will vote out the other.
+           **/
+          if (
+            method === CombinationAlgorithm.DENY_OVERRIDES
+            && e?.effect === Effect.DENY
+          ) {
+            effect = e;
+          }
+          else if (
+            method === CombinationAlgorithm.PERMIT_OVERRIDES
+            && e?.effect === Effect.PERMIT
+          ) {
+            effect = e;
+          }
+          else {
+            effect = e
+          }
         }
 
+        /**
+         * The prioritizedAlgorithm will vote out all others,
+         * but only if the Policy-Set is of the prioritized nature
+         * and the decision emits a match.
+         * In that case all other Policy-Sets don't need any futher observation.
+         * TODO: improve performance by sorting the prioritizedAlgorithm to the top of the list.
+         **/
         if (
-          prioritizedAlgorithem === 'denyOverrides'
-          && method === 'denyOverrides'
+          prioritizedAlgorithm === CombinationAlgorithm.DENY_OVERRIDES
+          && method === CombinationAlgorithm.DENY_OVERRIDES
           && effect?.effect === Effect.DENY
         ) {
           break;
         }
         else if (
-          prioritizedAlgorithem === 'permitOverrides'
-          && method === 'permitOverrides'
+          prioritizedAlgorithm === CombinationAlgorithm.PERMIT_OVERRIDES
+          && method === CombinationAlgorithm.PERMIT_OVERRIDES
           && effect?.effect === Effect.PERMIT
         ) {
           break;
         }
         else if (
-          prioritizedAlgorithem === 'firstApplicable'
-          && method === 'firstApplicable'
+          prioritizedAlgorithm === CombinationAlgorithm.FIRST_APPLICABLE
+          && method === CombinationAlgorithm.FIRST_APPLICABLE
           && effect?.effect !== undefined
         ) {
           break;
@@ -380,9 +415,9 @@ export class AccessController {
             policyEffect = policy.effect;
           } else if (policy?.combining_algorithm) {
             const method = this.combiningAlgorithms.get(policy.combining_algorithm);
-            if (method === 'permitOverrides') {
+            if (method === CombinationAlgorithm.PERMIT_OVERRIDES) {
               policyEffect = Effect.PERMIT;
-            } else if (method === 'denyOverrides') {
+            } else if (method === CombinationAlgorithm.DENY_OVERRIDES) {
               policyEffect = Effect.DENY;
             }
           }
@@ -465,9 +500,9 @@ export class AccessController {
             policyEffect = policy.effect;
           } else if (policy.combining_algorithm) {
             const method = this.combiningAlgorithms.get(policy.combining_algorithm);
-            if (method === 'permitOverrides') {
+            if (method === CombinationAlgorithm.PERMIT_OVERRIDES) {
               policyEffect = Effect.PERMIT;
-            } else if (method === 'denyOverrides') {
+            } else if (method === CombinationAlgorithm.DENY_OVERRIDES) {
               policyEffect = Effect.DENY;
             }
           }
