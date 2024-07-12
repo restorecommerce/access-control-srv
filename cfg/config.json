@@ -276,7 +276,8 @@
           "urn": "urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:first-applicable",
           "method": "firstApplicable"
         }
-      ]
+      ],
+      "prioritizedAlgorithem": "prioritizedAlgorithem"
     }
   },
   "adapter": {

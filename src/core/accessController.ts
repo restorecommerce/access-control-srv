@@ -1,4 +1,4 @@
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import {
   PolicySetWithCombinables, PolicyWithCombinables, AccessControlOperation,
   CombiningAlgorithm, AccessControlConfiguration, EffectEvaluation, ContextWithSubResolved
@@ -50,8 +50,8 @@ export class AccessController {
       const urn = ca.urn;
       const method = ca.method;
 
-      if (this[method]) {
-        this.combiningAlgorithms.set(urn, this[method]);
+      if ((this as any)[method]) {
+        this.combiningAlgorithms.set(urn, (this as any)[method]);
       } else {
         logger.error('Unable to setup access controller: an invalid combining algorithm was found!');
         throw new errors.InvalidCombiningAlgorithm(urn);
@@ -163,6 +163,7 @@ export class AccessController {
           exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
         }
 
+        const prioritizedAlgorithem = this.cfg.get('policies:options:priorizedAlgorithem');
         for (let [, policyValue] of policySet.combinables) {
           const policy: PolicyWithCombinables = policyValue;
           if (!policy) {
@@ -289,8 +290,31 @@ export class AccessController {
           }
         }
 
+        const method = this.combiningAlgorithms.get(policySet.combining_algorithm);
         if (policyEffects?.length > 0) {
-          effect = this.decide(policySet.combining_algorithm, policyEffects);
+          effect = this.decide(method, policyEffects);
+        }
+
+        if (
+          prioritizedAlgorithem === 'denyOverrides'
+          && method === 'denyOverrides'
+          && effect?.effect === Effect.DENY
+        ) {
+          break;
+        }
+        else if (
+          prioritizedAlgorithem === 'permitOverrides'
+          && method === 'permitOverrides'
+          && effect?.effect === Effect.PERMIT
+        ) {
+          break;
+        }
+        else if (
+          prioritizedAlgorithem === 'firstApplicable'
+          && method === 'firstApplicable'
+          && effect?.effect !== undefined
+        ) {
+          break;
         }
       }
     }
