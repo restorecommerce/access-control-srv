@@ -300,7 +300,7 @@ export class AccessController {
         if (policyEffects?.length > 0) {
           const e = this.decide(method, policyEffects);
           /**
-           * Propagate the internal combiningAlgorithm to the outer level! 
+           * Propagate the internal combiningAlgorithm to the outer level!
            * Policy-Sets of hte same nature will combine their results and act as one.
            * If only one of many permitting Policy-Sets emits PERMIT, it counts for all.
            * If only one of many denying Policy-Sets emits DENY, it counts for all.
@@ -319,7 +319,7 @@ export class AccessController {
             effect = e;
           }
           else {
-            effect = e
+            effect = e;
           }
         }
 
