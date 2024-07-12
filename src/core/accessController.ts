@@ -298,7 +298,7 @@ export class AccessController {
 
         const method = this.combiningAlgorithms.get(policySet.combining_algorithm);
         if (policyEffects?.length > 0) {
-          const e = this.decide(method, policyEffects);
+          const e = this.decide(policySet.combining_algorithm, policyEffects);
           /**
            * Propagate the internal combiningAlgorithm to the outer level!
            * Policy-Sets of hte same nature will combine their results and act as one.
