@@ -68,7 +68,7 @@ const genEventsConfig = (collectionName: string, cfg: any): any => {
   const crudEvents = ['Created', 'Modified', 'Deleted'];
 
   const kafkaCfg = cfg.get('events:kafka');
-  for (let event of crudEvents) {
+  for (const event of crudEvents) {
     kafkaCfg[`${collectionName}${event}`] = {
       messageObject: `${servicePrefix}${collectionName}.${capitalized(collectionName)}`
     };
@@ -100,7 +100,7 @@ export class Worker {
     let kafkaConfig = this.cfg.get('events:kafka');
     const policySetConfig = genEventsConfig('policy_set', this.cfg);
     const policyConfig = genEventsConfig('policy', this.cfg);
-    let ruleConfig = genEventsConfig('rule', this.cfg);
+    const ruleConfig = genEventsConfig('rule', this.cfg);
 
     this.cfg.set('events:kafka',
       _.assign({}, kafkaConfig, policySetConfig, policyConfig, ruleConfig));
@@ -184,7 +184,7 @@ export class Worker {
     const seedDataConfig = this.cfg.get('seed_data');
     if (seedDataConfig) {
       const entities = Object.keys(seedDataConfig);
-      for (let entity of entities) {
+      for (const entity of entities) {
         const filePath = seedDataConfig[entity];
         await new Promise<void>((resolve, reject) => {
           fs.readFile(filePath, (err, data) => {
@@ -219,14 +219,15 @@ export class Worker {
           });
         }).catch((err) => {
           this.logger.error(`Failed upserting seed ${entity} file`, err);
-        });;
+        });
       }
     }
 
     this.logger.info('Access control service started correctly!');
     await accessControlService.loadPolicies();
 
-    const that = this;
+    const commandInterface = this.commandInterface;
+    const accessController = this.accessController;
     const commandTopic = await events.topic(this.cfg.get('events:kafka:topics:command:topic'));
     const eventListener = async (msg: any,
       context: any, config: any, eventName: string): Promise<any> => {
@@ -240,7 +241,7 @@ export class Worker {
         let redisHRScopesKey;
         let subject;
         if (token) {
-          subject = await this.accessController.userService.findByToken(FindByTokenRequest.fromPartial({ token }));
+          subject = await accessController.userService.findByToken(FindByTokenRequest.fromPartial({ token }));
           if (subject?.payload) {
             const tokens = subject.payload.tokens;
             const subID = subject.payload.id;
@@ -251,12 +252,12 @@ export class Worker {
               redisHRScopesKey = `cache:${subID}:${token}:hrScopes`;
             }
 
-            let redisSubKey = `cache:${subID}:subject`;
+            const redisSubKey = `cache:${subID}:subject`;
             let redisSub;
             try {
-              redisSub = await that.accessController.getRedisKey(redisSubKey);
+              redisSub = await accessController.getRedisKey(redisSubKey);
               if (_.isEmpty(redisSub)) {
-                await that.accessController.setRedisKey(redisSubKey, JSON.stringify(subject.payload));
+                await accessController.setRedisKey(redisSubKey, JSON.stringify(subject.payload));
               }
             } catch (err) {
               this.logger.error('Error retrieving Subject from redis in acs-srv');
@@ -265,45 +266,45 @@ export class Worker {
         }
 
         try {
-          await that.accessController.setRedisKey(redisHRScopesKey, JSON.stringify(hierarchical_scopes));
-          that.logger.info(`HR scope saved successfully for Subject ${subID}`);
+          await accessController.setRedisKey(redisHRScopesKey, JSON.stringify(hierarchical_scopes));
+          logger.info(`HR scope saved successfully for Subject ${subID}`);
         } catch (err) {
-          that.logger.info('Subject not persisted in redis for updating');
+          logger.info('Subject not persisted in redis for updating');
         }
-        if (that.accessController.waiting[tokenDate]) {
+        if (accessController.waiting[tokenDate]) {
           // clear timeout and resolve
-          that.accessController.waiting[tokenDate].forEach(waiter => {
+          accessController.waiting[tokenDate].forEach(waiter => {
             clearTimeout(waiter.timeoutId);
             return waiter.resolve(true);
           });
-          delete that.accessController.waiting[tokenDate];
+          delete accessController.waiting[tokenDate];
         }
       } else if (eventName === 'userModified') {
         if (msg && 'id' in msg) {
           const updatedRoleAssocs = msg.role_associations as RoleAssociation[];
           const updatedTokens = msg.tokens;
-          let redisKey = `cache:${msg.id}:subject`;
-          const redisSubject = await that.accessController.getRedisKey(redisKey);
+          const redisKey = `cache:${msg.id}:subject`;
+          const redisSubject = await accessController.getRedisKey(redisKey);
           if (redisSubject) {
             const redisRoleAssocs = redisSubject.role_associations;
             const redisTokens = redisSubject.tokens;
-            let roleAssocModified = compareRoleAssociations(updatedRoleAssocs, redisRoleAssocs, that.logger);
+            const roleAssocModified = compareRoleAssociations(updatedRoleAssocs, redisRoleAssocs, logger);
             let tokensEqual;
             // for interactive login after logout we receive userModified event
             // with empty tokens, so below check is not to evict cache for this case
             if (_.isEmpty(updatedTokens)) {
               tokensEqual = true;
             }
-            for (let token of updatedTokens || []) {
+            for (const token of updatedTokens || []) {
               if (!token.interactive) {
                 // compare only token scopes (since it now contains last_login as well)
-                for (let redisToken of redisTokens || []) {
+                for (const redisToken of redisTokens || []) {
                   if (redisToken.token === token.token) {
                     tokensEqual = _.isEqual(redisToken?.scopes?.sort(), token?.scopes?.sort());
                   }
                 }
                 if (!tokensEqual) {
-                  that.logger.debug('Subject Token scope has been updated', token);
+                  logger.debug('Subject Token scope has been updated', token);
                   break;
                 }
               } else {
@@ -311,31 +312,31 @@ export class Worker {
               }
             }
             if (roleAssocModified || !tokensEqual || (updatedRoleAssocs?.length != redisRoleAssocs?.length)) {
-              that.logger.info('Evicting HR scope for Subject', { id: msg.id });
-              await that.accessController.evictHRScopes(msg.id); // flush HR scopes
+              logger.info('Evicting HR scope for Subject', { id: msg.id });
+              await accessController.evictHRScopes(msg.id); // flush HR scopes
               // TODO use tech user below once ACS check is implemented on chassis-srv for command-interface
               // Flush ACS Cache via flushCache Command
-              await flushACSCache(msg.id, that.cfg.get('authorization:cache:db-index'), commandTopic, that.logger);
+              await flushACSCache(msg.id, cfg.get('authorization:cache:db-index'), commandTopic, logger);
             }
           }
         }
       } else if (eventName === 'userDeleted') {
-        that.logger.info('Evicting HR scope for Subject', { id: msg.id });
-        await that.accessController.evictHRScopes(msg.id); // flush HR scopes
+        logger.info('Evicting HR scope for Subject', { id: msg.id });
+        await accessController.evictHRScopes(msg.id); // flush HR scopes
         // delete ACS cache
-        await flushACSCache(msg.id, that.cfg.get('authorization:cache:db-index'), commandTopic, that.logger);
+        await flushACSCache(msg.id, cfg.get('authorization:cache:db-index'), commandTopic, logger);
       } else {
-        await that.commandInterface.command(msg, context);
+        await commandInterface.command(msg, context);
       }
     };
 
-    for (let topicLabel in kafkaConfig.topics) {
+    for (const topicLabel in kafkaConfig.topics) {
       const topicCfg = kafkaConfig.topics[topicLabel];
       const topic = await events.topic(topicCfg.topic);
       const offSetValue = await this.offsetStore.getOffset(topicCfg.topic);
-      that.logger.info('subscribing to topic with offset value', topicCfg.topic, offSetValue);
+      logger.info('subscribing to topic with offset value', topicCfg.topic, offSetValue);
       if (topicCfg.events) {
-        for (let eventName of topicCfg.events) {
+        for (const eventName of topicCfg.events) {
           await topic.on(eventName, eventListener, { startingOffset: offSetValue });
         }
       }

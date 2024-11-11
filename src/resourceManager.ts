@@ -88,7 +88,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
       resourceFieldConfig['bufferFields'] = resourceFieldConfig?.bufferFields?.users;
       if (cfg.get('fieldHandlers:timeStampFields')) {
         resourceFieldConfig['timeStampFields'] = [];
-        for (let timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
+        for (const timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
           if (timeStampFiledConfig.entities.includes('rules')) {
             resourceFieldConfig['timeStampFields'].push(...timeStampFiledConfig.fields);
           }
@@ -125,7 +125,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
   }
 
   async readMetaData(id?: string): Promise<DeepPartial<RuleListResponse>> {
-    let result = await super.read(ReadRequest.fromPartial(
+    const result = await super.read(ReadRequest.fromPartial(
       {
         filters: [{
           filters: [{
@@ -144,10 +144,10 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result?.items?.length > 0) {
-      for (let item of result.items) {
+      for (const item of result.items) {
         const rule: Rule = marshallResource(item?.payload, 'rule');
-        for (let [, policySet] of policySets) {
-          for (let [, policy] of (policySet).combinables) {
+        for (const [, policySet] of policySets) {
+          for (const [, policy] of (policySet).combinables) {
             if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
               _accessController.updateRule(policySet.id, policy.id, rule);
             }
@@ -159,7 +159,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
   }
 
   async create(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this);
@@ -188,10 +188,10 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result?.items?.length > 0) {
-      for (let item of result.items) {
+      for (const item of result.items) {
         const rule: Rule = marshallResource(item?.payload, 'rule');
-        for (let [, policySet] of policySets) {
-          for (let [, policy] of (policySet).combinables) {
+        for (const [, policySet] of policySets) {
+          for (const [, policy] of (policySet).combinables) {
             if (!_.isNil(policy) && policy.combinables.has(rule.id)) {
               _accessController.updateRule(policySet.id, policy.id, rule);
             }
@@ -203,7 +203,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
   }
 
   async read(request: ReadRequest, ctx: any): Promise<DeepPartial<RuleListResponse>> {
-    let subject = request.subject;;
+    const subject = request.subject;;
     let acsResponse: PolicySetRQResponse;
     try {
       if (!ctx) { ctx = {}; };
@@ -232,7 +232,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
   }
 
   async update(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
@@ -263,7 +263,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
   }
 
   async upsert(request: RuleList, ctx: any): Promise<DeepPartial<RuleListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
@@ -295,13 +295,13 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
 
   async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
     let resources = [];
-    let subject = request.subject;
-    let ruleIDs = request.ids;
-    let action, deleteResponse;
+    const subject = request.subject;
+    const ruleIDs = request.ids;
+    let action;
     if (ruleIDs) {
       action = AuthZAction.DELETE;
       if (_.isArray(ruleIDs)) {
-        for (let id of ruleIDs) {
+        for (const id of ruleIDs) {
           resources.push({ id });
         }
       } else {
@@ -317,7 +317,7 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
 
     let acsResponse: DecisionResponse;
     try {
-      if (!ctx) { ctx = {}; };
+      if (!ctx) { ctx = {}; }
       ctx.subject = subject;
       ctx.resources = resources;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'rule', id: ruleIDs }], action,
@@ -334,11 +334,11 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    deleteResponse = await super.delete(request, ctx);
+    const deleteResponse = await super.delete(request, ctx);
     if (request?.ids?.length > 0) {
-      for (let id of request.ids) {
-        for (let [, policySet] of _accessController.policySets) {
-          for (let [, policy] of policySet.combinables) {
+      for (const id of request.ids) {
+        for (const [, policySet] of _accessController.policySets) {
+          for (const [, policy] of policySet.combinables) {
             if (policy?.combinables?.has(id)) {
               _accessController.removeRule(policySet.id, policy.id, id);
             }
@@ -346,8 +346,8 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
         }
       }
     } else if (request?.collection && request.collection === true) {
-      for (let [, policySet] of _accessController.policySets) {
-        for (let [, policy] of policySet.combinables) {
+      for (const [, policySet] of _accessController.policySets) {
+        for (const [, policy] of policySet.combinables) {
           policy.combinables = new Map();
           _accessController.updatePolicy(policySet.id, policy);
         }
@@ -373,7 +373,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       resourceFieldConfig['bufferFields'] = resourceFieldConfig?.bufferFields?.users;
       if (cfg.get('fieldHandlers:timeStampFields')) {
         resourceFieldConfig['timeStampFields'] = [];
-        for (let timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
+        for (const timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
           if (timeStampFiledConfig.entities.includes('policies')) {
             resourceFieldConfig['timeStampFields'].push(...timeStampFiledConfig.fields);
           }
@@ -399,8 +399,8 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result?.items?.length > 0) {
-      for (let item of result.items) {
-        for (let [, policySet] of policySets) {
+      for (const item of result.items) {
+        for (const [, policySet] of policySets) {
           if (policySet.combinables.has(item.payload?.id)) {
             const policy: PolicyWithCombinables = marshallResource(item.payload, 'policy');
 
@@ -408,7 +408,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
               policy.combinables = await ruleService.getRules(item.payload.rules);
 
               if (policy.combinables.size != item?.payload?.rules?.length) {
-                for (let id of item.payload.rules) {
+                for (const id of item.payload.rules) {
                   if (!policy.combinables.has(id)) {
                     policy.combinables.set(id, null);
                   }
@@ -424,7 +424,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   }
 
   async create(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this);
@@ -452,8 +452,8 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     const policySets = _.cloneDeep(_accessController.policySets);
 
     if (result?.items?.length > 0) {
-      for (let item of result.items) {
-        for (let [, policySet] of policySets) {
+      for (const item of result.items) {
+        for (const [, policySet] of policySets) {
           if (policySet.combinables.has(item.payload?.id)) {
             const policy: PolicyWithCombinables = marshallResource(item.payload, 'policy');
 
@@ -461,7 +461,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
               policy.combinables = await ruleService.getRules(item.payload.rules);
 
               if (policy.combinables.size != item?.payload?.rules?.length) {
-                for (let id of item.payload.rules) {
+                for (const id of item.payload.rules) {
                   if (!policy.combinables.has(id)) {
                     policy.combinables.set(id, null);
                   }
@@ -478,7 +478,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   }
 
   async readMetaData(id?: string): Promise<DeepPartial<PolicyListResponse>> {
-    let result = await super.read(ReadRequest.fromPartial({
+    const result = await super.read(ReadRequest.fromPartial({
       filters: [{
         filters: [{
           field: 'id',
@@ -491,7 +491,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   }
 
   async read(request: ReadRequest, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     let acsResponse: PolicySetRQResponse;
     try {
       if (!ctx) { ctx = {}; };
@@ -520,7 +520,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   }
 
   async update(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
@@ -551,7 +551,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   }
 
   async upsert(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
@@ -593,7 +593,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
         if (!_.isEmpty(result.items[i]?.payload?.rules)) {
           policy.combinables = await this.ruleService.getRules(result.items[i].payload.rules);
           if (policy.combinables.size != result.items[i].payload.rules.length) {
-            for (let ruleID of result.items[i].payload.rules) {
+            for (const ruleID of result.items[i].payload.rules) {
               const ruleData = await this.ruleService.getRules([ruleID]);
               if (ruleData.size === 0) {
                 this.logger.info(`No rules were found for rule identifier ${ruleID}`);
@@ -616,13 +616,13 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
 
   async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
     let resources = [];
-    let subject = request.subject;
-    let policyIDs = request.ids;
-    let action, deleteResponse;
+    const subject = request.subject;
+    const policyIDs = request.ids;
+    let action;
     if (policyIDs) {
       action = AuthZAction.DELETE;
       if (_.isArray(policyIDs)) {
-        for (let id of policyIDs) {
+        for (const id of policyIDs) {
           resources.push({ id });
         }
       } else {
@@ -638,7 +638,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
 
     let acsResponse: DecisionResponse;
     try {
-      if (!ctx) { ctx = {}; };
+      if (!ctx) { ctx = {}; }
       ctx.subject = subject;
       ctx.resources = resources;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: policyIDs }], action,
@@ -655,18 +655,18 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    deleteResponse = await super.delete(request, ctx);
+    const deleteResponse = await super.delete(request, ctx);
 
     if (request?.ids?.length > 0) {
-      for (let id of request.ids) {
-        for (let [, policySet] of _accessController.policySets) {
+      for (const id of request.ids) {
+        for (const [, policySet] of _accessController.policySets) {
           if (policySet.combinables.has(id)) {
             _accessController.removePolicy(policySet.id, id);
           }
         }
       }
     } else if (request?.collection && request.collection === true) {
-      for (let [, policySet] of _accessController.policySets) {
+      for (const [, policySet] of _accessController.policySets) {
         policySet.combinables = new Map();
         _accessController.updatePolicySet(policySet);
       }
@@ -687,7 +687,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       resourceFieldConfig['bufferFields'] = resourceFieldConfig?.bufferFields?.users;
       if (cfg.get('fieldHandlers:timeStampFields')) {
         resourceFieldConfig['timeStampFields'] = [];
-        for (let timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
+        for (const timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
           if (timeStampFiledConfig.entities.includes('policy_sets')) {
             resourceFieldConfig['timeStampFields'].push(...timeStampFiledConfig.fields);
           }
@@ -701,7 +701,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   }
 
   async readMetaData(id?: string): Promise<DeepPartial<PolicySetListResponse>> {
-    let result = await super.read(ReadRequest.fromPartial({
+    const result = await super.read(ReadRequest.fromPartial({
       filters: [{
         filters: [{
           field: 'id',
@@ -728,7 +728,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     const policies = await policyService.load();
     const policySets = new Map<string, PolicySet>();
 
-    for (let item of items) {
+    for (const item of items) {
       if (!item?.payload?.policies) {
         this.logger.warn(`No policies were found for policy set ${item.payload.name}`);
         continue;
@@ -753,13 +753,13 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   async superUpsert(request: PolicySetList, context: any): Promise<DeepPartial<PolicySetListResponse>> {
     const result = await super.upsert(request, context);
     if (result?.items?.length > 0) {
-      for (let item of result.items) {
+      for (const item of result.items) {
         const policySet = marshallResource(item?.payload, 'policy_set');
         const policyIDs = item?.payload?.policies;
         if (!_.isEmpty(policyIDs)) {
           policySet.combinables = await policyService.getPolicies(policyIDs);
           if (policySet.combinables.size != policyIDs.length) {
-            for (let id of policyIDs) {
+            for (const id of policyIDs) {
               if (!policySet.combinables.has(id)) {
                 policySet.combinables.set(id, null);
               }
@@ -773,14 +773,14 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   }
 
   async create(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.CREATE, subject, this);
 
     let acsResponse: DecisionResponse;
     try {
-      if (!ctx) { ctx = {}; };
+      if (!ctx) { ctx = {}; }
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.CREATE,
@@ -799,13 +799,13 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     }
     const result = await super.create(request, ctx);
     if (result?.items?.length > 0) {
-      for (let item of result.items) {
+      for (const item of result.items) {
         const policySet = marshallResource(item?.payload, 'policy_set');
         const policyIDs = item?.payload?.policies;
         if (!_.isEmpty(policyIDs)) {
           policySet.combinables = await policyService.getPolicies(policyIDs);
           if (policySet.combinables.size != policyIDs.length) {
-            for (let id of policyIDs) {
+            for (const id of policyIDs) {
               if (!policySet.combinables.has(id)) {
                 policySet.combinables.set(id, null);
               }
@@ -820,14 +820,14 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   }
 
   async update(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
 
     let acsResponse: DecisionResponse;
     try {
-      if (!ctx) { ctx = {}; };
+      if (!ctx) { ctx = {}; }
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.MODIFY,
@@ -847,19 +847,20 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     const result = await super.update(request, ctx);
 
     // update in memory policies if no exception was thrown
-    for (let item of request?.items) {
+    const reqItems = request?.items;
+    for (const item of reqItems) {
       let policySet = _accessController.policySets.get(item.id);
       let policies = policySet.combinables;
 
       if (_.has(item, 'policies')) {
-        for (let [policyID, policy] of policies) {
+        for (const [policyID, policy] of policies) {
           if (_.indexOf(item.policies, policyID) == -1) {
             policies.delete(policyID);
           }
         }
 
-        let missingIDs: string[] = [];
-        for (let policyID of item.policies) {
+        const missingIDs: string[] = [];
+        for (const policyID of item.policies) {
           if (!policySet.combinables.has(policyID)) {
             missingIDs.push(policyID);
           }
@@ -868,7 +869,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
         if (!_.isEmpty(missingIDs.length)) {
           const newPolicies = await policyService.getPolicies(missingIDs);
           if (newPolicies.size != missingIDs.length) {  // checking for non-existing policies in DB
-            for (let id of missingIDs) {
+            for (const id of missingIDs) {
               if (!newPolicies.has(id)) {
                 newPolicies.set(id, null);
               }
@@ -888,13 +889,13 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
 
   async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
     let resources = [];
-    let subject = request.subject;
-    let policySetIDs = request.ids;
-    let action, deleteResponse;
+    const subject = request.subject;
+    const policySetIDs = request.ids;
+    let action;
     if (policySetIDs) {
       action = AuthZAction.DELETE;
       if (_.isArray(policySetIDs)) {
-        for (let id of policySetIDs) {
+        for (const id of policySetIDs) {
           resources.push({ id });
         }
       } else {
@@ -927,10 +928,10 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     if (acsResponse.decision != Response_Decision.PERMIT) {
       return { operation_status: acsResponse.operation_status };
     }
-    deleteResponse = await super.delete(request, ctx);
+    const deleteResponse = await super.delete(request, ctx);
 
     if (request?.ids?.length > 0) {
-      for (let id of request.ids) {
+      for (const id of request.ids) {
         _accessController.removePolicySet(id);
       }
     } else if (request.collection && request.collection == true) {
@@ -940,7 +941,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   }
 
   async read(request: ReadRequest, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     let acsResponse: PolicySetRQResponse;
     try {
       if (!ctx) { ctx = {}; };
@@ -969,14 +970,14 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   }
 
   async upsert(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
-    let subject = request.subject;
+    const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
     items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
 
     let acsResponse: DecisionResponse;
     try {
-      if (!ctx) { ctx = {}; };
+      if (!ctx) { ctx = {}; }
       ctx.subject = subject;
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.MODIFY,

@@ -14,7 +14,7 @@ export const verifyACLList = async (ruleTarget: Target,
   let role: string;
   const ruleSubject = ruleTarget.subjects || [];
   // retrieving all role scoping entities from the rule's subject
-  for (let attribute of ruleSubject) {
+  for (const attribute of ruleSubject) {
     if (attribute.id === urns.get('role')) {
       role = attribute.value;
       scopedRoles.push(role);
@@ -33,8 +33,8 @@ export const verifyACLList = async (ruleTarget: Target,
   const ctxResources = context.resources || [];
   const reqTarget = request.target;
   // iterating through all targeted resources and retrieve relevant target instances
-  let targetScopeEntInstances = new Map<string, string[]>(); // <org.Org, [a, b, c]> OR <user.User, [user1, user2 user3]>
-  for (let reqAttribute of reqTarget.resources || []) {
+  const targetScopeEntInstances = new Map<string, string[]>(); // <org.Org, [a, b, c]> OR <user.User, [user1, user2 user3]>
+  for (const reqAttribute of reqTarget.resources || []) {
     if (reqAttribute.id == urns.get('resourceID') || (reqAttribute.id === urns.get('operation'))) {
       const instanceID = reqAttribute.value;
       let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
@@ -60,14 +60,14 @@ export const verifyACLList = async (ruleTarget: Target,
 
       // verify ACL list
       if (aclList?.length > 0) {
-        for (let acl of aclList) {
-          let aclObj = acl.attributes;
+        for (const acl of aclList) {
+          const aclObj = acl.attributes;
           if (aclObj.id === urns.get('aclIndicatoryEntity')) {
             scopingEntity = aclObj.value;
             if (!targetScopeEntInstances.get(scopingEntity)) {
               targetScopeEntInstances.set(scopingEntity, []);
             }
-            for (let attribute of aclObj.attributes) {
+            for (const attribute of aclObj.attributes) {
               if (attribute.id === urns.get('aclInstance')) {
                 targetScopeEntInstances.get(scopingEntity).push(attribute.value);
               } else {
@@ -96,21 +96,21 @@ export const verifyACLList = async (ruleTarget: Target,
     return false; // impossible to evaluate context
   }
 
-  let subjectScopedEntityInstances = new Map<string, string[]>();
-  let targetScopingEntities = [...targetScopeEntInstances.keys()]; // keys are the scopingEnt
+  const subjectScopedEntityInstances = new Map<string, string[]>();
+  const targetScopingEntities = [...targetScopeEntInstances.keys()]; // keys are the scopingEnt
   for (let i = 0; i < roleAssociations?.length; i += 1) {
     const role: string = roleAssociations[i]?.role;
     const attributes: Attribute[] = roleAssociations[i]?.attributes || [];
     if (scopedRoles.includes(role)) {
       let roleScopingEntity;
-      for (let roleAttr of attributes) {
+      for (const roleAttr of attributes) {
         if (roleAttr?.id === urns.get('roleScopingEntity') && targetScopingEntities.includes(roleAttr?.value)) {
           roleScopingEntity = roleAttr?.value;
           if (!subjectScopedEntityInstances.get(roleAttr?.value)) {
             subjectScopedEntityInstances.set(roleAttr?.value, []);
           }
           if (roleAttr?.attributes?.length > 0) {
-            for (let roleInstObj of roleAttr.attributes) {
+            for (const roleInstObj of roleAttr.attributes) {
               if(roleInstObj?.id === urns.get('roleScopingInstance')) {
                 subjectScopedEntityInstances?.get(roleScopingEntity)?.push(roleInstObj?.value);
               }
@@ -131,7 +131,7 @@ export const verifyACLList = async (ruleTarget: Target,
       logger.debug('ACL data was not set in the meta data request, hence no ACL check is done');
       return true;
     }
-    for (let scopingEntity of targetScopingEntities) {
+    for (const scopingEntity of targetScopingEntities) {
       // do not verify the ACL check for subject identifiers
       if ((scopingEntity === urns.get('user')) && (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
         (actionObj[0].value === urns.get('create')))) {
@@ -149,16 +149,16 @@ export const verifyACLList = async (ruleTarget: Target,
 
       // verify each of targetInstance is under subjectInstances
       // if action is create / modify then only verify the HR scopes (if not direct match should be done)
-      let validatedACLInstances: string[] = [];
+      const validatedACLInstances: string[] = [];
       if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
         (actionObj[0].value === urns.get('create'))) {
         const hierarchical_scopes = context?.subject?.hierarchical_scopes;
         traverse(hierarchical_scopes).forEach((node: any): any => {
           // match the role with HR node and validate all the targetInstances
           if (scopedRoles.includes(node.role)) {
-            let eligibleOrgScopes = [];
+            const eligibleOrgScopes = [];
             getAllValues(node, eligibleOrgScopes);
-            for (let targetInstance of targetInstances) {
+            for (const targetInstance of targetInstances) {
               if (eligibleOrgScopes.includes(targetInstance)) {
                 logger.debug(`ACL instance ${targetInstance} is valid`);
                 validTargetInstances = true;
@@ -192,7 +192,7 @@ export const verifyACLList = async (ruleTarget: Target,
       logger.debug('ACL data was not set in the meta data request, hence no ACL check is done');
       return true;
     }
-    for (let scopingEntity of targetScopingEntities) {
+    for (const scopingEntity of targetScopingEntities) {
       const targetInstances = targetScopeEntInstances.get(scopingEntity);
       const subjectInstances = subjectScopedEntityInstances.get(scopingEntity);
 
@@ -206,7 +206,7 @@ export const verifyACLList = async (ruleTarget: Target,
 
       // match atleast one of the subjectOrgInstance is present in targetInstances
       if (subjectInstances?.length > 0) {
-        for (let subjectInstance of subjectInstances) {
+        for (const subjectInstance of subjectInstances) {
           // validate atleast one of the subjectInstance is present in the targetInstances list
           // (same role can be assigned with multiple scoping instnaces hence subjectInstances is an array)
           if (targetInstances.includes(subjectInstance)) {

@@ -37,7 +37,7 @@ export const formatTarget = (target: any): Target => {
 
 export const conditionMatches = (condition: string, request: Request): boolean => {
   condition = condition.replace(/\\n/g, '\n');
-  let evalResult = nodeEval(condition, 'condition.js', request);
+  const evalResult = nodeEval(condition, 'condition.js', request);
   if (typeof evalResult === 'function') {
     return evalResult(request);
   } else {
@@ -48,14 +48,14 @@ export const conditionMatches = (condition: string, request: Request): boolean =
 const loadPolicies = (document: any, accessController: AccessController): AccessController => {
   const policySets = document?.policy_sets ? document.policy_sets : [];
 
-  for (let policySetYaml of policySets) {
+  for (const policySetYaml of policySets) {
 
-    let policies = new Map<string, PolicyWithCombinables>();
-    for (let policyYaml of policySetYaml.policies) {
+    const policies = new Map<string, PolicyWithCombinables>();
+    for (const policyYaml of policySetYaml.policies) {
 
-      let rules = new Map<string, Rule>();
+      const rules = new Map<string, Rule>();
       if (policyYaml.rules) {
-        for (let ruleYaml of policyYaml.rules) {
+        for (const ruleYaml of policyYaml.rules) {
           const ruleID = ruleYaml.id;
           const ruleName = ruleYaml.name;
           const ruleDescription: string = ruleYaml.description;
@@ -208,10 +208,9 @@ export async function checkAccessRequest(ctx: ACSClientContext, resource: Resour
  * @param action The action to perform
  * @param entity The entity type to check access against
  */
-/* eslint-disable prefer-arrow-functions/prefer-arrow-functions */
 export async function checkAccessRequest(ctx: ACSClientContext, resource: Resource[], action: AuthZAction,
   operation: Operation): Promise<DecisionResponse | PolicySetRQResponse> {
-  let subject = ctx.subject as Subject;
+  const subject = ctx.subject as Subject;
   // resolve subject id using findByToken api and update subject with id
   let dbSubject;
   if (subject?.token) {
@@ -248,7 +247,7 @@ export async function checkAccessRequest(ctx: ACSClientContext, resource: Resour
  */
 export async function createMetadata(resources: any,
   action: string, subject: Subject, service: any): Promise<any> {
-  let orgOwnerAttributes = [];
+  const orgOwnerAttributes = [];
   if (resources && !_.isArray(resources)) {
     resources = [resources];
   }
@@ -267,15 +266,15 @@ export async function createMetadata(resources: any,
   }
 
   if (resources?.length > 0) {
-    for (let resource of resources) {
+    for (const resource of resources) {
       if (!resource.meta) {
         resource.meta = {};
       }
       if (action === AuthZAction.MODIFY || action === AuthZAction.DELETE) {
-        let result = await service.readMetaData(resource.id);
+        const result = await service.readMetaData(resource.id);
         // update owner info
         if (result?.items?.length === 1) {
-          let item = result.items[0].payload;
+          const item = result.items[0].payload;
           resource.meta.owners = item.meta.owners;
         } else if (result?.items?.length === 0) {
           if (_.isEmpty(resource.id)) {
@@ -329,7 +328,7 @@ export async function createMetadata(resources: any,
 }
 
 export const getAllValues = (obj: any, pushedValues: any): any => {
-  for (let value of (<any>Object).values(obj)) {
+  for (const value of (<any>Object).values(obj)) {
     if (_.isArray(value)) {
       getAllValues(value, pushedValues);
     } else if (typeof value == 'string') {
@@ -360,15 +359,15 @@ export const compareRoleAssociations = (userRoleAssocs: RoleAssociation[], redis
   } else {
     // compare each role and its association
     if (userRoleAssocs?.length > 0 && redisRoleAssocs?.length > 0) {
-      for (let userRoleAssoc of userRoleAssocs) {
+      for (const userRoleAssoc of userRoleAssocs) {
         let found = false;
-        for (let redisRoleAssoc of redisRoleAssocs) {
+        for (const redisRoleAssoc of redisRoleAssocs) {
           if (redisRoleAssoc.role === userRoleAssoc.role) {
             if (redisRoleAssoc?.attributes?.length > 0) {
-              for (let redisAttribute of redisRoleAssoc.attributes) {
+              for (const redisAttribute of redisRoleAssoc.attributes) {
                 const redisNestedAttributes = redisAttribute.attributes;
                 if (userRoleAssoc?.attributes?.length > 0) {
-                  for (let userAttribute of userRoleAssoc.attributes) {
+                  for (const userAttribute of userRoleAssoc.attributes) {
                     const userNestedAttributes = userAttribute.attributes;
                     if (userAttribute.id === redisAttribute.id &&
                       userAttribute.value === redisAttribute.value &&

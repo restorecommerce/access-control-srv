@@ -17,7 +17,7 @@ export const checkHierarchicalScope = async (
   // 1) create a Map of resourceID with Owners for resource IDs which have the rule entity matching
   // 2) In HR scope match validate the Owner indicatory entity with vale from matching users Rule's role for
   //    matching role scoping enitty with instance
-  let resourceIdOwnersMap = new Map<string, Attribute[]>();
+  const resourceIdOwnersMap = new Map<string, Attribute[]>();
   if (ruleTarget?.subjects?.length === 0) {
     logger.debug('Rule subject not configured, hence hierarchical scope check not needed');
     return true; // no scoping entities specified in rule, request ignored
@@ -51,24 +51,24 @@ export const checkHierarchicalScope = async (
   const reqTarget = request.target;
   let entityOrOperation: string;
   // iterating through all targeted resources and retrieve relevant owners instances
-  for (let attribute of ruleTarget.resources || []) {
+  for (const attribute of ruleTarget.resources || []) {
     if (attribute?.id == urns.get('entity')) { // resource type found
       logger.debug('Evaluating resource entity match');
       entityOrOperation = attribute?.value;
 
       let entitiesMatch = false;
       // iterating request resources to filter all resources of a given type
-      for (let requestAttribute of reqTarget.resources || []) {
+      for (const requestAttribute of reqTarget.resources || []) {
         if (requestAttribute?.id == attribute?.id && requestAttribute?.value == entityOrOperation) {
           entitiesMatch = true; // a resource entity that matches the request and the rule's target
         } else if (requestAttribute?.id == attribute?.id) {
           // rule entity, get ruleNS and entityRegexValue for rule
           const value = entityOrOperation;
-          let pattern = value?.substring(value?.lastIndexOf(':') + 1);
-          let nsEntityArray = pattern?.split('.');
+          const pattern = value?.substring(value?.lastIndexOf(':') + 1);
+          const nsEntityArray = pattern?.split('.');
           // firstElement could be either entity or namespace
-          let nsOrEntity = nsEntityArray[0];
-          let entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
+          const nsOrEntity = nsEntityArray[0];
+          const entityRegexValue = nsEntityArray[nsEntityArray.length - 1];
           let reqNS, ruleNS;
           if (nsOrEntity?.toUpperCase() != entityRegexValue?.toUpperCase()) {
             // rule name space is present
@@ -76,18 +76,18 @@ export const checkHierarchicalScope = async (
           }
 
           // request entity, get reqNS and requestEntityValue for request
-          let reqValue = requestAttribute?.value;
+          const reqValue = requestAttribute?.value;
           const reqAttributeNS = reqValue?.substring(0, reqValue?.lastIndexOf(':'));
           const ruleAttributeNS = value?.substring(0, value?.lastIndexOf(':'));
           // verify namespace before entity name
           if (reqAttributeNS != ruleAttributeNS) {
             entitiesMatch = false;
           }
-          let reqPattern = reqValue?.substring(reqValue?.lastIndexOf(':') + 1);
-          let reqNSEntityArray = reqPattern?.split('.');
+          const reqPattern = reqValue?.substring(reqValue?.lastIndexOf(':') + 1);
+          const reqNSEntityArray = reqPattern?.split('.');
           // firstElement could be either entity or namespace
-          let reqNSOrEntity = reqNSEntityArray[0];
-          let requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
+          const reqNSOrEntity = reqNSEntityArray[0];
+          const requestEntityValue = reqNSEntityArray[reqNSEntityArray.length - 1];
           if (reqNSOrEntity?.toUpperCase() != requestEntityValue?.toUpperCase()) {
             // request name space is present
             reqNS = reqNSOrEntity?.toUpperCase();
@@ -126,11 +126,11 @@ export const checkHierarchicalScope = async (
     } else if (attribute?.id === urns.get('operation')) {
       logger.debug('Evaluating resource operation match');
       entityOrOperation = attribute?.value;
-      for (let reqAttribute of reqTarget.resources || []) {
+      for (const reqAttribute of reqTarget.resources || []) {
         // match Rule resource operation URN and operation name with request resource operation URN and operation name
         if (reqAttribute?.id === attribute?.id && reqAttribute?.value === attribute?.value) {
           // find context resource based
-          let ctxResource: Resource = _.find(ctxResources ?? [], ['id', entityOrOperation]);
+          const ctxResource: Resource = _.find(ctxResources ?? [], ['id', entityOrOperation]);
           if (ctxResource) {
             const meta = ctxResource.meta;
             if (_.isEmpty(meta) || _.isEmpty(meta.owners)) {
@@ -162,7 +162,7 @@ export const checkHierarchicalScope = async (
 
   // verify for exact match, if not then verify from HR scopes
   let deleteMapEntries = [];
-  for (let [resourceId, owners] of resourceIdOwnersMap) {
+  for (const [resourceId, owners] of resourceIdOwnersMap) {
     const entityScopingInstMatch = owners?.some((ownerObj) => {
       return reducedUserRoleAssocs?.some((roleObj) => {
         // check if Rule's roleScoping Entity matches the Owner's role scoping entity and RoleAssociation RoleScoping entity (ex: Organization / User / Klasse etc)
@@ -205,7 +205,7 @@ export const checkHierarchicalScope = async (
     }
 
     const reducedHRScopes = context?.subject?.hierarchical_scopes?.filter((hrObj) => hrObj?.role === ruleRole);
-    for (let [resourceId, owners] of resourceIdOwnersMap) {
+    for (const [resourceId, owners] of resourceIdOwnersMap) {
       const ownerInstances: string[] = owners.filter(
         owner => reducedUserRoleAssocs?.some((roleObj) => {
           return roleObj?.attributes?.some(

@@ -46,7 +46,7 @@ export class AccessController {
     logger.info('Parsing combining algorithms from access control configuration...');
     //  parsing URNs and mapping them to functions
     const combiningAlgorithms: CombiningAlgorithm[] = opts?.combiningAlgorithms ?? [];
-    for (let ca of combiningAlgorithms) {
+    for (const ca of combiningAlgorithms) {
       const urn = ca.urn;
       const method = ca.method;
 
@@ -59,7 +59,7 @@ export class AccessController {
     }
 
     this.urns = new Map<string, string>();
-    for (let urn in opts.urns || {}) {
+    for (const urn in opts.urns || {}) {
       this.urns.set(urn, opts.urns[urn]);
     }
     this.cfg = cfg;
@@ -101,7 +101,7 @@ export class AccessController {
     }
 
     let effect: EffectEvaluation;
-    let obligations: Attribute[] = [];
+    const obligations: Attribute[] = [];
     let context = (request as any).context as ContextWithSubResolved;
     if (!context) {
       (context as any) = {};
@@ -121,9 +121,9 @@ export class AccessController {
       context = await this.createHRScope(context);
     }
 
-    for (let [, value] of this.policySets) {
+    for (const [, value] of this.policySets) {
       const policySet: PolicySetWithCombinables = value;
-      let policyEffects: EffectEvaluation[] = [];
+      const policyEffects: EffectEvaluation[] = [];
 
       // policyEffect needed to evalute if the properties should be PERMIT / DENY
       let policyEffect: Effect;
@@ -132,7 +132,7 @@ export class AccessController {
         || await this.targetMatches(policySet.target, request, 'isAllowed', obligations)
       ) {
         let exactMatch = false;
-        for (let [, policyValue] of policySet.combinables) {
+        for (const [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
           if (policy.effect) {
             policyEffect = policy.effect;
@@ -163,7 +163,7 @@ export class AccessController {
           exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
         }
 
-        for (let [, policyValue] of policySet.combinables) {
+        for (const [, policyValue] of policySet.combinables) {
           const policy: PolicyWithCombinables = policyValue;
           if (!policy) {
             this.logger.debug('Policy Object not set');
@@ -199,7 +199,7 @@ export class AccessController {
             }
             else {
               let evaluationCacheableRule = true;
-              for (let [, rule] of policy.combinables) {
+              for (const [, rule] of policy.combinables) {
                 if (!rule) {
                   this.logger.debug('Rule Object not set');
                   continue;
@@ -308,8 +308,7 @@ export class AccessController {
       };
     }
 
-    let decision: Response_Decision;
-    decision = Response_Decision[effect.effect] || Response_Decision.INDETERMINATE;
+    const decision = Response_Decision[effect.effect] || Response_Decision.INDETERMINATE;
 
     this.logger.silly('Access response is', decision);
     return {
@@ -324,7 +323,7 @@ export class AccessController {
   }
 
   async whatIsAllowed(request: Request): Promise<ReverseQuery> {
-    let policySets: PolicySetRQ[] = [];
+    const policySets: PolicySetRQ[] = [];
     let context = (request as any).context as ContextWithSubResolved;
     if (context?.subject?.token) {
       const subject = await this.userService.findByToken({ token: context.subject.token });
@@ -339,8 +338,8 @@ export class AccessController {
       _.isEmpty(context.subject.hierarchical_scopes)) {
       context = await this.createHRScope(context);
     }
-    let obligations: Attribute[] = [];
-    for (let [, value] of this.policySets) {
+    const obligations: Attribute[] = [];
+    for (const [, value] of this.policySets) {
       let pSet: PolicySetRQ;
       if (
         _.isEmpty(value.target)
@@ -351,7 +350,7 @@ export class AccessController {
 
         let exactMatch = false;
         let policyEffect: Effect;
-        for (let [, policy] of value.combinables) {
+        for (const [, policy] of value.combinables) {
           if (policy.effect) {
             policyEffect = policy.effect;
           } else if (policy?.combining_algorithm) {
@@ -376,7 +375,7 @@ export class AccessController {
           exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
         }
 
-        for (let [, policy] of value.combinables) {
+        for (const [, policy] of value.combinables) {
           let policyRQ: PolicyRQ;
           if (!policy) {
             this.logger.debug('Policy Object not set');
@@ -390,7 +389,7 @@ export class AccessController {
 
             policyRQ.has_rules = (!!policy.combinables && policy.combinables.size > 0);
 
-            for (let [, rule] of policy.combinables) {
+            for (const [, rule] of policy.combinables) {
               if (!rule) {
                 this.logger.debug('Rule Object not set');
                 continue;
@@ -431,10 +430,10 @@ export class AccessController {
     let exactMatch = true;
     // iterate and find for each of the exact mathing resource attribute
     const entityURN = this.urns.get('entity');
-    for (let requestAttributeObj of request?.target?.resources || []) {
+    for (const requestAttributeObj of request?.target?.resources || []) {
       if (requestAttributeObj.id === entityURN) {
         multipleEntitiesMatch = false;
-        for (let [, policyValue] of policySet.combinables) {
+        for (const [, policyValue] of policySet.combinables) {
           const policy: Policy = policyValue;
           let policyEffect: Effect;
           if (policy.effect) {
@@ -484,14 +483,14 @@ export class AccessController {
     if (!maskPropertyList) {
       maskPropertyList = [];
     }
-    for (let reqAttr of requestAttributes || []) {
+    for (const reqAttr of requestAttributes || []) {
       if (reqAttr.id === propertyURN) {
         requestPropertiesExist = true;
       }
     }
-    for (let requestAttribute of requestAttributes || []) {
+    for (const requestAttribute of requestAttributes || []) {
       propertyMatch = false;
-      for (let ruleAttribute of ruleAttributes || []) {
+      for (const ruleAttribute of ruleAttributes || []) {
         if (ruleAttribute.id === propertyURN) {
           rulePropertiesExist = true;
           rulePropertyValue = ruleAttribute.value;
@@ -528,11 +527,11 @@ export class AccessController {
           if (requestAttribute?.id === entityURN && ruleAttribute?.id === entityURN) {
             // rule entity, get ruleNS and entityRegexValue for rule
             const value = ruleAttribute?.value;
-            let pattern = value?.substring(value?.lastIndexOf(':') + 1);
-            let nsEntityArray = pattern?.split('.');
+            const pattern = value?.substring(value?.lastIndexOf(':') + 1);
+            const nsEntityArray = pattern?.split('.');
             // firstElement could be either entity or namespace
-            let nsOrEntity = nsEntityArray[0];
-            let entityRegexValue = nsEntityArray[nsEntityArray?.length - 1];
+            const nsOrEntity = nsEntityArray[0];
+            const entityRegexValue = nsEntityArray[nsEntityArray?.length - 1];
             let reqNS, ruleNS;
             if (nsOrEntity?.toUpperCase() != entityRegexValue?.toUpperCase()) {
               // rule name space is present
@@ -540,7 +539,7 @@ export class AccessController {
             }
 
             // request entity, get reqNS and requestEntityValue for request
-            let reqValue = requestAttribute?.value;
+            const reqValue = requestAttribute?.value;
             requestEntityURN = reqValue;
             const reqAttributeNS = reqValue?.substring(0, reqValue?.lastIndexOf(':'));
             const ruleAttributeNS = value?.substring(0, value?.lastIndexOf(':'));
@@ -548,11 +547,11 @@ export class AccessController {
             if (reqAttributeNS != ruleAttributeNS) {
               entityMatch = false;
             }
-            let reqPattern = reqValue?.substring(reqValue?.lastIndexOf(':') + 1);
-            let reqNSEntityArray = reqPattern?.split('.');
+            const reqPattern = reqValue?.substring(reqValue?.lastIndexOf(':') + 1);
+            const reqNSEntityArray = reqPattern?.split('.');
             // firstElement could be either entity or namespace
-            let reqNSOrEntity = reqNSEntityArray[0];
-            let requestEntityValue = reqNSEntityArray[reqNSEntityArray?.length - 1];
+            const reqNSOrEntity = reqNSEntityArray[0];
+            const requestEntityValue = reqNSEntityArray[reqNSEntityArray?.length - 1];
             if (reqNSOrEntity?.toUpperCase() != requestEntityValue?.toUpperCase()) {
               // request name space is present
               reqNS = reqNSOrEntity.toUpperCase();
@@ -679,7 +678,7 @@ export class AccessController {
    * @param requestAttributes
    */
   private attributesMatch(ruleAttributes: Attribute[], requestAttributes: Attribute[]): boolean {
-    for (let attribute of ruleAttributes || []) {
+    for (const attribute of ruleAttributes || []) {
       const id = attribute?.id;
       const value = attribute?.value;
       const match = !!requestAttributes?.find((requestAttribute) => {
@@ -790,7 +789,7 @@ export class AccessController {
    */
   private async checkSubjectMatches(ruleSubAttributes: Attribute[],
     requestSubAttributes: Attribute[], request: Request): Promise<boolean> {
-    let context = (request as any)?.context as ContextWithSubResolved;
+    const context = (request as any)?.context as ContextWithSubResolved;
     // Just check the Role value matches here in subject
     const roleURN = this.urns.get('role');
     let ruleRole: string;
@@ -843,7 +842,7 @@ export class AccessController {
   */
   protected denyOverrides(effects: EffectEvaluation[]): EffectEvaluation {
     let effect, evaluation_cacheable;
-    for (let effectObj of effects || []) {
+    for (const effectObj of effects || []) {
       if (effectObj.effect === Effect.DENY) {
         effect = effectObj.effect;
         evaluation_cacheable = effectObj.evaluation_cacheable;
@@ -865,7 +864,7 @@ export class AccessController {
    */
   protected permitOverrides(effects: EffectEvaluation[]): EffectEvaluation {
     let effect, evaluation_cacheable;
-    for (let effectObj of effects || []) {
+    for (const effectObj of effects || []) {
       if (effectObj?.effect === Effect.PERMIT) {
         effect = effectObj.effect;
         evaluation_cacheable = effectObj.evaluation_cacheable;

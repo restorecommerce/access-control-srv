@@ -26,9 +26,9 @@ export class GraphQLAdapter implements ResourceAdapter {
   async query(contextQuery: ContextQuery, request: Request): Promise<any[]> {
     const filters = _.cloneDeep(contextQuery.filters);
     const resources = request?.target?.resources ? request.target.resources : [];
-    let queryFilters = [];
-    for (let filtersObj of filters) {
-      for (let filter of filtersObj.filters) {
+    const queryFilters = [];
+    for (const filtersObj of filters) {
+      for (const filter of filtersObj.filters) {
         // search for property in resources
         if (!filter.value.match(/urn:*#*/)) {
           throw new Error('Invalid property name specified for resource adapter filter');
@@ -38,7 +38,7 @@ export class GraphQLAdapter implements ResourceAdapter {
         const property = split[1];
 
         let match = false;
-        for (let resourceAttribute of resources) {
+        for (const resourceAttribute of resources) {
           if (resourceAttribute.id == 'urn:restorecommerce:acs:names:model:entity' && resourceAttribute.value == entity) {
             match = true;
           } else if (resourceAttribute.id == 'urn:oasis:names:tc:xacml:1.0:resource:resource-id' && match) {

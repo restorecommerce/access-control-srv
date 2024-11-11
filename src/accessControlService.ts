@@ -38,15 +38,15 @@ export class AccessControlService implements AccessControlServiceImplementation 
 
     const policiesCfg = this.cfg.get('policies');
     const loadType = policiesCfg?.type;
+    const path: string = policiesCfg?.path;
+    const policySetService = this.resourceManager.getResourceService('policy_set');
+    const policySets: Map<string, PolicySetWithCombinables> = await policySetService.load() || new Map();
     switch (loadType) {
       case 'local':
-        const path: string = policiesCfg?.path;
         this.accessController = await loadPoliciesFromDoc(this.accessController, path);
         this.logger.silly('Policies from local files loaded');
         break;
       case 'database':
-        const policySetService = this.resourceManager.getResourceService('policy_set');
-        const policySets: Map<string, PolicySetWithCombinables> = await policySetService.load() || new Map();
         this.accessController.policySets = policySets;
         this.logger.silly('Policies from database loaded');
         break;
@@ -101,7 +101,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
   }
 
   unmarshallContext(context: any): any {
-    for (let prop in context) {
+    for (const prop in context) {
       if (_.isArray(context[prop])) {
         context[prop] = _.map(context.resources, this.unmarshallProtobufAny.bind(this));
       } else {
