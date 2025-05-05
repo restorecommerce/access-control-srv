@@ -143,9 +143,9 @@ export const buildRequest = (opts: RequestOpts): Request => {
     attributes: []
   });
 
-  let acls = [];
+  let acls: Attribute[] = [];
   if (opts.aclIndicatoryEntity && opts.aclInstances) {
-    let aclInstances = [];
+    let aclInstances: Attribute[] = [];
     opts.aclInstances.forEach(aclInstance => {
       aclInstances.push({
         id: 'urn:restorecommerce:acs:names:aclInstance',
@@ -154,14 +154,12 @@ export const buildRequest = (opts: RequestOpts): Request => {
     });
     acls = [
       {
-        attributes: {
-          id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
-          value: opts.aclIndicatoryEntity,
-          attributes: aclInstances
-        }
+        id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
+        value: opts.aclIndicatoryEntity,
+        attributes: aclInstances
       }];
   } else if (opts.multipleAclIndicatoryEntity && opts.orgInstances && opts.subjectInstances) {
-    let orgInstances = [], subjectInstances = [];
+    let orgInstances: Attribute[] = [], subjectInstances: Attribute[] = [];
     opts.orgInstances.forEach(orgInstance => {
       orgInstances.push({
         id: 'urn:restorecommerce:acs:names:aclInstance',
@@ -176,18 +174,14 @@ export const buildRequest = (opts: RequestOpts): Request => {
     });
     acls = [
       {
-        attributes: {
-          id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
-          value: opts.multipleAclIndicatoryEntity[0],
-          attributes: orgInstances
-        }
+        id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
+        value: opts.multipleAclIndicatoryEntity[0],
+        attributes: orgInstances
       },
       {
-        attributes: {
-          id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
-          value: opts.multipleAclIndicatoryEntity[1],
-          attributes: subjectInstances
-        }
+        id: 'urn:restorecommerce:acs:names:aclIndicatoryEntity',
+        value: opts.multipleAclIndicatoryEntity[1],
+        attributes: subjectInstances
       }];
   }
 
