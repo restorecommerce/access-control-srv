@@ -61,13 +61,16 @@ export const verifyACLList = async (ruleTarget: Target,
       // verify ACL list
       if (aclList?.length > 0) {
         for (const acl of aclList) {
-          const aclObj = acl.attributes;
-          if (aclObj.id === urns.get('aclIndicatoryEntity')) {
-            scopingEntity = aclObj.value;
+          if (acl?.id === urns.get('aclIndicatoryEntity')) {
+            scopingEntity = acl.value;
             if (!targetScopeEntInstances.get(scopingEntity)) {
               targetScopeEntInstances.set(scopingEntity, []);
             }
-            for (const attribute of aclObj.attributes) {
+            if (!acl.attributes || acl.attributes.length === 0) {
+              logger.info('Missing ACL instances');
+              return false;
+            }
+            for (const attribute of acl.attributes) {
               if (attribute.id === urns.get('aclInstance')) {
                 targetScopeEntInstances.get(scopingEntity).push(attribute.value);
               } else {
