@@ -410,7 +410,7 @@ export const flushACSCache = async (userId: string, db_index, commandTopic: Topi
     name: 'flush_cache',
     payload: {}
   };
-  const eventPayload = Buffer.from(JSON.stringify(payload)).toString('base64');
+  const eventPayload = Buffer.from(JSON.stringify(payload));
   eventObject.payload = {
     type_url: 'payload',
     value: eventPayload
