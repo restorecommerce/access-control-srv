@@ -1,6 +1,6 @@
 {
   "name": "@restorecommerce/access-control-srv",
-  "version": "1.2.8",
+  "version": "1.6.2",
   "description": "Access Control Service",
   "main": "lib/worker.js",
   "author": "n-fuse GmbH",
@@ -34,8 +34,7 @@
     "graphql-tag": "^2.12.6",
     "js-yaml": "^4.1.0",
     "lodash-es": "^4.17.21",
-    "node-eval": "^2.0.0",
-    "traverse": "0.6.10"
+    "node-eval": "^2.0.0"
   },
   "devDependencies": {
     "@alenon/grpc-mock-server": "3.1.16",
@@ -49,7 +48,6 @@
     "@types/mocha": "10.0.10",
     "@types/nock": "11.1.0",
     "@types/node": "22.9.1",
-    "@types/traverse": "^0.6.37",
     "c8": "^10.1.2",
     "coveralls": "^3.1.1",
     "cross-env": "^7.0.3",

@@ -7,10 +7,11 @@ import { AccessController } from '.';
 import { Resource, ContextWithSubResolved } from './interfaces.js';
 import traverse from 'traverse';
 import { getAllValues } from './utils.js';
+import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 
 export const verifyACLList = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
-  const scopedRoles = []; // list of roles in Rule subject
+  const scopedRoles: string[] = []; // list of roles in Rule subject
   let role: string;
   const ruleSubject = ruleTarget.subjects || [];
   // retrieving all role scoping entities from the rule's subject
@@ -114,7 +115,7 @@ export const verifyACLList = async (ruleTarget: Target,
           }
           if (roleAttr?.attributes?.length > 0) {
             for (const roleInstObj of roleAttr.attributes) {
-              if(roleInstObj?.id === urns.get('roleScopingInstance')) {
+              if (roleInstObj?.id === urns.get('roleScopingInstance')) {
                 subjectScopedEntityInstances?.get(roleScopingEntity)?.push(roleInstObj?.value);
               }
             }
@@ -126,6 +127,24 @@ export const verifyACLList = async (ruleTarget: Target,
 
   const actionObj = reqTarget?.actions;
   // verify targetScopeEntInstances with subjectScopedEntityInstances for create action
+  const roleWithOrgScopesMap = new Map<string, string[]>();
+  const getRoleOrgMapping = (node: HierarchicalScope[], role?: string) => {
+    for (const hrObject of node) {
+      const roleMapKey = hrObject.role ?? role;
+      if (hrObject?.id) {
+        if (!roleWithOrgScopesMap?.get(roleMapKey)) {
+          roleWithOrgScopesMap.set(roleMapKey, []);
+        }
+        roleWithOrgScopesMap.get(roleMapKey).push(hrObject.id);
+      }
+      if (hrObject?.children?.length > 0) {
+        getRoleOrgMapping(hrObject.children, roleMapKey);
+      }
+    }
+  };
+  const hierarchical_scopes = context?.subject?.hierarchical_scopes;
+  getRoleOrgMapping(hierarchical_scopes);
+
 
   if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
     (actionObj[0].value === urns.get('create'))) {
@@ -155,12 +174,12 @@ export const verifyACLList = async (ruleTarget: Target,
       const validatedACLInstances: string[] = [];
       if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
         (actionObj[0].value === urns.get('create'))) {
-        const hierarchical_scopes = context?.subject?.hierarchical_scopes;
-        traverse(hierarchical_scopes).forEach((node: any): any => {
-          // match the role with HR node and validate all the targetInstances
-          if (scopedRoles.includes(node.role)) {
-            const eligibleOrgScopes = [];
-            getAllValues(node, eligibleOrgScopes);
+
+        const hrScopedRoles = Array.from(roleWithOrgScopesMap.keys());
+        // check for every HR scoped role
+        hrScopedRoles.forEach((role) => {
+          if (scopedRoles.includes(role)) {
+            const eligibleOrgScopes = roleWithOrgScopesMap.get(role);
             for (const targetInstance of targetInstances) {
               if (eligibleOrgScopes.includes(targetInstance)) {
                 logger.debug(`ACL instance ${targetInstance} is valid`);

@@ -1,11 +1,11 @@
 import _ from 'lodash-es';
-import traverse from 'traverse';
 import { Logger } from 'winston';
 import { AccessController } from './index.js';
 import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 import { Resource, ContextWithSubResolved } from './interfaces.js';
+import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 
 export const checkHierarchicalScope = async (
   ruleTarget: Target,
@@ -205,6 +205,19 @@ export const checkHierarchicalScope = async (
     }
 
     const reducedHRScopes = context?.subject?.hierarchical_scopes?.filter((hrObj) => hrObj?.role === ruleRole);
+    const flatOrgList: string[] = [];
+    const getAllChildNodes = (node: HierarchicalScope[]) => {
+      for (const hrObject of node) {
+        if (hrObject?.id && !flatOrgList?.includes(hrObject.id)) {
+          flatOrgList.push(hrObject.id);
+        }
+        if (hrObject?.children?.length > 0) {
+          getAllChildNodes(hrObject.children);
+        }
+      }
+    };
+
+    getAllChildNodes(reducedHRScopes);
     for (const [resourceId, owners] of resourceIdOwnersMap) {
       const ownerInstances: string[] = owners.filter(
         owner => reducedUserRoleAssocs?.some((roleObj) => {
@@ -224,13 +237,10 @@ export const checkHierarchicalScope = async (
         )
       );
       // validate the ownerInstance from HR scope tree for matched scoping entity
-      traverse(reducedHRScopes).forEach(
-        (node: any) => { // depth-first search
-          if (ownerInstances.includes(node?.id)) {
-            deleteMapEntries.push(resourceId);
-          }
-        }
-      );
+      const matchingOrgFound = flatOrgList?.filter(orgId => ownerInstances?.includes(orgId));
+      if (matchingOrgFound?.length > 0) {
+        deleteMapEntries.push(resourceId);
+      }
     }
   }
 
