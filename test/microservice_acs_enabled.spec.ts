@@ -1,21 +1,37 @@
+import {} from 'mocha';
 import should from 'should';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
 import yaml from 'js-yaml';
 import fs from 'node:fs';
 import { updateConfig } from '@restorecommerce/acs-client';
-import { GrpcMockServer, ProtoUtils } from '@alenon/grpc-mock-server';
+import { GrpcMockServer } from '@alenon/grpc-mock-server';
 import proto_loader from '@grpc/proto-loader';
 import grpc from '@grpc/grpc-js';
 import { Topic, Events } from '@restorecommerce/kafka-client';
-import { RuleServiceDefinition, RuleServiceClient, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
-import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
-import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
-import { createChannel, createClient } from '@restorecommerce/grpc-client';
+import {
+  RuleServiceDefinition,
+  RuleServiceClient,
+  Effect
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import {
+  PolicyServiceDefinition,
+  PolicyServiceClient
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
+import {
+  PolicySetServiceDefinition,
+  PolicySetServiceClient
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
+import {
+  createChannel,
+  createClient
+} from '@restorecommerce/grpc-client';
 import { cfg, logger } from './utils.js';
 
 let worker: Worker;
-let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
+let ruleService: RuleServiceClient;
+let policyService: PolicyServiceClient;
+let policySetService: PolicySetServiceClient;
 let rules, policies, policySets;
 let userTopic: Topic;
 
@@ -102,12 +118,7 @@ const pkgDef: grpc.GrpcObject = grpc.loadPackageDefinition(
   })
 );
 
-const proto: any = ProtoUtils.getProtoFromPkgDefinition(
-  PKG_NAME,
-  pkgDef
-);
-
-const mockServer = new GrpcMockServer('localhost:50051');
+const mockServer = new GrpcMockServer('localhost:50151');
 
 let adminSubject = {
   id: 'admin_user_id',
@@ -205,7 +216,7 @@ const startGrpcMockServer = async (methodWithOutput: MethodWithOutput[]) => {
       oneofs: true
     });
     await mockServer.start();
-    logger.info('Mock IDS Server started on port 50051');
+    logger.info('Mock IDS Server started on port 50151');
   } catch (err) {
     logger.error('Error starting mock IDS server', err);
   }
@@ -236,7 +247,7 @@ const setupService = async (): Promise<void> => {
 
 const load = async (policiesFile: string): Promise<void> => {
   // load from fixtures
-  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile));
+  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile).toString());
   const marshalled = testUtils.marshallYamlPolicies(yamlPolicies);
 
   rules = marshalled.rules;

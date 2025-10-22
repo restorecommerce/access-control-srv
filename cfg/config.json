@@ -1,13 +1,5 @@
 {
   "protosServicePrefix": "io.restorecommerce.",
-  "redis": {
-    "url": "redis://localhost:6379",
-    "offsetStoreInterval": 1000,
-    "db-indexes": {
-      "db-offsetStore": 0,
-      "db-subject": 4
-    }
-  },
   "logger": {
     "console": {
       "handleExceptions": false,
@@ -53,15 +45,6 @@
       ]
     }
   },
-  "server": {
-    "transports": [
-      {
-        "name": "grpc",
-        "provider": "grpc",
-        "addr": "0.0.0.0:50061"
-      }
-    ]
-  },
   "database": {
     "main": {
       "provider": "arango",
@@ -75,6 +58,45 @@
         "policy",
         "rule",
         "policy_set"
+      ]
+    }
+  },
+  "redis": {
+    "url": "redis://localhost:6379",
+    "offsetStoreInterval": 1000,
+    "db-indexes": {
+      "db-offsetStore": 0,
+      "db-subject": 4
+    }
+  },
+  "server": {
+    "transports": [
+      {
+        "name": "grpc",
+        "provider": "grpc",
+        "addr": "0.0.0.0:50061"
+      }
+    ]
+  },
+  "resources": {
+    "restorecommerce": {
+      "resourcesProtoPathPrefix": "io/restorecommerce/",
+      "resourcesServiceNamePrefix": "io.restorecommerce.",
+      "resourcesServiceConfigPrefix": "restore-",
+      "resourcesDeletedMessage": "io.restorecommerce.resourcebase.Deleted",
+      "resources": [
+        {
+          "resourceName": "policy",
+          "collectionName": "policy"
+        },
+        {
+          "resourceName": "rule",
+          "collectionName": "rule"
+        },
+        {
+          "resourceName": "policy_set",
+          "collectionName": "policy_set"
+        }
       ]
     }
   },

@@ -1,4 +1,5 @@
 // Tests for isAllowed and whatIsAllowed for specific properties
+import {} from 'mocha';
 import should from 'should';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';

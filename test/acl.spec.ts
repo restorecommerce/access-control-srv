@@ -1,3 +1,4 @@
+import {} from 'mocha';
 import should from 'should';
 import { Worker } from '../src/worker';
 import * as testUtils from './utils.js';
@@ -54,7 +55,7 @@ const truncate = async (): Promise<void> => {
 
 const load = async (policiesFile: string): Promise<void> => {
   // load from fixtures
-  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile));
+  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile).toString());
   const marshalled = testUtils.marshallYamlPolicies(yamlPolicies);
 
   rules = marshalled.rules;

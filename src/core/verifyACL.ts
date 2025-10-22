@@ -1,13 +1,12 @@
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import { Logger } from 'winston';
 import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
-import { AccessController } from '.';
+import { AccessController } from './index.js';
 import { Resource, ContextWithSubResolved } from './interfaces.js';
-import traverse from 'traverse';
-import { getAllValues } from './utils.js';
 import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
+import { CtxResource } from '@restorecommerce/acs-client';
 
 export const verifyACLList = async (ruleTarget: Target,
   request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
@@ -38,7 +37,7 @@ export const verifyACLList = async (ruleTarget: Target,
   for (const reqAttribute of reqTarget.resources || []) {
     if (reqAttribute.id == urns.get('resourceID') || (reqAttribute.id === urns.get('operation'))) {
       const instanceID = reqAttribute.value;
-      let ctxResource: Resource = _.find(ctxResources, ['instance.id', instanceID]);
+      let ctxResource: CtxResource = _.find(ctxResources, ['instance.id', instanceID]);
       let aclList, scopingEntity;
 
       if (ctxResource) {

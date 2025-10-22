@@ -1,4 +1,4 @@
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import { Server } from '@restorecommerce/chassis-srv';
 import { Events } from '@restorecommerce/kafka-client';
 import { CommandInterface } from '@restorecommerce/chassis-srv';

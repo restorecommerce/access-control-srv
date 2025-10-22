@@ -1,5 +1,6 @@
-import nock from 'nock';
+import {} from 'mocha';
 import should from 'should';
+import nock from 'nock';
 import { AccessController } from '../src/core/accessController.js';
 import * as testUtils from './utils.js';
 import { Events } from '@restorecommerce/kafka-client';
@@ -559,7 +560,7 @@ describe('Testing access control core', () => {
         ownerInstance: 'Org1'
       });
       // set HR scope for Org2 (since target scope is no longer used since matching is done based on owners with roleAssocs)
-      (request.context.subject as any).hierarchical_scopes = [{ "id": "Org2", "children": [{ "id": "Org3" }] }];
+      (request.context!.subject as any).hierarchical_scopes = [{ "id": "Org2", "children": [{ "id": "Org3" }] }];
       await requestAndValidate(ac, request, Response_Decision.DENY);
     });
     it('should PERMIT Execute action on executeTestMutation by an Admin', async () => {
