@@ -45,10 +45,10 @@ export const formatTarget = (target: any): Target => {
 };
 
 export const conditionMatches = (condition: string, request: Request): boolean => {
-  condition = condition.replace(/\\n/g, '\n');
+  const { target, context } = request; // target and context are directly accessiable in eval!
   const evalResult = eval(condition);
   if (typeof evalResult === 'function') {
-    return evalResult(request);
+    return evalResult(request, target, context);
   } else {
     return evalResult;
   }

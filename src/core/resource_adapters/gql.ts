@@ -3,7 +3,7 @@ import pkg from 'apollo-client';
 import gql from 'graphql-tag';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { HttpLink } from 'apollo-link-http';
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import { ContextQuery } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import * as errors from '../errors.js';

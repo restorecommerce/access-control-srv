@@ -398,7 +398,10 @@ describe('testing microservice', () => {
         cfg.set('authorization:enforce', true);
         updateConfig(cfg);
         const result = await ruleService.create({
-          items: testRule,
+          items: [{
+            ...testRule[0],
+            id: 'test_rule_id2',
+          }],
           subject
         });
         should.exist(result);

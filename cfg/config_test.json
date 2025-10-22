@@ -10,6 +10,14 @@
       "database": "access-control-srv-test"
     }
   },
+  "adapter": {
+    "graphql": {
+      "url": "http://example.com/graphql",
+      "options": {
+        "headers": {}
+      }
+    }
+  },
   "client": {
     "acs-srv": {
       "address": "localhost:50161"
