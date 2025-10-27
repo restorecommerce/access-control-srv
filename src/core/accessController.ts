@@ -722,8 +722,10 @@ export class AccessController {
   async evictHRScopes(subID: string): Promise<void> {
     const key = `cache:${subID}:*`;
     const matchingKeys = await this.redisClient.keys(key);
-    await this.redisClient.del(matchingKeys);
-    this.logger.debug('Evicted Subject cache: ' + key);
+    if (matchingKeys?.length) {
+      await this.redisClient.del(matchingKeys);
+      this.logger.debug('Evicted Subject cache: ' + key);
+    }
     return;
   }
 
