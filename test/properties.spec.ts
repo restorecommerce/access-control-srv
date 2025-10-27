@@ -12,11 +12,12 @@ import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/r
 import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { cfg, logger } from './utils.js';
+import { it, describe, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
 let accessControlService: AccessControlServiceClient;
-let rules, policies, policySets;
+let rules: any, policies: any, policySets: any;
 
 const setupService = async (): Promise<void> => {
   worker = new Worker();
@@ -124,26 +125,26 @@ const validateWhatIsAllowedLocationResponse = (result: any, withoutProps?: boole
 };
 
 describe('testing access control', () => {
-  before(async () => {
+  beforeAll(async () => {
     await setupService();
     // disable authorization
     cfg.set('authorization:enabled', false);
     cfg.set('authorization:enforce', false);
     updateConfig(cfg);
   });
-  after(async () => {
+  afterAll(async () => {
     await worker.stop();
   });
 
   describe('testing isAllowed with multiple entities and different properties in each entity', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/multiple_operations.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
 
@@ -194,13 +195,12 @@ describe('testing access control', () => {
   });
 
   describe('isAllowed() for single entity', () => {
-    before(async () => {
+    beforeAll(async () => {
       await create('./test/fixtures/properties.yml');
     });
-    after(async function (): Promise<void> {
-      this.timeout(5000);
+    afterAll(async function (): Promise<void> {
       await truncate();
-    });
+    }, 5000);
     // READ - isAllowed - Location Entity
     it('should PERMIT reading Location with id and name properties', async () => {
       const accessRequest = testUtils.buildRequest({
@@ -379,14 +379,14 @@ describe('testing access control', () => {
     });
   });
   describe('testing whatIsAllowed for single entity', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     it('should return empty obligation and filtered rules for Location resource with id and name properties', async (): Promise<void> => {
@@ -470,14 +470,14 @@ describe('testing access control', () => {
     });
   });
   describe('testing isAllowed without properties defined in Rule', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/policy_sets_without_properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     it('should PERMIT reading Location with id and name properties', async () => {
@@ -525,14 +525,14 @@ describe('testing access control', () => {
     });
   });
   describe('testing whatIsAllowed without properties defined in Rule', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/policy_sets_without_properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     it('should return empty obligation and filtered rules for Location resource with id and name properties', async (): Promise<void> => {
@@ -573,14 +573,14 @@ describe('testing access control', () => {
   });
 
   describe('testing isAllowed with multiple rules to mask property', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/multiple_rules_with_properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     it('should DENY for reading Location resource with id, name and description properties (description Deny rule)', async (): Promise<void> => {
@@ -751,14 +751,14 @@ describe('testing access control', () => {
   });
 
   describe('testing whatIsAllowed with multiple rules to mask property', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/multiple_rules_with_properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     it('should return obligation for description property and filtered rules for Location resource request reading for id, name and description', async (): Promise<void> => {
@@ -901,14 +901,14 @@ describe('testing access control', () => {
   });
 
   describe('testing isAllowed with multiple entities and different properties in each entity', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/multiple_entities_with_properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     // read - isAllowed - Location and Organization Entity
@@ -1094,14 +1094,14 @@ describe('testing access control', () => {
   });
 
   describe('testing whatIsAllowed with multiple entities and different properties in each entity', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/multiple_entities_with_properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     it('should PERMIT reading Location and Organization with locid, locname, orgid and orgname properties with empty Obligation', async () => {
@@ -1240,14 +1240,14 @@ describe('testing access control', () => {
   });
 
   describe('testing isAllowed with multiple entities with multiple rules for each entity', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/multiple_rules_multiple_entities_with_properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     // read - isAllowed - Location and Organization Entity with multiple rules for each entity
@@ -1320,14 +1320,14 @@ describe('testing access control', () => {
     });
   });
   describe('testing whatIsAllowed with multiple entities with multiple rules for each entity', () => {
-    before(async () => {
+    beforeAll(async () => {
       // disable authorization
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
       await create('./test/fixtures/multiple_rules_multiple_entities_with_properties.yml');
     });
-    after(async () => {
+    afterAll(async () => {
       await truncate();
     });
     // read - isAllowed - Location and Organization Entity with multiple rules for each entity

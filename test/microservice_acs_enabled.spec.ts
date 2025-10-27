@@ -27,12 +27,13 @@ import {
   createClient
 } from '@restorecommerce/grpc-client';
 import { cfg, logger } from './utils.js';
+import { it, describe, beforeAll, afterAll } from 'vitest';
 
 let worker: Worker;
 let ruleService: RuleServiceClient;
 let policyService: PolicyServiceClient;
 let policySetService: PolicySetServiceClient;
-let rules, policies, policySets;
+let rules: any, policies: any, policySets: any;
 let userTopic: Topic;
 
 // Admin of mainOrg -> A -> B -> C
@@ -283,7 +284,7 @@ const truncate = async (): Promise<void> => {
 };
 
 // mock to emit back hierarchicalScopesResponse
-const hrScopeReqListener = async (msg) => {
+const hrScopeReqListener = async (msg: any) => {
   const token = msg.token.split(':')[0];
   if (token === 'admin_token') {
     const hrScopeResponse = {
@@ -304,7 +305,7 @@ const hrScopeReqListener = async (msg) => {
 
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS Enabled', () => {
-    before(async () => {
+    beforeAll(async () => {
       await setupService();
       await load('./test/fixtures/default_policies.yml');
       // Add a HR scopeReq listener and send back HR scope response
@@ -321,7 +322,7 @@ describe('testing microservice', () => {
       userTopic = await events.topic(cfg.get('events:kafka:topics:user:topic'));
       await userTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
     });
-    after(async () => {
+    afterAll(async () => {
       await userTopic.removeAllListeners('hierarchicalScopesRequest');
       await truncate();
       await worker.stop();

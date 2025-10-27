@@ -12,11 +12,12 @@ import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecomm
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { PolicySetWithCombinables, PolicyWithCombinables } from '../src/core/interfaces.js';
 import { cfg, logger } from './utils.js';
+import { it, describe, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
 let accessControlService: AccessControlServiceClient;
-let rules, policies, policySets;
+let rules: any, policies: any, policySets: any;
 
 const setupService = async (): Promise<void> => {
   worker = new Worker();
@@ -84,7 +85,7 @@ const create = async (policiesFile: string): Promise<void> => {
 
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS disabled', () => {
-    before(async () => {
+    beforeAll(async () => {
       await setupService();
       await load('./test/fixtures/conditions.yml');
       // disable authorization
@@ -92,7 +93,7 @@ describe('testing microservice', () => {
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
     });
-    after(async () => {
+    afterAll(async () => {
       await worker.stop();
     });
     describe('testing create() operations', () => {
@@ -207,7 +208,7 @@ describe('testing microservice', () => {
 
       it('should delete rules', async () => {
         const deleteResponse = await ruleService.delete({
-          ids: rules.map((r) => { return r.id; })
+          ids: rules.map((r: any) => { return r.id; })
         });
         const result = await ruleService.read({});
         should.exist(result);
@@ -267,20 +268,19 @@ describe('testing microservice', () => {
     });
   });
   describe('testing access control', () => {
-    before(async () => {
+    beforeAll(async () => {
       await setupService();
     });
-    after(async () => {
+    afterAll(async () => {
       await worker.stop();
     });
     describe('isAllowed()', () => {
-      before(async () => {
+      beforeAll(async () => {
         await create('./test/fixtures/conditions.yml');
       });
-      after(async function (): Promise<void> {
-        this.timeout(5000);
+      afterAll(async function (): Promise<void> {
         await truncate();
-      });
+      }, 5000);
       it('should PERMIT', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
@@ -366,10 +366,10 @@ describe('testing microservice', () => {
       });
     });
     describe('testing whatIsAllowed', () => {
-      before(async () => {
+      beforeAll(async () => {
         await create('./test/fixtures/roleScopes.yml');
       });
-      after(async () => {
+      afterAll(async () => {
         await truncate();
       });
       it('should return filtered rules for Location resource', async (): Promise<void> => {
