@@ -20,19 +20,19 @@
   },
   "client": {
     "acs-srv": {
-      "address": "localhost:50161"
+      "address": "localhost:50162"
     },
     "user": {
       "address": "localhost:50151"
     },
     "policy_set": {
-      "address": "localhost:50161"
+      "address": "localhost:50162"
     },
     "policy": {
-      "address": "localhost:50161"
+      "address": "localhost:50162"
     },
     "rule": {
-      "address": "localhost:50161"
+      "address": "localhost:50162"
     }
   },
   "server": {
@@ -40,7 +40,7 @@
       {
         "name": "grpc",
         "provider": "grpc",
-        "addr": "localhost:50161"
+        "addr": "localhost:50162"
       }
     ]
   },
