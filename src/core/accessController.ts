@@ -1,4 +1,4 @@
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import {
   PolicySetWithCombinables, PolicyWithCombinables, AccessControlOperation,
   CombiningAlgorithm, AccessControlConfiguration, EffectEvaluation, ContextWithSubResolved
@@ -22,6 +22,12 @@ import { Topic } from '@restorecommerce/kafka-client';
 import { verifyACLList } from './verifyACL.js';
 import { conditionMatches } from './utils.js';
 
+export type Awaiter = {
+  resolve: (state: boolean) => void,
+  reject: (reason: any) => void,
+  timeoutId: NodeJS.Timeout,
+};
+
 export class AccessController {
   policySets: Map<string, PolicySetWithCombinables>;
   combiningAlgorithms: Map<string, any>;
@@ -29,7 +35,7 @@ export class AccessController {
   resourceAdapter: ResourceAdapter;
   redisClient: RedisClientType<any, any>;
   userTopic: Topic;
-  waiting: any;
+  waiting: Record<string, Awaiter[]>;
   cfg: any;
   userService: UserServiceClient;
 
@@ -50,8 +56,8 @@ export class AccessController {
       const urn = ca.urn;
       const method = ca.method;
 
-      if (this[method]) {
-        this.combiningAlgorithms.set(urn, this[method]);
+      if ((this as any)[method]) {
+        this.combiningAlgorithms.set(urn, (this as any)[method]);
       } else {
         logger.error('Unable to setup access controller: an invalid combining algorithm was found!');
         throw new errors.InvalidCombiningAlgorithm(urn);
@@ -71,7 +77,7 @@ export class AccessController {
       logger.error('Error creating redis client instance', { code: err.code, message: err.message, stack: err.stack });
     });
     this.userTopic = userTopic;
-    this.waiting = [];
+    this.waiting = {};
     this.userService = userService;
   }
 
@@ -716,8 +722,10 @@ export class AccessController {
   async evictHRScopes(subID: string): Promise<void> {
     const key = `cache:${subID}:*`;
     const matchingKeys = await this.redisClient.keys(key);
-    await this.redisClient.del(matchingKeys);
-    this.logger.debug('Evicted Subject cache: ' + key);
+    if (matchingKeys?.length) {
+      await this.redisClient.del(matchingKeys);
+      this.logger.debug('Evicted Subject cache: ' + key);
+    }
     return;
   }
 

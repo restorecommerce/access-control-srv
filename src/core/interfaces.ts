@@ -2,19 +2,24 @@ import { Effect, Rule } from '@restorecommerce/rc-grpc-clients/dist/generated-se
 import { Policy } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
 import { PolicySet } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
-import { RoleAssociation as RoleAssociations, HierarchicalScope, Tokens } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
+import {
+  RoleAssociation as RoleAssociations,
+  HierarchicalScope,
+  Tokens
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
+import { Resource } from '@restorecommerce/resource-base-interface';
 
 export interface PolicyWithCombinables extends Policy {
-  combinables: Map<string, Rule>;
+  combinables?: Map<string, Rule>;
 }
 
 export interface PolicySetWithCombinables extends PolicySet {
-  combinables: Map<string, PolicyWithCombinables>;
+  combinables?: Map<string, PolicyWithCombinables>;
 }
 
 export interface EffectEvaluation {
-  effect: Effect;
-  evaluation_cacheable: boolean;
+  effect?: Effect;
+  evaluation_cacheable?: boolean;
 }
 
 export interface Obligation {
@@ -35,18 +40,6 @@ export interface ContextSubjectResolved {
   tokens?: Tokens[];
 }
 
-export interface Resource {
-  id: string;
-  meta: ResourceMeta;
-  [key: string]: any;
-}
-
-export interface ResourceMeta {
-  created: Date;
-  modified: Date;
-  acls?: Attribute[];
-  owners: Attribute[];
-}
 
 export interface CombiningAlgorithm {
   urn: string;
@@ -58,4 +51,6 @@ export interface AccessControlConfiguration {
   urns?: { [key: string]: string };
 }
 
+export { Resource } from '@restorecommerce/resource-base-interface';
+export { Meta as ResourceMeta } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/meta.js'
 export type AccessControlOperation = 'whatIsAllowed' | 'isAllowed';

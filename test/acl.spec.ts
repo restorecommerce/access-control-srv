@@ -1,3 +1,4 @@
+import {} from 'mocha';
 import should from 'should';
 import { Worker } from '../src/worker';
 import * as testUtils from './utils.js';
@@ -10,11 +11,12 @@ import { PolicyServiceDefinition, PolicyServiceClient } from '@restorecommerce/r
 import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { cfg, logger } from './utils.js';
+import { it, describe, beforeAll, afterAll } from 'vitest';
 
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
 let accessControlService: AccessControlServiceClient;
-let rules, policies, policySets;
+let rules: any, policies: any, policySets: any;
 
 const setupService = async (): Promise<void> => {
 
@@ -54,7 +56,7 @@ const truncate = async (): Promise<void> => {
 
 const load = async (policiesFile: string): Promise<void> => {
   // load from fixtures
-  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile));
+  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile).toString());
   const marshalled = testUtils.marshallYamlPolicies(yamlPolicies);
 
   rules = marshalled.rules;
@@ -85,14 +87,14 @@ const create = async (policiesFile: string): Promise<void> => {
 
 describe('testing ACL for microservice', () => {
   describe('testing access-control-list', () => {
-    before(async () => {
+    beforeAll(async () => {
       await setupService();
     });
-    after(async () => {
+    afterAll(async () => {
       await worker.stop();
     });
     describe('isAllowed()', () => {
-      before(async () => {
+      beforeAll(async () => {
         // disable authorization to import rules
         cfg.set('authorization:enabled', false);
         cfg.set('authorization:enforce', false);
@@ -103,10 +105,9 @@ describe('testing ACL for microservice', () => {
         cfg.set('authorization:enforce', false);
         updateConfig(cfg);
       });
-      after(async function (): Promise<void> {
-        this.timeout(5000);
+      afterAll(async function (): Promise<void> {
         await truncate();
-      });
+      }, 5000);
       it('should PERMIT creating bucket resource with valid ACL instances', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',

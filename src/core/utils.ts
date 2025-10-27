@@ -1,16 +1,24 @@
-import _ from 'lodash-es';
+import * as _ from 'lodash-es';
 import fs from 'node:fs';
 import yaml from 'js-yaml';
 import { AccessController } from './accessController.js';
-import { AuthZAction, accessRequest, PolicySetRQ, DecisionResponse, Operation, PolicySetRQResponse, Obligation, ACSClientContext, Resource } from '@restorecommerce/acs-client';
+import {
+  AuthZAction,
+  accessRequest,
+  PolicySetRQ,
+  DecisionResponse,
+  Operation,
+  PolicySetRQResponse,
+  Obligation,
+  ACSClientContext,
+  ACSResource as Resource
+} from '@restorecommerce/acs-client';
 import { Subject } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import { Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { createServiceConfig } from '@restorecommerce/service-config';
-import { createLogger } from '@restorecommerce/logger';
+import { createLogger, Logger } from '@restorecommerce/logger';
 import { createClient, createChannel } from '@restorecommerce/grpc-client';
 import { FilterOp } from '@restorecommerce/resource-base-interface/lib/core/interfaces.js';
-import * as uuid from 'uuid';
-import nodeEval from 'node-eval';
 import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { Rule, Target, Effect } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import {
@@ -21,6 +29,7 @@ import { PolicySetWithCombinables, PolicyWithCombinables } from './interfaces.js
 import { RoleAssociation } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import { Topic } from '@restorecommerce/kafka-client';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
+import { randomUUID } from 'node:crypto';
 
 
 export const formatTarget = (target: any): Target => {
@@ -36,10 +45,10 @@ export const formatTarget = (target: any): Target => {
 };
 
 export const conditionMatches = (condition: string, request: Request): boolean => {
-  condition = condition.replace(/\\n/g, '\n');
-  const evalResult = nodeEval(condition, 'condition.js', request);
+  const { target, context } = request; // target and context are directly accessiable in eval!
+  const evalResult = eval(condition);
   if (typeof evalResult === 'function') {
-    return evalResult(request);
+    return evalResult(request, target, context);
   } else {
     return evalResult;
   }
@@ -119,25 +128,27 @@ const loadPolicies = (document: any, accessController: AccessController): Access
 };
 
 export const loadPoliciesFromDoc = async (accessController: AccessController, filepath: string): Promise<AccessController> => {
-  if (_.isNil(filepath)) {
+  if (!filepath?.length) {
     throw new Error('No filepath specified for policies document');
   }
 
-  if (_.isNil(accessController)) {
+  if (!accessController) {
     throw new Error('No filepath specified for policies document');
   }
 
   return new Promise<AccessController>((resolve, reject) => {
-    fs.exists(filepath, (exists) => {
-      if (!exists) {
-        reject(`Policies file ${filepath} does not exist`);
+    fs.readFile(filepath, (err, data) => {
+      if (err?.code === 'EEXIST') {
+        reject(new Error(`Policies file ${filepath} does not exist`));
       }
-
-      fs.readFile(filepath, (err, data) => {
-        const document = yaml.safeLoad(data, 'utf8');
+      else if (err) {
+        reject(err);
+      }
+      else {
+        const document = yaml.loadAll(data.toString());
         loadPolicies(document, accessController);
         resolve(accessController);
-      });
+      }
     });
   });
 };
@@ -225,7 +236,16 @@ export async function checkAccessRequest(ctx: ACSClientContext, resource: Resour
 
   let result: DecisionResponse | PolicySetRQResponse;
   try {
-    result = await accessRequest(subject, resource, action, ctx, { operation, roleScopingEntityURN: cfg?.get('authorization:urns:roleScopingEntityURN') });
+    result = await accessRequest(
+      subject,
+      resource,
+      action,
+      ctx,
+      {
+        operation,
+        roleScopingEntityURN: cfg?.get('authorization:urns:roleScopingEntityURN')
+      } as any
+    );
   } catch (err: any) {
     return {
       decision: Response_Decision.DENY,
@@ -248,7 +268,7 @@ export async function checkAccessRequest(ctx: ACSClientContext, resource: Resour
 export async function createMetadata(resources: any,
   action: string, subject: Subject, service: any): Promise<any> {
   const orgOwnerAttributes = [];
-  if (resources && !_.isArray(resources)) {
+  if (resources && !Array.isArray(resources)) {
     resources = [resources];
   }
   const urns = service.cfg.get('authorization:urns');
@@ -277,8 +297,8 @@ export async function createMetadata(resources: any,
           const item = result.items[0].payload;
           resource.meta.owners = item.meta.owners;
         } else if (result?.items?.length === 0) {
-          if (_.isEmpty(resource.id)) {
-            resource.id = uuid.v4().replace(/-/g, '');
+          if (!resource?.id?.length) {
+            resource.id = randomUUID().replace(/-/g, '');
           }
           let ownerAttributes;
           if (!resource.meta.owners) {
@@ -300,8 +320,8 @@ export async function createMetadata(resources: any,
           resource.meta.owners = ownerAttributes;
         }
       } else if (action === AuthZAction.CREATE) {
-        if (_.isEmpty(resource.id)) {
-          resource.id = uuid.v4().replace(/-/g, '');
+        if (!resource?.id?.length) {
+          resource.id = randomUUID().replace(/-/g, '');
         }
         let ownerAttributes;
         if (!resource.meta.owners) {
@@ -329,7 +349,7 @@ export async function createMetadata(resources: any,
 
 export const getAllValues = (obj: any, pushedValues: any): any => {
   for (const value of (<any>Object).values(obj)) {
-    if (_.isArray(value)) {
+    if (Array.isArray(value)) {
       getAllValues(value, pushedValues);
     } else if (typeof value == 'string') {
       pushedValues.push(value);
@@ -351,11 +371,11 @@ const nestedAttributesEqual = (redisAttributes: Attribute[], userAttributes: Att
   }
 };
 
-export const compareRoleAssociations = (userRoleAssocs: RoleAssociation[], redisRoleAssocs: RoleAssociation[], logger): boolean => {
+export const compareRoleAssociations = (userRoleAssocs: RoleAssociation[], redisRoleAssocs: RoleAssociation[], logger?: Logger): boolean => {
   let roleAssocsModified = false;
   if (userRoleAssocs?.length != redisRoleAssocs?.length) {
     roleAssocsModified = true;
-    logger.debug('Role associations length are not equal');
+    logger?.debug('Role associations length are not equal');
   } else {
     // compare each role and its association
     if (userRoleAssocs?.length > 0 && redisRoleAssocs?.length > 0) {
@@ -388,10 +408,10 @@ export const compareRoleAssociations = (userRoleAssocs: RoleAssociation[], redis
           roleAssocsModified = true;
         }
         if (roleAssocsModified) {
-          logger.debug('Role associations objects are not equal');
+          logger?.debug('Role associations objects are not equal');
           break;
         } else {
-          logger.debug('Role assocations not changed');
+          logger?.debug('Role assocations not changed');
         }
       }
     }
@@ -399,7 +419,7 @@ export const compareRoleAssociations = (userRoleAssocs: RoleAssociation[], redis
   return roleAssocsModified;
 };
 
-export const flushACSCache = async (userId: string, db_index, commandTopic: Topic, logger) => {
+export const flushACSCache = async (userId: string, db_index: number, commandTopic: Topic, logger?: Logger) => {
   const payload = {
     data: {
       db_index,
@@ -416,5 +436,5 @@ export const flushACSCache = async (userId: string, db_index, commandTopic: Topi
     value: eventPayload
   };
   await commandTopic.emit('flushCacheCommand', eventObject);
-  logger.info('ACS flush cache command event emitted to kafka topic successfully');
+  logger?.info('ACS flush cache command event emitted to kafka topic successfully');
 };

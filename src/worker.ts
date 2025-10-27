@@ -1,11 +1,11 @@
-import _ from 'lodash-es';
+import * as fs from 'node:fs';
+import * as _ from 'lodash-es';
+import yaml from 'js-yaml';
+import { createClient, RedisClientType } from 'redis';
 import * as chassis from '@restorecommerce/chassis-srv';
-import { createLogger } from '@restorecommerce/logger';
-import { Logger } from 'winston';
+import { createLogger, Logger } from '@restorecommerce/logger';
 import { Events, registerProtoMeta } from '@restorecommerce/kafka-client';
 import { AccessControlCommandInterface, AccessControlService } from './accessControlService.js';
-import { ResourceManager } from './resourceManager.js';
-import { createClient, RedisClientType } from 'redis';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base.js';
 import { AccessController } from './core/accessController.js';
 import { ACSAuthZ, initAuthZ, initializeCache } from '@restorecommerce/acs-client';
@@ -46,18 +46,30 @@ import {
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/grpc/health/v1/health.js';
 import { BindConfig } from '@restorecommerce/chassis-srv/lib/microservice/transport/provider/grpc/index.js';
 import { compareRoleAssociations, flushACSCache } from './core/utils.js';
-import * as fs from 'node:fs';
-import yaml from 'js-yaml';
+import {
+  Resource,
+  protoMetadata as baseMeta,
+} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/resource_base.js';
+import { ResourceManager } from './resourceManager.js';
+
+registerProtoMeta(
+  ruleMeta,
+  policyMeta,
+  policySetMeta,
+  accessControlMeta,
+  commandInterfaceMeta,
+  reflectionMeta,
+  authMeta,
+  userMeta,
+  baseMeta,
+);
 
 const capitalized = (collectionName: string): string => {
   const labels = collectionName.split('_').map((element) => {
-    return element.charAt(0).toUpperCase() + element.substr(1);
+    return element.charAt(0).toUpperCase() + element.slice(1);
   });
-  return _.join(labels, '');
+  return labels?.join('');
 };
-
-registerProtoMeta(ruleMeta, policyMeta, policySetMeta, accessControlMeta,
-  commandInterfaceMeta, reflectionMeta, authMeta, userMeta);
 
 /**
  * Generates Kafka configs for CRUD events.
@@ -65,7 +77,7 @@ registerProtoMeta(ruleMeta, policyMeta, policySetMeta, accessControlMeta,
 const genEventsConfig = (collectionName: string, cfg: any): any => {
   const servicePrefix = cfg.get('protosServicePrefix');
 
-  const crudEvents = ['Created', 'Modified', 'Deleted'];
+  const crudEvents = ['Created', 'Modified', 'Deleted', 'DeletedAll'];
 
   const kafkaCfg = cfg.get('events:kafka');
   for (const event of crudEvents) {
@@ -103,7 +115,8 @@ export class Worker {
     const ruleConfig = genEventsConfig('rule', this.cfg);
 
     this.cfg.set('events:kafka',
-      _.assign({}, kafkaConfig, policySetConfig, policyConfig, ruleConfig));
+      _.assign({}, kafkaConfig, policySetConfig, policyConfig, ruleConfig)
+    );
 
     kafkaConfig = this.cfg.get('events:kafka');
     const hierarchicalScopesResponse = 'hierarchicalScopesResponse';
@@ -194,11 +207,12 @@ export class Worker {
               return;
             }
 
-            let seedData;
+            let seedData: Resource[];
             try {
-              seedData = yaml.load(data, 'utf8');
-            } catch (err) {
-              this.logger.error(`Error parsing seed ${entity} file`, err);
+              seedData = yaml.load(data.toString()) as Resource[];
+            } catch (err: any) {
+              const { code, message, stack } = err;
+              this.logger.error(`Error parsing seed ${entity} file`, { code, message, stack });
               reject(err);
               return;
             }
@@ -334,7 +348,7 @@ export class Worker {
       const topicCfg = kafkaConfig.topics[topicLabel];
       const topic = await events.topic(topicCfg.topic);
       const offSetValue = await this.offsetStore.getOffset(topicCfg.topic);
-      logger.info('subscribing to topic with offset value', topicCfg.topic, offSetValue);
+      logger.info('subscribing to topic with offset value', { topic: topicCfg.topic, offset: Number(offSetValue) });
       if (topicCfg.events) {
         for (const eventName of topicCfg.events) {
           await topic.on(eventName, eventListener, { startingOffset: offSetValue });

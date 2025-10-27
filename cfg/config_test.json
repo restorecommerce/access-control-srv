@@ -1,0 +1,55 @@
+{
+  "protosServicePrefix": "io.restorecommerce.",
+  "logger": {
+    "console": {
+      "level": "warn"
+    }
+  },
+  "database": {
+    "main": {
+      "database": "access-control-srv-test"
+    }
+  },
+  "adapter": {
+    "graphql": {
+      "url": "http://example.com/graphql",
+      "options": {
+        "headers": {}
+      }
+    }
+  },
+  "client": {
+    "acs-srv": {
+      "address": "localhost:50162"
+    },
+    "user": {
+      "address": "localhost:50151"
+    },
+    "policy_set": {
+      "address": "localhost:50162"
+    },
+    "policy": {
+      "address": "localhost:50162"
+    },
+    "rule": {
+      "address": "localhost:50162"
+    }
+  },
+  "server": {
+    "transports": [
+      {
+        "name": "grpc",
+        "provider": "grpc",
+        "addr": "localhost:50162"
+      }
+    ]
+  },
+  "events": {
+    "kafka": {
+      "groupId": "access-control-srv-test",
+      "kafka": {
+        "clientId": "access-control-srv-test"
+      }
+    }
+  }
+}

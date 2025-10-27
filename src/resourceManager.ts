@@ -3,7 +3,7 @@ import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce
 import { Topic, Events } from '@restorecommerce/kafka-client';
 import { AccessController } from './core/accessController.js';
 import { createMetadata, checkAccessRequest } from './core/utils.js';
-import { AuthZAction, Operation, ACSAuthZ, DecisionResponse, PolicySetRQResponse } from '@restorecommerce/acs-client';
+import { AuthZAction, Operation, ACSAuthZ, DecisionResponse, PolicySetRQResponse, ACSResource, CtxResource } from '@restorecommerce/acs-client';
 import { RedisClientType } from 'redis';
 import { Logger } from 'winston';
 import {
@@ -95,7 +95,21 @@ export class RuleService extends ServiceBase<RuleListResponse, RuleList> impleme
         }
       }
     }
-    super('rule', policyTopic, logger, new ResourcesAPIBase(db, 'rules', resourceFieldConfig), true);
+    super(
+      'rule',
+      policyTopic,
+      logger,
+      new ResourcesAPIBase(
+        db,
+        'rules',
+        resourceFieldConfig,
+        undefined,
+        undefined,
+        logger,
+        'rule',
+      ),
+      true
+    );
     this.cfg = cfg;
     this.redisClient = redisClient;
     this.authZ = authZ;
@@ -380,7 +394,21 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
         }
       }
     }
-    super('policy', policyTopic, logger, new ResourcesAPIBase(db, 'policies', resourceFieldConfig), true);
+    super(
+      'policy',
+      policyTopic,
+      logger,
+      new ResourcesAPIBase(
+        db,
+        'policies',
+        resourceFieldConfig,
+        undefined,
+        undefined,
+        logger,
+        'policy',
+      ),
+      true
+    );
     this.ruleService = new RuleService(this.logger, rulesTopic, db, cfg, redisClient, authZ);
     this.cfg = cfg;
     this.redisClient = redisClient;
@@ -615,40 +643,44 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
   }
 
   async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
-    let resources = [];
+    const resources = new Array<CtxResource>();
     const subject = request.subject;
     const policyIDs = request.ids;
     let action;
-    if (policyIDs) {
+    if (request.collection) {
+      action = AuthZAction.DROP;
+      resources.push({ collection: request.collection });
+    }
+    else if (policyIDs) {
       action = AuthZAction.DELETE;
-      if (_.isArray(policyIDs)) {
-        for (const id of policyIDs) {
-          resources.push({ id });
-        }
+      if (Array.isArray(policyIDs)) {
+        resources.push(...policyIDs.map(id => ({id})));
       } else {
-        resources = [{ id: policyIDs }];
+        resources.push({ id: policyIDs });
       }
       Object.assign(resources, { id: policyIDs });
       await createMetadata(resources, action, subject, this);
     }
-    if (request.collection) {
-      action = AuthZAction.DROP;
-      resources = [{ collection: request.collection }];
-    }
 
     let acsResponse: DecisionResponse;
     try {
-      if (!ctx) { ctx = {}; }
+      ctx ??= {};
       ctx.subject = subject;
       ctx.resources = resources;
-      acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: policyIDs }], action,
-        Operation.isAllowed);
-    } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv for delete Policies', { code: err.code, message: err.message, stack: err.stack });
+      acsResponse = await checkAccessRequest(
+        ctx,
+        [{ resource: 'policy', id: policyIDs }],
+        action,
+        Operation.isAllowed
+      );
+    }
+    catch (err: any) {
+      const { code, message, stack } = err;
+      this.logger.error('Error occurred requesting access-control-srv for delete Policies', { code, message, stack });
       return {
         operation_status: {
-          code: err.code,
-          message: err.message
+          code: Number.isInteger(code) ? code : 500,
+          message
         }
       };
     }
@@ -694,7 +726,21 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
         }
       }
     }
-    super('policy_set', policySetTopic, logger, new ResourcesAPIBase(db, 'policy_sets', resourceFieldConfig), true);
+    super(
+      'policy_set',
+      policySetTopic,
+      logger,
+      new ResourcesAPIBase(
+        db,
+        'policy_sets',
+        resourceFieldConfig,
+        undefined,
+        undefined,
+        logger,
+        'policy_set',
+      ),
+      true
+    );
     this.cfg = cfg;
     this.redisClient = redisClient;
     this.authZ = authZ;

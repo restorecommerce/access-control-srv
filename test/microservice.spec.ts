@@ -1,3 +1,4 @@
+import {} from 'mocha';
 import should from 'should';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
@@ -11,11 +12,12 @@ import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecomm
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { PolicySetWithCombinables, PolicyWithCombinables } from '../src/core/interfaces.js';
 import { cfg, logger } from './utils.js';
+import { it, describe, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
 let worker: Worker;
 let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
 let accessControlService: AccessControlServiceClient;
-let rules, policies, policySets;
+let rules: any, policies: any, policySets: any;
 
 const setupService = async (): Promise<void> => {
   worker = new Worker();
@@ -54,7 +56,7 @@ const truncate = async (): Promise<void> => {
 
 const load = async (policiesFile: string): Promise<void> => {
   // load from fixtures
-  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile));
+  const yamlPolicies = yaml.load(fs.readFileSync(policiesFile).toString());
   const marshalled = testUtils.marshallYamlPolicies(yamlPolicies);
 
   rules = marshalled.rules;
@@ -83,7 +85,7 @@ const create = async (policiesFile: string): Promise<void> => {
 
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS disabled', () => {
-    before(async () => {
+    beforeAll(async () => {
       await setupService();
       await load('./test/fixtures/conditions.yml');
       // disable authorization
@@ -91,7 +93,7 @@ describe('testing microservice', () => {
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
     });
-    after(async () => {
+    afterAll(async () => {
       await worker.stop();
     });
     describe('testing create() operations', () => {
@@ -101,9 +103,9 @@ describe('testing microservice', () => {
         });
         should.exist(result);
         should.exist(result.items);
-        result.items.should.be.length(policySets.length);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.items!.should.be.length(policySets.length);
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should insert policies', async () => {
@@ -112,9 +114,9 @@ describe('testing microservice', () => {
         });
         should.exist(result);
         should.exist(result.items);
-        result.items.should.be.length(policies.length);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.items!.should.be.length(policies!.length);
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should insert rules', async () => {
@@ -123,9 +125,9 @@ describe('testing microservice', () => {
         });
         should.exist(result);
         should.exist(result.items);
-        result.items.should.be.length(rules.length);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.items!.should.be.length(rules.length);
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should update in-memory policies when creating resources', async () => {
@@ -135,13 +137,13 @@ describe('testing microservice', () => {
 
         // checking policies
         const policySet: [string, PolicySetWithCombinables] = accessController.policySets.entries().next().value;
-        should.exist(policySet[1].combinables);
-        policySet[1].combinables.should.have.size(1);
+        should.exist(policySet[1]!.combinables);
+        policySet[1]!.combinables!.should.have.size(1);
 
         // checking policy rules
-        const policy: [string, PolicyWithCombinables] = policySet[1].combinables.entries().next().value;
-        should.exist(policy[1].combinables);
-        policy[1].combinables.should.have.size(3);
+        const policy: [string, PolicyWithCombinables] = policySet[1]!.combinables!.entries().next().value;
+        should.exist(policy[1]!.combinables);
+        policy[1]!.combinables!.should.have.size(3);
       });
     });
 
@@ -168,19 +170,19 @@ describe('testing microservice', () => {
 
         should.exist(result);
         should.exist(result.items);
-        result.items.should.have.length(1);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.items!.should.have.length(1);
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
 
-        const updatedPS = result.items[0].payload;
-        should.exist(updatedPS.name);
-        should.exist(updatedPS.policies);
-        updatedPS.name.should.equal('Policy set A v2');
+        const updatedPS = result.items![0]!.payload;
+        should.exist(updatedPS!.name);
+        should.exist(updatedPS!.policies);
+        updatedPS!.name!.should.equal('Policy set A v2');
 
-        updatedPS.policies.should.have.length(2);
-        should.exist(updatedPS.policies[0]);
-        updatedPS.policies[0].should.equal('policyA');
-        updatedPS.policies[1].should.equal('policyB');
+        updatedPS!.policies!.should.have.length(2);
+        should.exist(updatedPS!.policies![0]);
+        updatedPS!.policies![0]!.should.equal('policyA');
+        updatedPS!.policies![1]!.should.equal('policyB');
       });
       // TODO ADD READ tests
       // update operations are not stable due to
@@ -206,35 +208,35 @@ describe('testing microservice', () => {
 
       it('should delete rules', async () => {
         const deleteResponse = await ruleService.delete({
-          ids: rules.map((r) => { return r.id; })
+          ids: rules.map((r: any) => { return r.id; })
         });
         const result = await ruleService.read({});
         should.exist(result);
         should.not.exist(result.items);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should update in-memory policies by removing rules', () => {
         const accessController = worker.accessController;
 
         for (let [, policySet] of accessController.policySets) {
-          for (let [, policy] of policySet.combinables) {
+          for (let [, policy] of policySet.combinables!) {
             should.exist(policy.combinables);
-            policy.combinables.should.have.size(0);
+            policy.combinables!.should.have.size(0);
           }
         }
       });
 
       it('should delete policies', async () => {
         await policyService.delete({
-          ids: policies.map((p) => { return p.id; })
+          ids: policies!.map((p) => { return p.id; })
         });
         const result = await policyService.read({});
         should.exist(result);
         should.not.exist(result.items);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should update in-memory policy sets by removing policies', () => {
@@ -242,7 +244,7 @@ describe('testing microservice', () => {
 
         for (let [, policySet] of accessController.policySets) {
           should.exist(policySet.combinables);
-          policySet.combinables.should.have.size(0);
+          policySet.combinables!.should.have.size(0);
         }
       });
 
@@ -253,8 +255,8 @@ describe('testing microservice', () => {
         const result = await policySetService.read({});
         should.exist(result);
         should.not.exist(result.items);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should update in-memory info, which should be empty', () => {
@@ -266,20 +268,19 @@ describe('testing microservice', () => {
     });
   });
   describe('testing access control', () => {
-    before(async () => {
+    beforeAll(async () => {
       await setupService();
     });
-    after(async () => {
+    afterAll(async () => {
       await worker.stop();
     });
     describe('isAllowed()', () => {
-      before(async () => {
+      beforeAll(async () => {
         await create('./test/fixtures/conditions.yml');
       });
-      after(async function (): Promise<void> {
-        this.timeout(5000);
+      afterAll(async function (): Promise<void> {
         await truncate();
-      });
+      }, 5000);
       it('should PERMIT', async () => {
         const accessRequest = testUtils.buildRequest({
           subjectID: 'Alice',
@@ -296,9 +297,9 @@ describe('testing microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.PERMIT);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.decision!.should.equal(Response_Decision.PERMIT);
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should return DENY', async () => {
@@ -317,9 +318,9 @@ describe('testing microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.DENY);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.decision!.should.equal(Response_Decision.DENY);
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should DENY due to invalid context', async () => {
@@ -333,14 +334,14 @@ describe('testing microservice', () => {
           resourceID: 'Alice',
           actionType: 'urn:restorecommerce:acs:names:action:modify',
         });
-        accessRequest.context = null;
+        accessRequest.context = undefined;
 
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.DENY);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.decision!.should.equal(Response_Decision.DENY);
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
 
       it('should return INDETERMINATE', async () => {
@@ -359,16 +360,16 @@ describe('testing microservice', () => {
         const result = await accessControlService.isAllowed(accessRequest);
         should.exist(result);
         should.exist(result.decision);
-        result.decision.should.equal(Response_Decision.INDETERMINATE);
-        result.operation_status.code.should.equal(200);
-        result.operation_status.message.should.equal('success');
+        result.decision!.should.equal(Response_Decision.INDETERMINATE);
+        result.operation_status!.code!.should.equal(200);
+        result.operation_status!.message!.should.equal('success');
       });
     });
     describe('testing whatIsAllowed', () => {
-      before(async () => {
+      beforeAll(async () => {
         await create('./test/fixtures/roleScopes.yml');
       });
-      after(async () => {
+      afterAll(async () => {
         await truncate();
       });
       it('should return filtered rules for Location resource', async (): Promise<void> => {
@@ -384,31 +385,31 @@ describe('testing microservice', () => {
         const result = await accessControlService.whatIsAllowed(accessRequest);
         should.exist(result);
         should.exist(result.policy_sets);
-        result.policy_sets.should.be.length(1);
+        result.policy_sets!.should.be.length(1);
 
-        should.exist(result.policy_sets[0].policies);
-        result.policy_sets[0].policies.should.be.length(1);
-        should.exist(result.policy_sets[0].policies[0].rules);
-        result.policy_sets[0].policies[0].rules.should.have.length(2);
+        should.exist(result.policy_sets![0]!.policies);
+        result.policy_sets![0]!.policies!.should.be.length(1);
+        should.exist(result.policy_sets![0]!.policies![0]!.rules);
+        result.policy_sets![0]!.policies![0]!.rules!.should.have.length(2);
 
-        const rule = result.policy_sets[0].policies[0].rules[0];
+        const rule = result.policy_sets![0]!.policies![0]!.rules![0];
         should.exist(rule.target);
-        should.exist(rule.target.subjects);
-        rule.target.subjects.should.have.length(2);
-        rule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        rule.target.subjects[0].value.should.equal('SimpleUser');
-        rule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        rule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(rule!.target!.subjects);
+        rule!.target!.subjects!.should.have.length(2);
+        rule!.target!.subjects![0]!.id!.should.equal('urn:restorecommerce:acs:names:role');
+        rule!.target!.subjects![0]!.value!.should.equal('SimpleUser');
+        rule!.target!.subjects![1]!.id!.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        rule!.target!.subjects![1]!.value!.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
-        should.exist(rule.target.resources);
-        rule.target.resources.should.have.length(1);
-        rule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-        rule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+        should.exist(rule.target!.resources);
+        rule.target!.resources!.should.have.length(1);
+        rule.target!.resources![0]!.id!.should.equal('urn:restorecommerce:acs:names:model:entity');
+        rule.target!.resources![0]!.value!.should.equal('urn:restorecommerce:acs:model:location.Location');
 
-        should.exist(rule.target.actions);
-        rule.target.actions.should.have.length(1);
-        rule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        rule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(rule.target!.actions);
+        rule.target!.actions!.should.have.length(1);
+        rule.target!.actions![0]!.id!.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        rule.target!.actions![0]!.value!.should.equal('urn:restorecommerce:acs:names:action:read');
       });
       it('should return filtered rules for both Location and Organization resource', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
@@ -423,55 +424,55 @@ describe('testing microservice', () => {
         const result = await accessControlService.whatIsAllowed(accessRequest);
         should.exist(result);
         should.exist(result.policy_sets);
-        result.policy_sets.should.be.length(1);
+        result.policy_sets!.should.be.length(1);
 
-        should.exist(result.policy_sets[0].policies);
-        result.policy_sets[0].policies.should.be.length(2); // location and Org Policy
-        result.policy_sets[0].policies[0].id.should.equal('policyA');
-        result.policy_sets[0].policies[1].id.should.equal('policyB');
-        should.exist(result.policy_sets[0].policies[0].rules);
-        result.policy_sets[0].policies[0].rules.should.have.length(2);
-        result.policy_sets[0].policies[1].rules.should.have.length(2); // ruleAA5 and ruleAA6 for Organization resource
+        should.exist(result.policy_sets![0]!.policies);
+        result.policy_sets![0]!.policies!.should.be.length(2); // location and Org Policy
+        result.policy_sets![0]!.policies![0]!.id!.should.equal('policyA');
+        result.policy_sets![0]!.policies![1]!.id!.should.equal('policyB');
+        should.exist(result.policy_sets![0]!.policies![0]!.rules);
+        result.policy_sets![0]!.policies![0]!.rules!.should.have.length(2);
+        result.policy_sets![0]!.policies![1]!.rules!.should.have.length(2); // ruleAA5 and ruleAA6 for Organization resource
 
         // validate Location Rule
-        const rule = result.policy_sets[0].policies[0].rules[0];
+        const rule = result.policy_sets![0]!.policies![0]!.rules![0];
         should.exist(rule.target);
-        should.exist(rule.target.subjects);
-        rule.target.subjects.should.have.length(2);
-        rule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        rule.target.subjects[0].value.should.equal('SimpleUser');
-        rule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        rule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(rule!.target!.subjects);
+        rule!.target!.subjects!.should.have.length(2);
+        rule!.target!.subjects![0]!.id!.should.equal('urn:restorecommerce:acs:names:role');
+        rule!.target!.subjects![0]!.value!.should.equal('SimpleUser');
+        rule!.target!.subjects![1]!.id!.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        rule!.target!.subjects![1]!.value!.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
-        should.exist(rule.target.resources);
-        rule.target.resources.should.have.length(1);
-        rule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-        rule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+        should.exist(rule.target!.resources);
+        rule.target!.resources!.should.have.length(1);
+        rule.target!.resources![0]!.id!.should.equal('urn:restorecommerce:acs:names:model:entity');
+        rule.target!.resources![0]!.value!.should.equal('urn:restorecommerce:acs:model:location.Location');
 
-        should.exist(rule.target.actions);
-        rule.target.actions.should.have.length(1);
-        rule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        rule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(rule.target!.actions);
+        rule.target!.actions!.should.have.length(1);
+        rule.target!.actions![0]!.id!.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        rule.target!.actions![0]!.value!.should.equal('urn:restorecommerce:acs:names:action:read');
 
         // validate Organization Rule
-        const orgRule = result.policy_sets[0].policies[1].rules[0];
+        const orgRule = result.policy_sets![0]!.policies![1]!.rules![0];
         should.exist(orgRule.target);
-        should.exist(orgRule.target.subjects);
-        orgRule.target.subjects.should.have.length(2);
-        orgRule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        orgRule.target.subjects[0].value.should.equal('SimpleUser');
-        orgRule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        orgRule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(orgRule!.target!.subjects);
+        orgRule!.target!.subjects!.should.have.length(2);
+        orgRule!.target!.subjects![0]!.id!.should.equal('urn:restorecommerce:acs:names:role');
+        orgRule!.target!.subjects![0]!.value!.should.equal('SimpleUser');
+        orgRule!.target!.subjects![1]!.id!.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        orgRule!.target!.subjects![1]!.value!.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
-        should.exist(orgRule.target.resources);
-        orgRule.target.resources.should.have.length(1);
-        orgRule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-        orgRule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization'); // entity should be Org
+        should.exist(orgRule.target!.resources);
+        orgRule.target!.resources!.should.have.length(1);
+        orgRule.target!.resources![0]!.id!.should.equal('urn:restorecommerce:acs:names:model:entity');
+        orgRule.target!.resources![0]!.value!.should.equal('urn:restorecommerce:acs:model:organization.Organization'); // entity should be Org
 
-        should.exist(orgRule.target.actions);
-        orgRule.target.actions.should.have.length(1);
-        orgRule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        orgRule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(orgRule.target!.actions);
+        orgRule.target!.actions!.should.have.length(1);
+        orgRule.target!.actions![0]!.id!.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        orgRule.target!.actions![0]!.value!.should.equal('urn:restorecommerce:acs:names:action:read');
       });
       it('should return filtered rules for both Location and Organization resource with resource IDs', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
@@ -488,55 +489,55 @@ describe('testing microservice', () => {
         // result is same as above test
         should.exist(result);
         should.exist(result.policy_sets);
-        result.policy_sets.should.be.length(1);
+        result.policy_sets!.should.be.length(1);
 
-        should.exist(result.policy_sets[0].policies);
-        result.policy_sets[0].policies.should.be.length(2); // location and Org Policy
-        result.policy_sets[0].policies[0].id.should.equal('policyA');
-        result.policy_sets[0].policies[1].id.should.equal('policyB');
-        should.exist(result.policy_sets[0].policies[0].rules);
-        result.policy_sets[0].policies[0].rules.should.have.length(2);
-        result.policy_sets[0].policies[1].rules.should.have.length(2); // ruleAA5 and ruleAA6 for Organization resource
+        should.exist(result.policy_sets![0]!.policies);
+        result.policy_sets![0]!.policies!.should.be.length(2); // location and Org Policy
+        result.policy_sets![0]!.policies![0]!.id!.should.equal('policyA');
+        result.policy_sets![0]!.policies![1]!.id!.should.equal('policyB');
+        should.exist(result.policy_sets![0]!.policies![0]!.rules);
+        result.policy_sets![0]!.policies![0]!.rules!.should.have.length(2);
+        result.policy_sets![0]!.policies![1]!.rules!.should.have.length(2); // ruleAA5 and ruleAA6 for Organization resource
 
         // validate Location Rule
-        const rule = result.policy_sets[0].policies[0].rules[0];
+        const rule = result.policy_sets![0]!.policies![0]!.rules![0];
         should.exist(rule.target);
-        should.exist(rule.target.subjects);
-        rule.target.subjects.should.have.length(2);
-        rule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        rule.target.subjects[0].value.should.equal('SimpleUser');
-        rule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        rule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(rule!.target!.subjects);
+        rule!.target!.subjects!.should.have.length(2);
+        rule!.target!.subjects![0]!.id!.should.equal('urn:restorecommerce:acs:names:role');
+        rule!.target!.subjects![0]!.value!.should.equal('SimpleUser');
+        rule!.target!.subjects![1]!.id!.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        rule!.target!.subjects![1]!.value!.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
-        should.exist(rule.target.resources);
-        rule.target.resources.should.have.length(1);
-        rule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-        rule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:location.Location');
+        should.exist(rule.target!.resources);
+        rule.target!.resources!.should.have.length(1);
+        rule.target!.resources![0]!.id!.should.equal('urn:restorecommerce:acs:names:model:entity');
+        rule.target!.resources![0]!.value!.should.equal('urn:restorecommerce:acs:model:location.Location');
 
-        should.exist(rule.target.actions);
-        rule.target.actions.should.have.length(1);
-        rule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        rule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(rule.target!.actions);
+        rule.target!.actions!.should.have.length(1);
+        rule.target!.actions![0]!.id!.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        rule.target!.actions![0]!.value!.should.equal('urn:restorecommerce:acs:names:action:read');
 
         // validate Organization Rule
-        const orgRule = result.policy_sets[0].policies[1].rules[0];
+        const orgRule = result.policy_sets![0]!.policies![1]!.rules![0];
         should.exist(orgRule.target);
-        should.exist(orgRule.target.subjects);
-        orgRule.target.subjects.should.have.length(2);
-        orgRule.target.subjects[0].id.should.equal('urn:restorecommerce:acs:names:role');
-        orgRule.target.subjects[0].value.should.equal('SimpleUser');
-        orgRule.target.subjects[1].id.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
-        orgRule.target.subjects[1].value.should.equal('urn:restorecommerce:acs:model:organization.Organization');
+        should.exist(orgRule!.target!.subjects);
+        orgRule!.target!.subjects!.should.have.length(2);
+        orgRule!.target!.subjects![0]!.id!.should.equal('urn:restorecommerce:acs:names:role');
+        orgRule!.target!.subjects![0]!.value!.should.equal('SimpleUser');
+        orgRule!.target!.subjects![1]!.id!.should.equal('urn:restorecommerce:acs:names:roleScopingEntity');
+        orgRule!.target!.subjects![1]!.value!.should.equal('urn:restorecommerce:acs:model:organization.Organization');
 
-        should.exist(orgRule.target.resources);
-        orgRule.target.resources.should.have.length(1);
-        orgRule.target.resources[0].id.should.equal('urn:restorecommerce:acs:names:model:entity');
-        orgRule.target.resources[0].value.should.equal('urn:restorecommerce:acs:model:organization.Organization'); // entity should be Org
+        should.exist(orgRule.target!.resources);
+        orgRule.target!.resources!.should.have.length(1);
+        orgRule.target!.resources![0]!.id!.should.equal('urn:restorecommerce:acs:names:model:entity');
+        orgRule.target!.resources![0]!.value!.should.equal('urn:restorecommerce:acs:model:organization.Organization'); // entity should be Org
 
-        should.exist(orgRule.target.actions);
-        orgRule.target.actions.should.have.length(1);
-        orgRule.target.actions[0].id.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
-        orgRule.target.actions[0].value.should.equal('urn:restorecommerce:acs:names:action:read');
+        should.exist(orgRule.target!.actions);
+        orgRule.target!.actions!.should.have.length(1);
+        orgRule.target!.actions![0]!.id!.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
+        orgRule.target!.actions![0]!.value!.should.equal('urn:restorecommerce:acs:names:action:read');
       });
       it('should return PERMIT and DENY rules for both Location and Organization resource with resource IDs with invalid target scoping instance', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
@@ -554,33 +555,33 @@ describe('testing microservice', () => {
 
         should.exist(result);
         should.exist(result.policy_sets);
-        result.policy_sets.should.be.length(1);
+        result.policy_sets!.should.be.length(1);
 
         // as evaluation of target scope is done in acs-client for read operations - with returned Reversequery PolicySet read response
         // both PERMIT and DENY rules are returned
-        should.exist(result.policy_sets[0].policies);
-        result.policy_sets[0].policies.should.be.length(2); // location and Org Policy
-        result.policy_sets[0].policies[0].id.should.equal('policyA');
-        result.policy_sets[0].policies[1].id.should.equal('policyB');
-        should.exist(result.policy_sets[0].policies[0].rules);
-        result.policy_sets[0].policies[0].rules.should.have.length(2); // ruleAA1 PERMIT and rule AA3 DENY for location resource
-        result.policy_sets[0].policies[1].rules.should.have.length(2); // ruleAA5 PERMIT and ruleAA6 DENY for Organization resource
+        should.exist(result.policy_sets![0]!.policies);
+        result.policy_sets![0]!.policies!.should.be.length(2); // location and Org Policy
+        result.policy_sets![0]!.policies![0]!.id!.should.equal('policyA');
+        result.policy_sets![0]!.policies![1]!.id!.should.equal('policyB');
+        should.exist(result.policy_sets![0]!.policies![0]!.rules);
+        result.policy_sets![0]!.policies![0]!.rules!.should.have.length(2); // ruleAA1 PERMIT and rule AA3 DENY for location resource
+        result.policy_sets![0]!.policies![1]!.rules!.should.have.length(2); // ruleAA5 PERMIT and ruleAA6 DENY for Organization resource
 
         // validate Location Rules
-        const rule1 = result.policy_sets[0].policies[0].rules[0];
-        rule1.id.should.equal('ruleAA1');
-        rule1.effect.should.equal('PERMIT');
-        const rule2 = result.policy_sets[0].policies[0].rules[1];
-        rule2.id.should.equal('ruleAA3');
-        rule2.effect.should.equal('DENY');
+        const rule1 = result.policy_sets![0]!.policies![0]!.rules![0];
+        rule1.id!.should.equal('ruleAA1');
+        rule1.effect!.should.equal('PERMIT');
+        const rule2 = result.policy_sets![0]!.policies![0]!.rules![1];
+        rule2.id!.should.equal('ruleAA3');
+        rule2.effect!.should.equal('DENY');
 
         // validate Organization Rules
-        const rule3 = result.policy_sets[0].policies[1].rules[0];
-        rule3.id.should.equal('ruleAA5');
-        rule3.effect.should.equal('PERMIT');
-        const rule4 = result.policy_sets[0].policies[1].rules[1];
-        rule4.id.should.equal('ruleAA6');
-        rule4.effect.should.equal('DENY');
+        const rule3 = result.policy_sets![0]!.policies![1]!.rules![0];
+        rule3.id!.should.equal('ruleAA5');
+        rule3.effect!.should.equal('PERMIT');
+        const rule4 = result.policy_sets![0]!.policies![1]!.rules![1];
+        rule4.id!.should.equal('ruleAA6');
+        rule4.effect!.should.equal('DENY');
       });
       it('should return only fallback rule when targets don\'t match', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
@@ -597,13 +598,13 @@ describe('testing microservice', () => {
 
         should.exist(result);
         should.exist(result.policy_sets);
-        result.policy_sets.should.be.length(1);
+        result.policy_sets!.should.be.length(1);
 
-        should.exist(result.policy_sets[0].policies);
-        result.policy_sets[0].policies.should.be.length(1);
-        should.exist(result.policy_sets[0].policies[0].rules);
-        result.policy_sets[0].policies[0].rules.should.have.length(1);
-        result.policy_sets[0].policies[0].rules[0].effect.should.equal(Response_Decision.DENY);
+        should.exist(result.policy_sets![0]!.policies);
+        result.policy_sets![0]!.policies!.should.be.length(1);
+        should.exist(result.policy_sets![0]!.policies![0]!.rules);
+        result.policy_sets![0]!.policies![0]!.rules!.should.have.length(1);
+        result.policy_sets![0]!.policies![0]!.rules![0]!.effect!.should.equal(Response_Decision.DENY);
       });
     });
   });
