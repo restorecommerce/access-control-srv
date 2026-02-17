@@ -110,7 +110,7 @@
           "localhost:29092"
         ]
       },
-      "latestOffset": false,
+      "latestOffset": true,
       "healthCheckCommand": {
         "messageObject": "io.restorecommerce.commandinterface.CommandRequest"
       },
@@ -202,14 +202,9 @@
           ]
         },
         "user": {
-          "topic": "io.restorecommerce.user",
+          "topic": "io.restorecommerce.user.resource",
           "events": [
-            "hierarchicalScopesResponse"
-          ]
-        },
-        "users.resource": {
-          "topic": "io.restorecommerce.users.resource",
-          "events": [
+            "hierarchicalScopesResponse",
             "userModified",
             "userDeleted"
           ]
