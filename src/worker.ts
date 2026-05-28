@@ -354,7 +354,7 @@ export class Worker {
       logger.info('subscribing to topic with offset value', { topic: topicCfg.topic, offset: Number(offSetValue) });
       if (topicCfg.events) {
         for (const eventName of topicCfg.events) {
-          await topic.on(eventName, eventListener, { startingOffset: offSetValue-1n });
+          await topic.on(eventName, eventListener, { startingOffset: offSetValue });
         }
       }
     }
