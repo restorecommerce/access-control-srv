@@ -51,6 +51,7 @@ import {
   protoMetadata as baseMeta,
 } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/resource_base.js';
 import { ResourceManager } from './resourceManager.js';
+import { ServiceConfig } from '@restorecommerce/service-config';
 
 registerProtoMeta(
   ruleMeta,
@@ -74,7 +75,7 @@ const capitalized = (collectionName: string): string => {
 /**
  * Generates Kafka configs for CRUD events.
  */
-const genEventsConfig = (collectionName: string, cfg: any): any => {
+const genEventsConfig = (collectionName: string, cfg: ServiceConfig): any => {
   const servicePrefix = cfg.get('protosServicePrefix');
 
   const crudEvents = ['Created', 'Modified', 'Deleted', 'DeletedAll'];
@@ -102,24 +103,21 @@ export class Worker {
   authZ: ACSAuthZ;
   offsetStore: chassis.OffsetStore;
   async start(cfg?: any, logger?: any): Promise<any> {
-    this.cfg = cfg || await chassis.config.get();
+    this.cfg = cfg ?? await chassis.config.get();
     const loggerCfg = this.cfg.get('logger');
-    this.logger = logger || createLogger(loggerCfg);
+    this.logger = logger ?? createLogger(loggerCfg);
 
     this.logger.info('Starting access control service');
     const server = new chassis.Server(this.cfg.get('server'), this.logger);  // gRPC server
 
-    let kafkaConfig = this.cfg.get('events:kafka');
+    const kafkaConfig = this.cfg.get('events:kafka');
     const policySetConfig = genEventsConfig('policy_set', this.cfg);
     const policyConfig = genEventsConfig('policy', this.cfg);
     const ruleConfig = genEventsConfig('rule', this.cfg);
 
     this.cfg.set('events:kafka',
-      _.assign({}, kafkaConfig, policySetConfig, policyConfig, ruleConfig)
+      Object.assign(kafkaConfig, policySetConfig, policyConfig, ruleConfig)
     );
-
-    kafkaConfig = this.cfg.get('events:kafka');
-    const hierarchicalScopesResponse = 'hierarchicalScopesResponse';
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
     this.offsetStore = new chassis.OffsetStore(events, this.cfg, this.logger);
@@ -131,7 +129,7 @@ export class Worker {
     this.redisClient.on('error', (err) => logger.error('Redis Client Error', { code: err.code, message: err.message, stack: err.stack }));
     await this.redisClient.connect();
 
-    const userTopic = await events.topic(kafkaConfig.topics['user'].topic);
+    const topic = await events.topic(kafkaConfig.topics.auth.topic);
     // instantiate IDS client
     let userService: UserServiceClient;
     const grpcIDSConfig = this.cfg.get('client:user');
@@ -142,8 +140,13 @@ export class Worker {
         logger: this.logger
       }, UserServiceDefinition, channel);
     }
-    this.accessController = new AccessController(this.logger,
-      this.cfg.get('policies:options'), userTopic, this.cfg, userService);
+    this.accessController = new AccessController(
+      this.logger,
+      this.cfg.get('policies:options'),
+      topic,
+      this.cfg,
+      userService
+    );
 
     // resources
     const db = await chassis.database.get(this.cfg.get('database:main'), this.logger);
@@ -245,10 +248,10 @@ export class Worker {
     const commandTopic = await events.topic(this.cfg.get('events:kafka:topics:command:topic'));
     const eventListener = async (msg: any,
       context: any, config: any, eventName: string): Promise<any> => {
-      if (eventName === hierarchicalScopesResponse) {
+      if (eventName === 'hierarchicalScopesResponse') {
         // Add subject_id to waiting list
         const hierarchical_scopes = msg?.hierarchical_scopes ? msg.hierarchical_scopes : [];
-        const tokenDate = msg?.token;
+        const tokenDate: string = msg?.token;
         // store HR scopes to cache with subjectID
         const subID = msg?.subject_id;
         const token = tokenDate?.split(':')[0];
@@ -259,7 +262,7 @@ export class Worker {
           if (subject?.payload) {
             const tokens = subject.payload.tokens;
             const subID = subject.payload.id;
-            const tokenFound = _.find(tokens, { token });
+            const tokenFound = tokens?.find(t => t.token === token);
             if (tokenFound?.interactive) {
               redisHRScopesKey = `cache:${subID}:hrScopes`;
             } else if (tokenFound && !tokenFound.interactive) {

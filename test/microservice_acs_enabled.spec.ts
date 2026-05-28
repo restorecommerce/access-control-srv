@@ -1,4 +1,3 @@
-import {} from 'mocha';
 import should from 'should';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
@@ -34,7 +33,7 @@ let ruleService: RuleServiceClient;
 let policyService: PolicyServiceClient;
 let policySetService: PolicySetServiceClient;
 let rules: any, policies: any, policySets: any;
-let userTopic: Topic;
+let authTopic: Topic;
 
 // Admin of mainOrg -> A -> B -> C
 let subject = {
@@ -292,14 +291,14 @@ const hrScopeReqListener = async (msg: any) => {
       token: msg.token,
       hierarchical_scopes: subject.hierarchical_scopes
     };
-    await userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
+    await authTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
   } else if (token === 'user_token') {
     const hrScopeResponse = {
       subject_id: 'user_id',
       token: msg.token,
       hierarchical_scopes: subject.hierarchical_scopes
     };
-    await userTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
+    await authTopic.emit('hierarchicalScopesResponse', hrScopeResponse);
   }
 };
 
@@ -319,11 +318,11 @@ describe('testing microservice', () => {
         }
       }, logger);
       await events.start();
-      userTopic = await events.topic(cfg.get('events:kafka:topics:user:topic'));
-      await userTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
+      authTopic = await events.topic(cfg.get('events:kafka:topics:user:topic'));
+      await authTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
     });
     afterAll(async () => {
-      await userTopic.removeAllListeners('hierarchicalScopesRequest');
+      await authTopic.removeAllListeners('hierarchicalScopesRequest');
       await truncate();
       await worker.stop();
     });

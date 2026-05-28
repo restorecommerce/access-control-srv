@@ -1,6 +1,4 @@
-import {} from 'mocha';
 import should from 'should';
-import nock from 'nock';
 import { AccessController } from '../src/core/accessController.js';
 import * as testUtils from './utils.js';
 import { Events } from '@restorecommerce/kafka-client';
@@ -46,13 +44,13 @@ const prepare = async (filepath: string): Promise<void> => {
   const kafkaConfig = cfg.get('events:kafka');
   const events = new Events(kafkaConfig, logger); // Kafka
   await events.start();
-  const userTopic = await events.topic(kafkaConfig.topics['user'].topic);
+  const authTopic = await events.topic(kafkaConfig.topics.auth.topic);
   const grpcIDSConfig = cfg.get('client:user');
   const userService = createClient({
     ...grpcIDSConfig,
     logger
   }, UserServiceDefinition, createChannel(grpcIDSConfig.address));
-  ac = new AccessController(logger, acConfig, userTopic, cfg, userService);
+  ac = new AccessController(logger, acConfig, authTopic, cfg, userService);
   testUtils.populate(ac, filepath);
 };
 

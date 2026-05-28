@@ -34,17 +34,14 @@ export class AccessController {
   urns: Map<string, string>;
   resourceAdapter: ResourceAdapter;
   redisClient: RedisClientType<any, any>;
-  userTopic: Topic;
   waiting: Record<string, Awaiter[]>;
-  cfg: any;
-  userService: UserServiceClient;
 
   constructor(
     private logger: Logger,
     opts: AccessControlConfiguration,
-    userTopic: Topic,
-    cfg: any,
-    userService: UserServiceClient
+    public topic: Topic,
+    public cfg: any,
+    public userService: UserServiceClient
   ) {
     this.policySets = new Map<string, PolicySetWithCombinables>();
     this.combiningAlgorithms = new Map<string, any>();
@@ -76,9 +73,7 @@ export class AccessController {
     this.redisClient.connect().then(data => logger.info('Redis client for subject cache connection successful')).catch(err => {
       logger.error('Error creating redis client instance', { code: err.code, message: err.message, stack: err.stack });
     });
-    this.userTopic = userTopic;
     this.waiting = {};
-    this.userService = userService;
   }
 
   clearPolicies(): void {
@@ -761,7 +756,7 @@ export class AccessController {
     if (!keyExist) {
       const date = new Date().toISOString();
       const tokenDate = token + ':' + date;
-      await this.userTopic.emit('hierarchicalScopesRequest', { token: tokenDate });
+      await this.topic.emit('hierarchicalScopesRequest', { token: tokenDate });
       this.waiting[tokenDate] = [];
       try {
         await new Promise((resolve, reject) => {
@@ -964,7 +959,7 @@ export class AccessController {
   async pullContextResources(contextQuery: ContextQuery, request: Request): Promise<any> {
     const result = await this.resourceAdapter.query(contextQuery, request);
 
-    return _.merge({}, context, {
+    return _.merge({}, request, {
       _queryResult: result
     });
   }
