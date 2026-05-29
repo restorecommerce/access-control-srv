@@ -263,8 +263,8 @@ export class AccessController {
                       obligations,
                       evaluation_cacheable,
                       operation_status: {
-                        code: err.code ? err.code : 500,
-                        message: err.message
+                        code: Number.isInteger(err.code) ? err.code : 500,
+                        message: err.message ?? 'Unknown Error!'
                       }
                     };
                   }
