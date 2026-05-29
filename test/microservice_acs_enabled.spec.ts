@@ -318,8 +318,22 @@ describe('testing microservice', () => {
         }
       }, logger);
       await events.start();
-      authTopic = await events.topic(cfg.get('events:kafka:topics:user:topic'));
+      authTopic = await events.topic(cfg.get('events:kafka:topics:auth:topic'));
       await authTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
+      // start mock ids-srv needed for findByToken response and return subject
+      const user = {
+        payload: {
+          id: 'admin_user_id',
+          tokens: [{ token: 'admin_token' }],
+          role_associations: subject.role_associations
+        },
+        status: {
+          code: 200,
+          message: 'success'
+        }
+      };
+      await startGrpcMockServer([{ method: 'findByToken', output: user }]);
+      await truncate();
     });
     afterAll(async () => {
       await authTopic.removeAllListeners('hierarchicalScopesRequest');
@@ -328,20 +342,6 @@ describe('testing microservice', () => {
     });
     describe('testing create() operations', () => {
       it('it should insert default rules, policies and policy sets with ACS disabled', async () => {
-        const user = {
-          payload: {
-            id: 'admin_user_id',
-            tokens: [{ token: 'admin_token' }],
-            role_associations: subject.role_associations
-          },
-          status: {
-            code: 200,
-            message: 'success'
-          }
-        };
-        // start mock ids-srv needed for findByToken response and return subject
-        await startGrpcMockServer([{ method: 'findByToken', output: user }]);
-        await new Promise(r => setTimeout(r, 2000));
         // disable authorization
         cfg.set('authorization:enabled', false);
         cfg.set('authorization:enforce', false);
@@ -353,8 +353,8 @@ describe('testing microservice', () => {
         should.exist(result_policySet);
         should.exist(result_policySet.items);
         should.equal(result_policySet.items?.length, policySets.length);
-        should.equal(result_policySet.operation_status?.code, 200);
         should.equal(result_policySet.operation_status?.message, 'success');
+        should.equal(result_policySet.operation_status?.code, 200);
         const result_policy = await policyService.create({
           items: policies,
           subject
@@ -362,8 +362,8 @@ describe('testing microservice', () => {
         should.exist(result_policy);
         should.exist(result_policy.items);
         should.equal(result_policy.items?.length, policies.length);
-        should.equal(result_policy.operation_status?.code, 200);
         should.equal(result_policy.operation_status?.message, 'success');
+        should.equal(result_policy.operation_status?.code, 200);
         const result_rule = await ruleService.create({
           items: rules,
           subject
@@ -371,8 +371,8 @@ describe('testing microservice', () => {
         should.exist(result_rule);
         should.exist(result_rule.items);
         should.equal(result_rule.items?.length, rules.length);
-        should.equal(result_rule.operation_status?.code, 200);
         should.equal(result_rule.operation_status?.message, 'success');
+        should.equal(result_rule.operation_status?.code, 200);
       });
 
       it('should allow to create test rule with ACS enabled with valid scope in subject', async () => {
@@ -407,8 +407,8 @@ describe('testing microservice', () => {
         should.exist(result);
         should.exist(result.items);
         should.equal(result.items?.length, testRule.length);
-        should.equal(result.operation_status?.code, 200);
         should.equal(result.operation_status?.message, 'success');
+        should.equal(result.operation_status?.code, 200);
       });
 
       it('should PERMIT to create 2 test rule with ACS enabled with valid scope in subject and delete them', async () => {
@@ -540,8 +540,8 @@ describe('testing microservice', () => {
         should.exist(result);
         should.exist(result.items);
         should.equal(result.items?.length, testRule2.length);
-        should.equal(result.operation_status?.code, 200);
         should.equal(result.operation_status?.message, 'success');
+        should.equal(result.operation_status?.code, 200);
         const deleteResponse = await ruleService.delete(
           { 
             ids: result.items?.map(i => i.payload?.id ?? ''),
@@ -550,8 +550,8 @@ describe('testing microservice', () => {
         );
         should.equal(deleteResponse.status?.[0].id, result.items?.[0].payload?.id);
         should.equal(deleteResponse.status?.[1].id, result.items?.[1].payload?.id);
-        should.equal(deleteResponse.operation_status?.code, 200);
         should.equal(deleteResponse.operation_status?.message, 'success');
+        should.equal(deleteResponse.operation_status?.code, 200);
       });
 
       it('should DENY to create 2 test rule with ACS enabled with valid scope in subject and valid owner for 1st instance and invalid owner for 2nd instance', async () => {

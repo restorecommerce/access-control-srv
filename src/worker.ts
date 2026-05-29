@@ -129,7 +129,8 @@ export class Worker {
     this.redisClient.on('error', (err) => logger.error('Redis Client Error', { code: err.code, message: err.message, stack: err.stack }));
     await this.redisClient.connect();
 
-    const topic = await events.topic(kafkaConfig.topics.auth.topic);
+    const topicName = kafkaConfig.topics.auth?.topic ?? kafkaConfig.topics.user?.topic ?? 'io.restorecommerce.auth';
+    const topic = await events.topic(topicName);
     // instantiate IDS client
     let userService: UserServiceClient;
     const grpcIDSConfig = this.cfg.get('client:user');

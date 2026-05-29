@@ -703,7 +703,7 @@ export class AccessController {
       this.logger.info('Key not defined');
       return;
     }
-    const redisResponse = await this.redisClient.get(key);
+    const redisResponse = await this.redisClient.get(key) as string;
     if (!redisResponse) {
       this.logger.info('Key does not exist', { key });
       return;

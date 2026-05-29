@@ -2,7 +2,7 @@
   "protosServicePrefix": "io.restorecommerce.",
   "logger": {
     "console": {
-      "level": "warn"
+      "level": "debug"
     }
   },
   "database": {
@@ -49,7 +49,8 @@
       "groupId": "access-control-srv-test",
       "kafka": {
         "clientId": "access-control-srv-test"
-      }
+      },
+      "latestOffset": true
     }
   }
 }
