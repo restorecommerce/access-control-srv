@@ -705,7 +705,7 @@ export class AccessController {
     }
     const redisResponse = await this.redisClient.get(key) as string;
     if (!redisResponse) {
-      this.logger.info('Key does not exist', { key });
+      this.logger.debug('Key does not exist', { key });
       return;
     }
     if (redisResponse) {
@@ -812,11 +812,11 @@ export class AccessController {
     }
 
     if (!ruleRole) {
-      this.logger.warn(`Subject does not match with rule attributes`, ruleSubAttributes);
+      this.logger.debug(`Subject does not match with rule attributes`, ruleSubAttributes);
       return false;
     }
     if (!context?.subject?.role_associations) {
-      this.logger.warn('Subject role associations missing', ruleSubAttributes);
+      this.logger.debug('Subject role associations missing', ruleSubAttributes);
       return false;
     }
     return context?.subject?.role_associations?.some((roleObj) => roleObj?.role === ruleRole);
