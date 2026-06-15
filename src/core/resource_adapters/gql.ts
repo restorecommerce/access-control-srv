@@ -54,7 +54,7 @@ export class GraphQLAdapter implements ResourceAdapter {
       }
     }
 
-    let filtersArr = [];
+    let filtersArr;
     if (_.isEmpty(queryFilters)) {
       this.logger.warn('No filter provided for GQL adapter query; skipping');
       return null;
@@ -72,7 +72,7 @@ export class GraphQLAdapter implements ResourceAdapter {
         cache: new InMemoryCache({ addTypename: false })
       });
     } catch (err) {
-      throw new Error('Error occured creating graphql client');
+      throw new Error('Error occured creating graphql client', { cause: err });
     }
     const response = await client.query({ query: gql`${query}`, variables: { filters: filtersArr } });
     if (_.isEmpty(response)) {

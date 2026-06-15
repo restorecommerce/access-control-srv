@@ -119,7 +119,7 @@ export class AccessController {
     // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
     if (context?.subject?.token &&
       _.isEmpty(context.subject.hierarchical_scopes)) {
-      context = await this.createHRScope(context);
+      await this.createHRScope(context);
     }
 
     for (const [, value] of this.policySets) {
@@ -325,7 +325,7 @@ export class AccessController {
 
   async whatIsAllowed(request: Request): Promise<ReverseQuery> {
     const policySets: PolicySetRQ[] = [];
-    let context = (request as any).context as ContextWithSubResolved;
+    const context = (request as any).context as ContextWithSubResolved;
     if (context?.subject?.token) {
       const subject = await this.userService.findByToken({ token: context.subject.token });
       if (subject?.payload) {
@@ -337,7 +337,7 @@ export class AccessController {
     // check if context subject_id contains HR scope if not make request 'createHierarchicalScopes'
     if (context?.subject?.token &&
       _.isEmpty(context.subject.hierarchical_scopes)) {
-      context = await this.createHRScope(context);
+      await this.createHRScope(context);
     }
     const obligations: Attribute[] = [];
     for (const [, value] of this.policySets) {
@@ -427,7 +427,7 @@ export class AccessController {
   }
 
   private checkMultipleEntitiesMatch(policySet: PolicySetWithCombinables, request: Request, obligation: Attribute[]): boolean {
-    let multipleEntitiesMatch = false;
+    let multipleEntitiesMatch;
     let exactMatch = true;
     // iterate and find for each of the exact mathing resource attribute
     const entityURN = this.urns.get('entity');
