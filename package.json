@@ -69,7 +69,7 @@
   },
   "scripts": {
     "start": "node lib/start.cjs",
-    "dev": "cross-env NODE_ENV=development nodemon --watch './src/**/*.ts' --exec node --loader ts-node/esm ./src/start.ts",
+    "dev": "cross-env NODE_ENV=development node --watch lib/start.cjs",
     "test": "npm run build && vitest run",
     "lint": "eslint src",
     "coveralls": "c8 report --reporter=text-lcov | coveralls",
