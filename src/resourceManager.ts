@@ -1279,13 +1279,15 @@ export class ResourceManager {
     const rulesTopic = await this.events.topic(kafkaCfg.topics['rule.resource'].topic);
     const policyTopic = await this.events.topic(kafkaCfg.topics['policy.resource'].topic);
     const policySetTopic = await this.events.topic(kafkaCfg.topics['policy_set.resource'].topic);
+    const ownershipDomainTopic = await this.events.topic(kafkaCfg.topics['ownership_domain.resource'].topic);
 
     policySetService = new PolicySetService(this.logger, this.db, policySetTopic, this.cfg, this.redisClient, this.authZ);
     policyService = new PolicyService(this.logger, this.db, policyTopic, rulesTopic, this.cfg, this.redisClient, this.authZ);
     ruleService = new RuleService(this.logger, rulesTopic, this.db, this.cfg, this.redisClient, this.authZ);
+    ownershipDomainService = new OwnershipDomainService(this.logger, this.db, ownershipDomainTopic, this.cfg, this.redisClient, this.authZ);
   }
 
-  getResourceService(resource: string): RuleService | PolicyService | PolicySetService {
+  getResourceService(resource: string): RuleService | PolicyService | PolicySetService | OwnershipDomainService {
     switch (resource) {
       case 'policy_set':
         return policySetService;
@@ -1293,6 +1295,8 @@ export class ResourceManager {
         return policyService;
       case 'rule':
         return ruleService;
+      case 'ownership_domain':
+        return ownershipDomainService;
       default: throw new Error(`Unknown resource ${resource}`);
     }
   }
