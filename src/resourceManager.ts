@@ -21,6 +21,10 @@ import {
   RuleServiceImplementation,
   RuleList, RuleListResponse, Rule
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
+import { 
+  OwnershipDomainServiceImplementation,
+  OwnershipDomainList, OwnershipDomainListResponse, OwnershipDomain
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/ownership_domain.js';
 import { ReadRequest, Filter_Operation, DeepPartial, DeleteRequest, DeleteResponse } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/resource_base.js';
 import { PolicyWithCombinables, PolicySetWithCombinables } from './core/interfaces.js';
 
@@ -71,7 +75,210 @@ const makeFilter = (ids: string[]): any => {
 let _accessController: AccessController;
 let policySetService: PolicySetService,
   policyService: PolicyService,
-  ruleService: RuleService;
+  ruleService: RuleService,
+  ownershipDomainService: OwnershipDomainService;
+
+
+/**
+ * OwnershipDomain resource service.
+ */
+export class OwnershipDomainService extends ServiceBase<OwnershipDomainListResponse, OwnershipDomainList> implements OwnershipDomainServiceImplementation {
+  cfg: any;
+  redisClient: RedisClientType<any, any>;
+  authZ: ACSAuthZ;
+  constructor(logger: any, db: any, ownershipDomainTopic: Topic, cfg: any,
+    redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
+    let resourceFieldConfig;
+    if (cfg.get('fieldHandlers')) {
+      resourceFieldConfig = cfg.get('fieldHandlers');
+      resourceFieldConfig['bufferFields'] = resourceFieldConfig?.bufferFields?.users;
+      if (cfg.get('fieldHandlers:timeStampFields')) {
+        resourceFieldConfig['timeStampFields'] = [];
+        for (const timeStampFiledConfig of cfg.get('fieldHandlers:timeStampFields')) {
+          if (timeStampFiledConfig.entities.includes('ownership_domains')) {
+            resourceFieldConfig['timeStampFields'].push(...timeStampFiledConfig.fields);
+          }
+        }
+      }
+    }
+    super(
+      'ownership_domain',
+      ownershipDomainTopic,
+      logger,
+      new ResourcesAPIBase(
+        db,
+        'ownership_domains',
+        resourceFieldConfig,
+        undefined,
+        undefined,
+        logger,
+        'ownership_domain',
+      ),
+      true
+    );
+    this.cfg = cfg;
+    this.redisClient = redisClient;
+    this.authZ = authZ;
+  }
+
+  async readMetaData(id?: string): Promise<DeepPartial<OwnershipDomainListResponse>> {
+    return super.read(ReadRequest.fromPartial({
+      filters: [{
+        filters: [{
+          field: 'id',
+          operation: Filter_Operation.eq,
+          value: id
+        }]
+      }]
+    }), {});
+  }
+
+  async create(request: OwnershipDomainList, ctx: any): Promise<DeepPartial<OwnershipDomainListResponse>> {
+    const subject = request.subject;
+    let items = request.items;
+    items = await createMetadata(items, AuthZAction.CREATE, subject, this);
+
+    let acsResponse: DecisionResponse;
+    try {
+      if (!ctx) { ctx = {}; }
+      ctx.subject = subject;
+      ctx.resources = items;
+      acsResponse = await checkAccessRequest(ctx, [{ resource: 'ownership_domain', id: items.map(item => item.id) }], AuthZAction.CREATE,
+        Operation.isAllowed);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv for create OwnershipDomains', { code: err.code, message: err.message, stack: err.stack });
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
+    }
+    if (acsResponse.decision != Response_Decision.PERMIT) {
+      return { operation_status: acsResponse.operation_status };
+    }
+    return super.create(request, ctx);
+  }
+
+  async read(request: ReadRequest, ctx: any): Promise<DeepPartial<OwnershipDomainListResponse>> {
+    const subject = request.subject;
+    let acsResponse: PolicySetRQResponse;
+    try {
+      if (!ctx) { ctx = {}; }
+      ctx.subject = subject;
+      ctx.resources = [];
+      acsResponse = await checkAccessRequest(ctx, [{ resource: 'ownership_domain' }], AuthZAction.READ,
+        Operation.whatIsAllowed) as PolicySetRQResponse;
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv for read OwnershipDomains', { code: err.code, message: err.message, stack: err.stack });
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
+    }
+    if (acsResponse.decision != Response_Decision.PERMIT) {
+      return { operation_status: acsResponse.operation_status };
+    }
+    if (acsResponse?.custom_query_args?.length > 0) {
+      request.custom_queries = acsResponse.custom_query_args[0].custom_queries;
+      request.custom_arguments = acsResponse.custom_query_args[0].custom_arguments;
+    }
+    return super.read(request, ctx);
+  }
+
+  async update(request: OwnershipDomainList, ctx: any): Promise<DeepPartial<OwnershipDomainListResponse>> {
+    const subject = request.subject;
+    let items = request.items;
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
+
+    let acsResponse: DecisionResponse;
+    try {
+      if (!ctx) { ctx = {}; }
+      ctx.subject = subject;
+      ctx.resources = items;
+      acsResponse = await checkAccessRequest(ctx, [{ resource: 'ownership_domain', id: items.map(item => item.id) }], AuthZAction.MODIFY,
+        Operation.isAllowed);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv for update OwnershipDomains', { code: err.code, message: err.message, stack: err.stack });
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
+    }
+    if (acsResponse.decision != Response_Decision.PERMIT) {
+      return { operation_status: acsResponse.operation_status };
+    }
+    return super.update(request, ctx);
+  }
+
+  async upsert(request: OwnershipDomainList, ctx: any): Promise<DeepPartial<OwnershipDomainListResponse>> {
+    const subject = request.subject;
+    let items = request.items;
+    items = await createMetadata(items, AuthZAction.MODIFY, subject, this);
+
+    let acsResponse: DecisionResponse;
+    try {
+      if (!ctx) { ctx = {}; }
+      ctx.subject = subject;
+      ctx.resources = items;
+      acsResponse = await checkAccessRequest(ctx, [{ resource: 'ownership_domain', id: items.map(item => item.id) }], AuthZAction.MODIFY,
+        Operation.isAllowed);
+    } catch (err) {
+      this.logger.error('Error occurred requesting access-control-srv for upsert OwnershipDomains', { code: err.code, message: err.message, stack: err.stack });
+      return {
+        operation_status: {
+          code: err.code,
+          message: err.message
+        }
+      };
+    }
+    if (acsResponse.decision != Response_Decision.PERMIT) {
+      return { operation_status: acsResponse.operation_status };
+    }
+    return super.upsert(request, ctx);
+  }
+
+  async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
+    const resources = new Array<CtxResource>();
+    const subject = request.subject;
+    const ids = request.ids;
+    let action;
+    if (request.collection) {
+      action = AuthZAction.DROP;
+      resources.push({ collection: request.collection });
+    } else if (ids) {
+      action = AuthZAction.DELETE;
+      resources.push(...ids.map(id => ({ id })));
+      await createMetadata(resources, action, subject, this);
+    }
+
+    let acsResponse: DecisionResponse;
+    try {
+      ctx ??= {};
+      ctx.subject = subject;
+      ctx.resources = resources;
+      acsResponse = await checkAccessRequest(ctx, [{ resource: 'ownership_domain', id: ids }], action,
+        Operation.isAllowed);
+    } catch (err: any) {
+      const { code, message, stack } = err;
+      this.logger.error('Error occurred requesting access-control-srv for delete OwnershipDomains', { code, message, stack });
+      return {
+        operation_status: {
+          code: Number.isInteger(code) ? code : 500,
+          message
+        }
+      };
+    }
+    if (acsResponse.decision != Response_Decision.PERMIT) {
+      return { operation_status: acsResponse.operation_status };
+    }
+    return super.delete(request, ctx);
+  }
+}
 
 /**
 * Rule resource service.
