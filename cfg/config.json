@@ -96,6 +96,10 @@
         {
           "resourceName": "policy_set",
           "collectionName": "policy_set"
+        },
+        {
+          "resourceName": "ownership_domain",
+          "collectionName": "ownership_domain"
         }
       ]
     }
@@ -184,6 +188,15 @@
             "policy_setDeleted"
           ]
         },
+        "ownership_domain.resource": {
+          "topic": "io.restorecommerce.ownership_domain.resource",
+          "events": [
+            "ownership_domain_setCreated",
+            "ownership_domain_setModified",
+            "ownership_domain_setDeleted"
+          ]
+        },
+
         "command": {
           "topic": "io.restorecommerce.command",
           "events": [
@@ -325,7 +338,7 @@
     "timeStampFields": [
       {
         "fields": ["meta.created", "meta.modified"],
-        "entities": ["rules", "policies", "policy_sets"]
+        "entities": ["rules", "policies", "policy_sets", "ownership_domains"]
       }
     ]
   }
