@@ -43,21 +43,21 @@ export abstract class CacheSyncedResourceService<
     }
     return result;
   }
-
-  async create(request: I, context?: CallContext): Promise<DeepPartial<O>> {
-    return this.syncWrite(await super.create(request, context));
+  
+  protected async superCreate(request: I, context?: CallContext): Promise<DeepPartial<O>> {
+    return this.syncWrite(await super.superCreate(request, context));
   }
 
-  async update(request: I, context?: CallContext): Promise<DeepPartial<O>> {
-    return this.syncWrite(await super.update(request, context));
+  protected async superUpdate(request: I, context?: CallContext): Promise<DeepPartial<O>> {
+    return this.syncWrite(await super.superUpdate(request, context));
   }
 
-  async upsert(request: I, context?: CallContext): Promise<DeepPartial<O>> {
-    return this.syncWrite(await super.upsert(request, context));
+  protected async superUpsert(request: I, context?: CallContext): Promise<DeepPartial<O>> {
+    return this.syncWrite(await super.superUpsert(request, context));
   }
 
-  async delete(request: DeleteRequest, context?: CallContext): Promise<DeleteResponse> {
-    const result = await super.delete(request, context);
+  protected async superDelete(request: DeleteRequest, context?: CallContext): Promise<DeleteResponse> {
+    const result = await super.superDelete(request, context);
     this.cacheSync?.onDelete(request.ids ?? [], !!request.collection);
     return result;
   }
