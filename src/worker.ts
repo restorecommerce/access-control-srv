@@ -29,6 +29,10 @@ import {
   protoMetadata as policySetMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import {
+  OwnershipDomainServiceDefinition,
+  protoMetadata as ownershipDomainMeta
+} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/ownership_domain.js';
+import {
   AccessControlServiceDefinition,
   protoMetadata as accessControlMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
@@ -57,6 +61,7 @@ registerProtoMeta(
   ruleMeta,
   policyMeta,
   policySetMeta,
+  ownershipDomainMeta,
   accessControlMeta,
   commandInterfaceMeta,
   reflectionMeta,
@@ -172,6 +177,11 @@ export class Worker {
       service: RuleServiceDefinition,
       implementation: resourceManager.getResourceService('rule')
     } as BindConfig<RuleServiceDefinition>);
+    // ownership domain resource
+    await server.bind('io-restorecommerce-ownership-domain-srv', {
+      service: OwnershipDomainServiceDefinition,
+      implementation: resourceManager.getResourceService('ownership_domain')
+    } as BindConfig<OwnershipDomainServiceDefinition>); 
     // access control service
     const accessControlService = new AccessControlService(this.cfg, this.logger, resourceManager, this.accessController);
     await server.bind('io-restorecommerce-access-control-srv', {
