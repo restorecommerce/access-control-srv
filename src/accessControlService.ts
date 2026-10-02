@@ -15,12 +15,15 @@ import {
   CommandInterfaceServiceImplementation
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface.js';
 import { PolicySetWithCombinables } from './core/interfaces.js';
-
+import { OwnershipDomainService } from './core/services/ownershipDomainService.js';
 export class AccessControlService implements AccessControlServiceImplementation {
   cfg: any;
   logger: Logger;
   resourceManager: ResourceManager;
   accessController: AccessController;
+
+    private readonly ownerDomainURN = 'urn:restorecommerce:acs:model:OwnershipDomain';
+
   constructor(cfg: any, logger: Logger, resourceManager: ResourceManager, accessController: AccessController) {
     this.cfg = cfg;
     this.logger = logger;
@@ -56,18 +59,54 @@ export class AccessControlService implements AccessControlServiceImplementation 
   clearPolicies(): void {
     this.accessController.clearPolicies();
   }
+
+  private async resolveOwnerAttributes(resources: any[]): Promise<any[]> {
+    if (!resources?.length) {
+      return resources;
+    }
+
+    const hasOwnerRefs = resources.some(attr => attr?.id === this.ownerDomainURN);
+    if (!hasOwnerRefs) {
+      return resources;
+    }
+
+    const ownershipDomainService : OwnershipDomainService = this.resourceManager.getResourceService('ownership_domain') as OwnershipDomainService;
+    const resolved: any[] = [];
+
+    for (const attr of resources) {
+      if (attr?.id !== this.ownerDomainURN) {
+        resolved.push(attr);
+        continue;
+      }
+      try {
+        const result = await ownershipDomainService.get([attr.value], undefined, undefined, true);
+        const instances = result?.items?.[0]?.payload?.instances ?? [];
+        resolved.push(...instances);
+      } catch (err: any) {
+        this.logger.error('Error resolving ContextOwner', { code: err.code, message: err.message, stack: err.stack, contextOwnerId: attr.value });
+      }
+    }
+
+    return resolved;
+  }
+
   /**
    * gRPC interface
    */
+
   async isAllowed(request: Request, context: any): Promise<DeepPartial<Response>> {
     const acsRequest: Request = {
       target: request.target,
       context: request.context ? this.unmarshallContext(request.context) : {}
     };
 
+    if (acsRequest.target?.resources) {
+      acsRequest.target.resources = await this.resolveOwnerAttributes(acsRequest.target.resources);
+    }
+
     try {
       return this.accessController.isAllowed(acsRequest);
-    } catch (err: any) { // deny if any error occurs
+    } catch (err: any) {
       this.logger.error('Error evaluating isAllowed request', { code: err.code, message: err.message, stack: err.stack });
       return {
         decision: Response_Decision.DENY,
@@ -85,6 +124,11 @@ export class AccessControlService implements AccessControlServiceImplementation 
       target: request.target,
       context: request.context ? this.unmarshallContext(request.context) : {}
     };
+
+    if (acsRequest.target?.resources) {
+      acsRequest.target.resources = await this.resolveOwnerAttributes(acsRequest.target.resources);
+    }
+
     let whatisAllowedResponse: ReverseQuery;
     try {
       whatisAllowedResponse = await this.accessController.whatIsAllowed(acsRequest);
