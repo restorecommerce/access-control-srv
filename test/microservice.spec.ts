@@ -1,4 +1,5 @@
 import should from 'should';
+import { randomUUID } from 'node:crypto';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
 import yaml from 'js-yaml';
@@ -89,6 +90,22 @@ const create = async (policiesFile: string): Promise<void> => {
   await ruleService.create({
     items: rules
   });
+};
+
+const ownershipDomainAttributes = [{
+  id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+  value: 'urn:restorecommerce:acs:model:organization.Organization',
+  attributes: [{
+    id: 'urn:restorecommerce:acs:names:ownerInstance',
+    value: 'Org1'
+  }]
+}];
+
+const useOwnershipDomain = (request: any, id: string): void => {
+  request.context.resources[0].meta.owners = [{
+    id: cfg.get('authorization.urns.ownershipDomain'),
+    value: id
+  }];
 };
 
 describe('testing microservice', () => {
@@ -274,6 +291,46 @@ describe('testing microservice', () => {
         accessController.policySets.should.have.size(0);
       });
     });
+    describe('testing ownership domain resource', () => {
+      it('should create, read, update, and delete ownership domains', async () => {
+        const id = `ownership-domain-${randomUUID()}`;
+        const attributes = [
+          {
+            id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
+            value: 'urn:restorecommerce:acs:model:organization.Organization'
+          }
+        ];
+
+        try {
+          const createResult = await ownershipDomainService.create({
+            items: [{ id, domain: 'test-domain', attributes }]
+          });
+          should.exist(createResult.items);
+          createResult.items!.should.have.length(1);
+          createResult.items![0]!.payload!.id!.should.equal(id);
+          createResult.items![0]!.payload!.domain!.should.equal('test-domain');
+
+          const readResult = await ownershipDomainService.read({});
+          should.exist(readResult.items);
+          const createdDomain = readResult.items!.find(item => item.payload?.id === id);
+          should.exist(createdDomain);
+          createdDomain!.payload!.attributes!.should.deepEqual(attributes);
+
+          const updateResult = await ownershipDomainService.update({
+            items: [{ id, domain: 'updated-test-domain' }]
+          });
+          should.exist(updateResult.items);
+          updateResult.items!.should.have.length(1);
+          updateResult.items![0]!.payload!.domain!.should.equal('updated-test-domain');
+
+          await ownershipDomainService.delete({ ids: [id] });
+          const readAfterDelete = await ownershipDomainService.read({});
+          should.not.exist(readAfterDelete.items?.find(item => item.payload?.id === id));
+        } finally {
+          await ownershipDomainService.delete({ ids: [id] });
+        }
+      });
+    });
   });
   describe('testing access control', () => {
     beforeAll(async () => {
@@ -372,6 +429,40 @@ describe('testing microservice', () => {
         result.operation_status!.code!.should.equal(200);
         result.operation_status!.message!.should.equal('success');
       });
+
+      it('should resolve ownership-domain references in resource owners', async () => {
+        const id = `is-allowed-domain-${randomUUID()}`;
+        await ownershipDomainService.create({
+          items: [{ id, domain: 'is-allowed-domain', attributes: ownershipDomainAttributes }]
+        });
+
+        try {
+          const requestOptions = {
+            subjectID: 'Alice',
+            subjectRole: 'SimpleUser',
+            roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+            roleScopingInstance: 'Org1',
+            resourceType: 'urn:restorecommerce:acs:model:user.User',
+            resourceProperty: 'urn:restorecommerce:acs:model:user.User#name',
+            resourceID: 'Bob',
+            actionType: 'urn:restorecommerce:acs:names:action:read',
+            ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+            ownerInstance: 'Org1'
+          };
+          const explicitOwnerRequest = testUtils.buildRequest(requestOptions);
+          const domainOwnerRequest = testUtils.buildRequest(requestOptions);
+          useOwnershipDomain(domainOwnerRequest, id);
+          testUtils.marshallRequest(explicitOwnerRequest);
+          testUtils.marshallRequest(domainOwnerRequest);
+
+          const explicitOwnerResult = await accessControlService.isAllowed(explicitOwnerRequest);
+          const domainOwnerResult = await accessControlService.isAllowed(domainOwnerRequest);
+          explicitOwnerResult.decision!.should.equal(Response_Decision.PERMIT);
+          domainOwnerResult.decision!.should.equal(explicitOwnerResult.decision);
+        } finally {
+          await ownershipDomainService.delete({ ids: [id] });
+        }
+      });
     });
     describe('testing whatIsAllowed', () => {
       beforeAll(async () => {
@@ -418,6 +509,46 @@ describe('testing microservice', () => {
         rule.target!.actions!.should.have.length(1);
         rule.target!.actions![0]!.id!.should.equal('urn:oasis:names:tc:xacml:1.0:action:action-id');
         rule.target!.actions![0]!.value!.should.equal('urn:restorecommerce:acs:names:action:read');
+      });
+      it('should resolve ownership-domain references in resource owners', async () => {
+        const id = `what-is-allowed-domain-${randomUUID()}`;
+        await ownershipDomainService.create({
+          items: [{ id, domain: 'what-is-allowed-domain', attributes: ownershipDomainAttributes }]
+        });
+
+        try {
+          const requestOptions = {
+            subjectID: 'Alice',
+            subjectRole: 'SimpleUser',
+            resourceType: 'urn:restorecommerce:acs:model:location.Location',
+            roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+            roleScopingInstance: 'SuperOrg1',
+            actionType: 'urn:restorecommerce:acs:names:action:read',
+            ownerIndicatoryEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+            ownerInstance: 'Org1'
+          };
+          const explicitOwnerRequest = testUtils.buildRequest(requestOptions);
+          const domainOwnerRequest = testUtils.buildRequest(requestOptions);
+          useOwnershipDomain(domainOwnerRequest, id);
+          testUtils.marshallRequest(explicitOwnerRequest);
+          testUtils.marshallRequest(domainOwnerRequest);
+
+          const explicitOwnerResult = await accessControlService.whatIsAllowed(explicitOwnerRequest);
+          const domainOwnerResult = await accessControlService.whatIsAllowed(domainOwnerRequest);
+          const policySetIds = (result: typeof explicitOwnerResult) =>
+            result.policy_sets?.map(policySet => ({
+              id: policySet.id,
+              policies: policySet.policies?.map(policy => ({
+                id: policy.id,
+                rules: policy.rules?.map(rule => rule.id)
+              }))
+            }));
+          policySetIds(domainOwnerResult).should.deepEqual(policySetIds(explicitOwnerResult));
+          should.exist(domainOwnerResult.policy_sets);
+          domainOwnerResult.policy_sets!.should.have.length(1);
+        } finally {
+          await ownershipDomainService.delete({ ids: [id] });
+        }
       });
       it('should return filtered rules for both Location and Organization resource', async (): Promise<void> => {
         const accessRequest = testUtils.buildRequest({
