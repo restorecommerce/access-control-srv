@@ -12,9 +12,10 @@ import { AccessControlServiceDefinition, AccessControlServiceClient, Response_De
 import { PolicySetWithCombinables, PolicyWithCombinables } from '../src/core/interfaces.js';
 import { cfg, logger } from './utils.js';
 import { it, describe, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { OwnershipDomainServiceClient, OwnershipDomainServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/ownership_domain.js';
 
 let worker: Worker;
-let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
+let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient, ownershipDomainService: OwnershipDomainServiceClient;
 let accessControlService: AccessControlServiceClient;
 let rules: any, policies: any, policySets: any;
 
@@ -39,6 +40,11 @@ const setupService = async (): Promise<void> => {
     ...ruleCfg,
     logger
   }, RuleServiceDefinition, createChannel(ruleCfg.address));
+  const ownershipDomainCfg = cfg.get('client:ownership_domain');
+  ownershipDomainService = createClient({
+    ...ownershipDomainCfg,
+    logger
+  }, OwnershipDomainServiceDefinition, createChannel(ownershipDomainCfg.address));
 };
 
 const truncate = async (): Promise<void> => {
@@ -49,6 +55,9 @@ const truncate = async (): Promise<void> => {
     collection: true
   });
   await ruleService.delete({
+    collection: true
+  });
+  await ownershipDomainService.delete({
     collection: true
   });
 };

@@ -196,7 +196,6 @@
             "ownership_domainDeleted"
           ]
         },
-
         "command": {
           "topic": "io.restorecommerce.command",
           "events": [

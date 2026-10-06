@@ -32,6 +32,7 @@ const acConfig = {
     "resourceID": "urn:oasis:names:tc:xacml:1.0:resource:resource-id",
     "entity": "urn:restorecommerce:acs:names:model:entity",
     "role": "urn:restorecommerce:acs:names:role",
+    "ownershipDomain": "urn:restorecommerce:acs:names:ownershipDomain",
     "operation": "urn:restorecommerce:acs:names:operation"
   }
 };
