@@ -191,9 +191,9 @@
         "ownership_domain.resource": {
           "topic": "io.restorecommerce.ownership_domain.resource",
           "events": [
-            "ownership_domain_setCreated",
-            "ownership_domain_setModified",
-            "ownership_domain_setDeleted"
+            "ownership_domainCreated",
+            "ownership_domainModified",
+            "ownership_domainDeleted"
           ]
         },
 
@@ -239,6 +239,7 @@
       "user": "urn:restorecommerce:acs:model:user.User",
       "model": "urn:restorecommerce:acs:model",
       "role": "urn:restorecommerce:acs:names:role",
+      "ownershipDomain": "urn:restorecommerce:acs:names:ownershipDomain",
       "roleScopingEntity": "urn:restorecommerce:acs:names:roleScopingEntity",
       "roleScopingInstance": "urn:restorecommerce:acs:names:roleScopingInstance",
       "unauthenticated_user": "urn:restorecommerce:acs:names:unauthenticated-user",
