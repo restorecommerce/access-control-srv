@@ -163,9 +163,10 @@ export class Worker {
     const policySetConfig = genEventsConfig('policy_set', this.cfg);
     const policyConfig = genEventsConfig('policy', this.cfg);
     const ruleConfig = genEventsConfig('rule', this.cfg);
+    const ownershipDomainConfig = genEventsConfig('ownership_domain', this.cfg);
 
     this.cfg.set('events:kafka',
-      Object.assign(kafkaConfig, policySetConfig, policyConfig, ruleConfig)
+      Object.assign(kafkaConfig, policySetConfig, policyConfig, ruleConfig, ownershipDomainConfig)
     );
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
