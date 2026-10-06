@@ -16,19 +16,20 @@ import {
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/commandinterface.js';
 import { PolicySetWithCombinables } from './core/interfaces.js';
 import { OwnershipDomainService } from './core/services/ownershipDomainService.js';
+import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 export class AccessControlService implements AccessControlServiceImplementation {
   cfg: any;
   logger: Logger;
   resourceManager: ResourceManager;
   accessController: AccessController;
-
-    private readonly ownerDomainURN = 'urn:restorecommerce:acs:model:OwnershipDomain';
+  ownerDomainURN: string;
 
   constructor(cfg: any, logger: Logger, resourceManager: ResourceManager, accessController: AccessController) {
     this.cfg = cfg;
     this.logger = logger;
     this.resourceManager = resourceManager;
     this.accessController = accessController;
+    this.ownerDomainURN = this.cfg.get('authorization.urns.ownershipDomain');
 
     // create a resource adapter if any is defined in the config
     const adapterCfg = this.cfg.get('adapter') || {};
@@ -60,54 +61,81 @@ export class AccessControlService implements AccessControlServiceImplementation 
     this.accessController.clearPolicies();
   }
 
-  private async resolveOwnerAttributes(resources: any[]): Promise<any[]> {
-    if (!resources?.length) {
-      return resources;
+  /**
+   * Resolve owner/acl attributes for every resource in context.resources.
+   */
+  private async resolveResourceOwnership(resources: any[]): Promise<any[]> {
+    for (const resource of resources || []) {
+      if (resource?.meta?.owners?.length) {
+        resource.meta.owners = await this.resolveOwnerAttributes(resource.meta.owners);
+      }
+      if (resource?.meta?.acls?.length) {
+        resource.meta.acls = await this.resolveOwnerAttributes(resource.meta.acls);
+      }
+    }
+    return resources;
+  }
+
+  /**
+   * Resolve OwnershipDomain references within a single meta.owners / meta.acls
+   * attribute list, replacing each reference with the domain's own attributes.
+   */
+  private async resolveOwnerAttributes(attributes: Attribute[]): Promise<Attribute[]> {
+    if (!attributes?.length) {
+      return attributes;
     }
 
-    const hasOwnerRefs = resources.some(attr => attr?.id === this.ownerDomainURN);
+    const hasOwnerRefs = attributes.some(attr => attr?.id === this.ownerDomainURN);
     if (!hasOwnerRefs) {
-      return resources;
+      return attributes;
     }
 
-    const ownershipDomainService : OwnershipDomainService = this.resourceManager.getResourceService('ownership_domain') as OwnershipDomainService;
-    const resolved: any[] = [];
+    const ownershipDomainService: OwnershipDomainService =
+      this.resourceManager.getResourceService('ownership_domain') as OwnershipDomainService;
 
-    for (const attr of resources) {
+    const resolved: Attribute[] = [];
+    for (const attr of attributes) {
       if (attr?.id !== this.ownerDomainURN) {
         resolved.push(attr);
         continue;
       }
       try {
         const result = await ownershipDomainService.get([attr.value], undefined, undefined, true);
-        const instances = result?.items?.[0]?.payload?.instances ?? [];
-        resolved.push(...instances);
+        const domainAttributes = result?.items?.[0]?.payload?.attributes ?? [];
+        resolved.push(...domainAttributes);
       } catch (err: any) {
-        this.logger.error('Error resolving ContextOwner', { code: err.code, message: err.message, stack: err.stack, contextOwnerId: attr.value });
+        this.logger.error('Error resolving OwnershipDomain', err);
       }
     }
-
     return resolved;
   }
 
-  /**
-   * gRPC interface
-   */
+  private async parseContext(context: any): Promise<any> {
+    for (const prop in context) {
+      if (_.isArray(context[prop])) {
+        context[prop] = _.map(context[prop], this.unmarshallProtobufAny.bind(this));
+      } else {
+        context[prop] = this.unmarshallProtobufAny(context[prop]);
+      }
+    }
+
+    if (context?.resources?.length) {
+      context.resources = await this.resolveResourceOwnership(context.resources);
+    }
+
+    return context;
+  }
 
   async isAllowed(request: Request, context: any): Promise<DeepPartial<Response>> {
     const acsRequest: Request = {
       target: request.target,
-      context: request.context ? this.unmarshallContext(request.context) : {}
+      context: request.context ? await this.parseContext(request.context) : {}
     };
-
-    if (acsRequest.target?.resources) {
-      acsRequest.target.resources = await this.resolveOwnerAttributes(acsRequest.target.resources);
-    }
 
     try {
       return this.accessController.isAllowed(acsRequest);
     } catch (err: any) {
-      this.logger.error('Error evaluating isAllowed request', { code: err.code, message: err.message, stack: err.stack });
+      this.logger.error('Error evaluating isAllowed request', err);
       return {
         decision: Response_Decision.DENY,
         obligations: [],
@@ -122,18 +150,14 @@ export class AccessControlService implements AccessControlServiceImplementation 
   async whatIsAllowed(request: Request, context: any): Promise<DeepPartial<ReverseQuery>> {
     const acsRequest: Request = {
       target: request.target,
-      context: request.context ? this.unmarshallContext(request.context) : {}
+      context: request.context ? await this.parseContext(request.context) : {}
     };
-
-    if (acsRequest.target?.resources) {
-      acsRequest.target.resources = await this.resolveOwnerAttributes(acsRequest.target.resources);
-    }
 
     let whatisAllowedResponse: ReverseQuery;
     try {
       whatisAllowedResponse = await this.accessController.whatIsAllowed(acsRequest);
     } catch (err: any) {
-      this.logger.error('Error evaluating whatIsAllowed request', { code: err.code, message: err.message, stack: err.stack });
+      this.logger.error('Error evaluating whatIsAllowed request', err);
       return {
         operation_status: {
           code: err.code,
@@ -144,31 +168,20 @@ export class AccessControlService implements AccessControlServiceImplementation 
     return whatisAllowedResponse;
   }
 
-  unmarshallContext(context: any): any {
-    for (const prop in context) {
-      if (_.isArray(context[prop])) {
-        context[prop] = _.map(context.resources, this.unmarshallProtobufAny.bind(this));
-      } else {
-        context[prop] = this.unmarshallProtobufAny(context[prop]);
-      }
-    }
-    return context;
-  }
-
   unmarshallProtobufAny(object: any): any {
+    // unverändert — bleibt reines Buffer→Object-Parsing
     if (!object || _.isEmpty(object.value)) {
       return null;
     }
-
     try {
       return JSON.parse(object.value.toString());
     } catch (err: any) {
-      this.logger.error('Error unmarshalling object', { code: err.code, message: err.message, stack: err.stack });
+      this.logger.error('Error unmarshalling object', err);
       throw err;
     }
   }
-
 }
+
 
 export class AccessControlCommandInterface extends CommandInterface implements CommandInterfaceServiceImplementation {
   accessControlService: AccessControlService;
