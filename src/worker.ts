@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import { createClient, RedisClientType } from 'redis';
 import * as chassis from '@restorecommerce/chassis-srv';
 import { createLogger, Logger } from '@restorecommerce/logger';
-import { Events, registerProtoMeta } from '@restorecommerce/kafka-client';
+import { Events, registerProtoMeta, Topic } from '@restorecommerce/kafka-client';
 import { AccessControlCommandInterface, AccessControlService } from './accessControlService.js';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base.js';
 import { AccessController } from './core/accessController.js';
@@ -94,6 +94,50 @@ const genEventsConfig = (collectionName: string, cfg: ServiceConfig): any => {
   return kafkaCfg;
 };
 
+class GracefulOffsetStore extends chassis.OffsetStore {
+  private stopping = false;
+  private readonly pendingWrites = new Set<Promise<void>>();
+
+  override async updateTopicOffsets(): Promise<void> {
+    const topics = Object.values(this.config.get('events:kafka').topics ?? {});
+    await Promise.all(topics.map(async ({ topic: topicName }: { topic: string }) => {
+      const topic = await this.kafkaEvents.topic(topicName);
+      if (!this.stopping) {
+        this.timerID.push(setInterval(() => void this.storeOffset(topic, topicName),
+          this.config.get('redis:offsetStoreInterval') ?? 1000));
+      }
+    }));
+  }
+
+  override async storeOffset(topic: Topic, topicName: string): Promise<void> {
+    const redisClient = this.redisClient;
+    if (!redisClient) {
+      throw new Error('Offset store Redis client is unavailable');
+    }
+    const write = topic.$offset(BigInt(-1))
+      .then(offset => redisClient.set(`${this.prefix}:${topicName}`, offset.toString(10)))
+      .then(() => undefined);
+    this.pendingWrites.add(write);
+    try {
+      await write;
+    } catch (error) {
+      this.logger?.error('Error storing Kafka topic offset', {
+        topicName,
+        error: error instanceof Error ? error.message : error
+      });
+    } finally {
+      this.pendingWrites.delete(write);
+    }
+  }
+
+  override async stop(): Promise<void> {
+    this.stopping = true;
+    this.timerID.forEach(clearInterval);
+    await Promise.allSettled(this.pendingWrites);
+    await super.stop();
+  }
+}
+
 /**
  * Access Control Service
  */
@@ -125,7 +169,7 @@ export class Worker {
     );
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
-    this.offsetStore = new chassis.OffsetStore(events, this.cfg, this.logger);
+    this.offsetStore = new GracefulOffsetStore(events, this.cfg, this.logger);
 
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');
@@ -374,9 +418,9 @@ export class Worker {
   }
 
   async stop(): Promise<void> {
+    await this.offsetStore.stop();
     await this.events.stop();
     await this.server.stop();
-    await this.offsetStore.stop();
     await this.redisClient.quit();
   }
 }
