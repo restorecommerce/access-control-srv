@@ -108,6 +108,44 @@ const useOwnershipDomain = (request: any, id: string): void => {
   }];
 };
 
+const evaluateOwnershipDomainDecision = async (ownerInstance: string): Promise<Response_Decision | undefined> => {
+  const id = `decision-domain-${randomUUID()}`;
+  await ownershipDomainService.create({
+    items: [{
+      id,
+      domain: `decision-domain-${ownerInstance}`,
+      attributes: [{
+        ...ownershipDomainAttributes[0],
+        attributes: [{
+          id: 'urn:restorecommerce:acs:names:ownerInstance',
+          value: ownerInstance
+        }]
+      }]
+    }]
+  });
+
+  try {
+    const request = testUtils.buildRequest({
+      subjectID: 'Alice',
+      subjectRole: 'SimpleUser',
+      roleScopingEntity: 'urn:restorecommerce:acs:model:organization.Organization',
+      roleScopingInstance: 'Org1',
+      resourceType: 'urn:restorecommerce:acs:model:location.Location',
+      resourceID: 'Location 1',
+      actionType: 'urn:restorecommerce:acs:names:action:read'
+    });
+    useOwnershipDomain(request, id);
+    testUtils.marshallRequest(request);
+
+    const result = await accessControlService.isAllowed(request);
+    result.operation_status!.code!.should.equal(200);
+    should.exist(result.decision);
+    return result.decision!;
+  } finally {
+    await ownershipDomainService.delete({ ids: [id] });
+  }
+};
+
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS disabled', () => {
     beforeAll(async () => {
@@ -462,6 +500,24 @@ describe('testing microservice', () => {
         } finally {
           await ownershipDomainService.delete({ ids: [id] });
         }
+      });
+    });
+    describe('testing ownership-domain access decisions', () => {
+      beforeAll(async () => {
+        await create('./test/fixtures/roleScopes.yml');
+      });
+      afterAll(async () => {
+        await truncate();
+      });
+
+      it('should PERMIT when ownership domain is within the subject scope', async () => {
+        const decision = await evaluateOwnershipDomainDecision('Org1');
+        decision!.should.equal(Response_Decision.PERMIT);
+      });
+
+      it('should DENY when ownership domain is outside the subject scope', async () => {
+        const decision = await evaluateOwnershipDomainDecision('Org4');
+        decision!.should.equal(Response_Decision.DENY);
       });
     });
     describe('testing whatIsAllowed', () => {
