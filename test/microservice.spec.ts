@@ -103,7 +103,7 @@ const ownershipDomainAttributes = [{
 
 const useOwnershipDomain = (request: any, id: string): void => {
   request.context.resources[0].meta.owners = [{
-    id: cfg.get('authorization.urns.ownershipDomain'),
+    id: cfg.get('authorization:urns:ownershipDomain'),
     value: id
   }];
 };
