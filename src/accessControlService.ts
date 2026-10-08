@@ -17,6 +17,9 @@ import {
 import { PolicySetWithCombinables } from './core/interfaces.js';
 import { OwnershipDomainService } from './core/services/ownershipDomainService.js';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
+import { urns } from '@restorecommerce/acs-client';
+
+
 export class AccessControlService implements AccessControlServiceImplementation {
   cfg: any;
   logger: Logger;
@@ -29,7 +32,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
     this.logger = logger;
     this.resourceManager = resourceManager;
     this.accessController = accessController;
-    this.ownerDomainURN = this.cfg.get('authorization.urns.ownershipDomain');
+    this.ownerDomainURN = (urns as any).ownershipDomain;
 
     // create a resource adapter if any is defined in the config
     const adapterCfg = this.cfg.get('adapter') || {};
@@ -64,14 +67,60 @@ export class AccessControlService implements AccessControlServiceImplementation 
   /**
    * Resolve owner/acl attributes for every resource in context.resources.
    */
-  private async resolveResourceOwnership(resources: any[]): Promise<any[]> {
-    for (const resource of resources || []) {
-      if (resource?.meta?.owners?.length) {
-        resource.meta.owners = await this.resolveOwnerAttributes(resource.meta.owners);
+  private async resolveResourceOwnership(resources: any[], subject?: any): Promise<any[]> {
+    if (!resources?.length) {
+      return resources;
+    }
+
+    // 1. collect all referenced OwnershipDomain IDs
+    const domainIDs = new Set<string>();
+    for (const resource of resources) {
+      for (const attr of [...(resource?.meta?.owners ?? []), ...(resource?.meta?.acls ?? [])]) {
+        if (attr?.id === this.ownerDomainURN && attr.value) {
+          domainIDs.add(attr.value);
+        }
       }
-      if (resource?.meta?.acls?.length) {
-        resource.meta.acls = await this.resolveOwnerAttributes(resource.meta.acls);
+    }
+    if (!domainIDs.size) {
+      return resources;
+    }
+
+    // 2. read all domains at once and put them into a Map
+    const domains = new Map<string, Attribute[]>();
+    const ownershipDomainService = this.resourceManager.getResourceService('ownership_domain') as OwnershipDomainService;
+    try {
+      const result = await ownershipDomainService.get([...domainIDs], subject);
+      for (const item of result?.items ?? []) {
+        if (item?.payload?.id) {
+          domains.set(item.payload.id, item.payload.attributes ?? []);
+        }
       }
+    } catch (err: any) {
+      // fail-closed: nothing resolved, resources fall out of scope
+      this.logger.error('Error resolving OwnershipDomains', err);
+    }
+
+    // 3. append resolved attributes (reference stays in place)
+    const append = (list?: Attribute[]): Attribute[] | undefined => {
+      if (!list?.length) return list;
+      const result = [...list];
+      for (const attr of list) {
+        if (attr?.id !== this.ownerDomainURN) continue;
+        const resolved = domains.get(attr.value);
+        if (resolved) {
+          result.push(...resolved);
+        } else {
+          // 4. warn about missing / unreadable domains
+          this.logger.warn('OwnershipDomain not found or not readable', { ownershipDomainId: attr.value });
+        }
+      }
+      return result;
+    };
+
+    for (const resource of resources) {
+      if (!resource?.meta) continue;
+      resource.meta.owners = append(resource.meta.owners);
+      resource.meta.acls = append(resource.meta.acls);
     }
     return resources;
   }
