@@ -94,49 +94,6 @@ const genEventsConfig = (collectionName: string, cfg: ServiceConfig): any => {
   return kafkaCfg;
 };
 
-class GracefulOffsetStore extends chassis.OffsetStore {
-  private stopping = false;
-  private readonly pendingWrites = new Set<Promise<void>>();
-
-  override async updateTopicOffsets(): Promise<void> {
-    const topics = Object.values(this.config.get('events:kafka').topics ?? {});
-    await Promise.all(topics.map(async ({ topic: topicName }: { topic: string }) => {
-      const topic = await this.kafkaEvents.topic(topicName);
-      if (!this.stopping) {
-        this.timerID.push(setInterval(() => void this.storeOffset(topic, topicName),
-          this.config.get('redis:offsetStoreInterval') ?? 1000));
-      }
-    }));
-  }
-
-  override async storeOffset(topic: Topic, topicName: string): Promise<void> {
-    const redisClient = this.redisClient;
-    if (!redisClient) {
-      throw new Error('Offset store Redis client is unavailable');
-    }
-    const write = topic.$offset(BigInt(-1))
-      .then(offset => redisClient.set(`${this.prefix}:${topicName}`, offset.toString(10)))
-      .then(() => undefined);
-    this.pendingWrites.add(write);
-    try {
-      await write;
-    } catch (error) {
-      this.logger?.error('Error storing Kafka topic offset', {
-        topicName,
-        error: error instanceof Error ? error.message : error
-      });
-    } finally {
-      this.pendingWrites.delete(write);
-    }
-  }
-
-  override async stop(): Promise<void> {
-    this.stopping = true;
-    this.timerID.forEach(clearInterval);
-    await Promise.allSettled(this.pendingWrites);
-    await super.stop();
-  }
-}
 
 /**
  * Access Control Service
