@@ -56,6 +56,7 @@ import {
 } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/resource_base.js';
 import { ResourceManager } from './resourceManager.js';
 import { ServiceConfig } from '@restorecommerce/service-config';
+import { OffsetStore } from '@restorecommerce/chassis-srv';
 
 registerProtoMeta(
   ruleMeta,
@@ -127,7 +128,7 @@ export class Worker {
     );
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
-    this.offsetStore = new GracefulOffsetStore(events, this.cfg, this.logger);
+    this.offsetStore = new OffsetStore(events, this.cfg, this.logger);
 
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');
