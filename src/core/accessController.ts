@@ -21,6 +21,7 @@ import { createClient, RedisClientType } from 'redis';
 import { Topic } from '@restorecommerce/kafka-client';
 import { verifyACLList } from './verifyACL.js';
 import { conditionMatches } from './utils.js';
+import { randomUUID } from 'node:crypto';
 
 export type Awaiter = {
   resolve: (state: boolean) => void,
@@ -754,22 +755,21 @@ export class AccessController {
     const keyExist = await this.redisClient.exists(redisHRScopesKey);
 
     if (!keyExist) {
-      const date = new Date().toISOString();
-      const tokenDate = token + ':' + date;
-      await this.topic.emit('hierarchicalScopesRequest', { token: tokenDate });
-      this.waiting[tokenDate] = [];
+      const tokenUUID = token + ':' + randomUUID().replace(/-/g, '');
+      await this.topic.emit('hierarchicalScopesRequest', { token: tokenUUID });
+      this.waiting[tokenUUID] = [];
       try {
         await new Promise((resolve, reject) => {
           const timeoutId = setTimeout(async () => {
-            reject({ message: 'hr scope read timed out', tokenDate });
+            reject({ message: 'hr scope read timed out', tokenUUID });
           }, timeout);
-          this.waiting[tokenDate].push({ resolve, reject, timeoutId });
+          this.waiting[tokenUUID].push({ resolve, reject, timeoutId });
         });
         const subjectHRScopes = await this.getRedisKey(redisHRScopesKey);
         Object.assign(context.subject, { hierarchical_scopes: subjectHRScopes });
       } catch (err) {
         // unhandled promise rejection for timeout
-        this.logger.error(`Error creating Hierarchical scope for subject ${tokenDate}`);
+        this.logger.error(`Error creating Hierarchical scope for subject ${tokenUUID}`);
       }
     } else {
       try {

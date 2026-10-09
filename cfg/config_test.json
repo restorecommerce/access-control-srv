@@ -33,6 +33,9 @@
     },
     "rule": {
       "address": "localhost:50162"
+    },
+    "ownership_domain": {
+      "address": "localhost:50162"
     }
   },
   "server": {

@@ -11,11 +11,12 @@ import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecomm
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { cfg, logger } from './utils.js';
 import { it, describe, beforeAll, afterAll } from 'vitest';
+import { OwnershipDomainServiceClient, OwnershipDomainServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/ownership_domain.js';
 
 let worker: Worker;
-let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
+let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient, ownershipDomainService: OwnershipDomainServiceClient;
 let accessControlService: AccessControlServiceClient;
-let rules: any, policies: any, policySets: any;
+let rules: any, policies: any, policySets: any, ownershipDomains: any;
 
 const setupService = async (): Promise<void> => {
 
@@ -39,6 +40,11 @@ const setupService = async (): Promise<void> => {
     ...ruleCfg,
     logger
   }, RuleServiceDefinition, createChannel(ruleCfg.address));
+  const ownershipDomainCfg = cfg.get('client:ownership_domain');
+  ownershipDomainService = createClient({
+    ...ownershipDomainCfg,
+    logger
+  }, OwnershipDomainServiceDefinition, createChannel(ownershipDomainCfg.address));
 };
 
 const truncate = async (): Promise<void> => {
@@ -51,6 +57,9 @@ const truncate = async (): Promise<void> => {
   await ruleService.delete({
     collection: true
   });
+  await ownershipDomainService.delete({
+    collection: true
+  });
 };
 
 const load = async (policiesFile: string): Promise<void> => {
@@ -61,6 +70,7 @@ const load = async (policiesFile: string): Promise<void> => {
   rules = marshalled.rules;
   policies = marshalled.policies;
   policySets = marshalled.policySets;
+  ownershipDomains = marshalled.ownershipDomains;
 
   const acsCfg = cfg.get('client:acs-srv');
   accessControlService = createClient({
@@ -77,9 +87,11 @@ const create = async (policiesFile: string): Promise<void> => {
   await policyService.create({
     items: policies
   });
-
   await ruleService.create({
     items: rules
+  });
+  await ownershipDomainService.create({
+    items: ownershipDomains
   });
 };
 

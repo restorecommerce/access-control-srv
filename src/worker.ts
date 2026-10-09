@@ -4,7 +4,7 @@ import yaml from 'js-yaml';
 import { createClient, RedisClientType } from 'redis';
 import * as chassis from '@restorecommerce/chassis-srv';
 import { createLogger, Logger } from '@restorecommerce/logger';
-import { Events, registerProtoMeta } from '@restorecommerce/kafka-client';
+import { Events, registerProtoMeta, Topic } from '@restorecommerce/kafka-client';
 import { AccessControlCommandInterface, AccessControlService } from './accessControlService.js';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base.js';
 import { AccessController } from './core/accessController.js';
@@ -29,6 +29,10 @@ import {
   protoMetadata as policySetMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import {
+  OwnershipDomainServiceDefinition,
+  protoMetadata as ownershipDomainMeta
+} from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/ownership_domain.js';
+import {
   AccessControlServiceDefinition,
   protoMetadata as accessControlMeta
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
@@ -52,11 +56,13 @@ import {
 } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/resource_base.js';
 import { ResourceManager } from './resourceManager.js';
 import { ServiceConfig } from '@restorecommerce/service-config';
+import { OffsetStore } from '@restorecommerce/chassis-srv';
 
 registerProtoMeta(
   ruleMeta,
   policyMeta,
   policySetMeta,
+  ownershipDomainMeta,
   accessControlMeta,
   commandInterfaceMeta,
   reflectionMeta,
@@ -89,6 +95,7 @@ const genEventsConfig = (collectionName: string, cfg: ServiceConfig): any => {
   return kafkaCfg;
 };
 
+
 /**
  * Access Control Service
  */
@@ -114,13 +121,14 @@ export class Worker {
     const policySetConfig = genEventsConfig('policy_set', this.cfg);
     const policyConfig = genEventsConfig('policy', this.cfg);
     const ruleConfig = genEventsConfig('rule', this.cfg);
+    const ownershipDomainConfig = genEventsConfig('ownership_domain', this.cfg);
 
     this.cfg.set('events:kafka',
-      Object.assign(kafkaConfig, policySetConfig, policyConfig, ruleConfig)
+      Object.assign(kafkaConfig, policySetConfig, policyConfig, ruleConfig, ownershipDomainConfig)
     );
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
-    this.offsetStore = new chassis.OffsetStore(events, this.cfg, this.logger);
+    this.offsetStore = new OffsetStore(events, this.cfg, this.logger);
 
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');
@@ -172,6 +180,11 @@ export class Worker {
       service: RuleServiceDefinition,
       implementation: resourceManager.getResourceService('rule')
     } as BindConfig<RuleServiceDefinition>);
+    // ownership domain resource
+    await server.bind('io-restorecommerce-ownership-domain-srv', {
+      service: OwnershipDomainServiceDefinition,
+      implementation: resourceManager.getResourceService('ownership_domain')
+    } as BindConfig<OwnershipDomainServiceDefinition>); 
     // access control service
     const accessControlService = new AccessControlService(this.cfg, this.logger, resourceManager, this.accessController);
     await server.bind('io-restorecommerce-access-control-srv', {
@@ -252,10 +265,10 @@ export class Worker {
       if (eventName === 'hierarchicalScopesResponse') {
         // Add subject_id to waiting list
         const hierarchical_scopes = msg?.hierarchical_scopes ? msg.hierarchical_scopes : [];
-        const tokenDate: string = msg?.token;
+        const tokenUUID: string = msg?.token;
         // store HR scopes to cache with subjectID
         const subID = msg?.subject_id;
-        const token = tokenDate?.split(':')[0];
+        const token = tokenUUID?.split(':')[0];
         let redisHRScopesKey;
         let subject;
         if (token) {
@@ -289,13 +302,13 @@ export class Worker {
         } catch (err) {
           logger.info('Subject not persisted in redis for updating');
         }
-        if (accessController.waiting[tokenDate]) {
+        if (accessController.waiting[tokenUUID]) {
           // clear timeout and resolve
-          accessController.waiting[tokenDate].forEach(waiter => {
+          accessController.waiting[tokenUUID].forEach(waiter => {
             clearTimeout(waiter.timeoutId);
             return waiter.resolve(true);
           });
-          delete accessController.waiting[tokenDate];
+          delete accessController.waiting[tokenUUID];
         }
       } else if (eventName === 'userModified') {
         if (msg && 'id' in msg) {
@@ -364,9 +377,9 @@ export class Worker {
   }
 
   async stop(): Promise<void> {
+    await this.offsetStore.stop();
     await this.events.stop();
     await this.server.stop();
-    await this.offsetStore.stop();
     await this.redisClient.quit();
   }
 }

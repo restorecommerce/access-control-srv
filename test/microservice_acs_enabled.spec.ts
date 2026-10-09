@@ -27,12 +27,14 @@ import {
 } from '@restorecommerce/grpc-client';
 import { cfg, logger } from './utils.js';
 import { it, describe, beforeAll, afterAll } from 'vitest';
+import { OwnershipDomainServiceClient, OwnershipDomainServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/ownership_domain.js';
 
 let worker: Worker;
 let ruleService: RuleServiceClient;
 let policyService: PolicyServiceClient;
 let policySetService: PolicySetServiceClient;
-let rules: any, policies: any, policySets: any;
+let ownershipDomainService: OwnershipDomainServiceClient;
+let rules: any, policies: any, policySets: any, ownershipDomains: any;
 let authTopic: Topic;
 
 // Admin of mainOrg -> A -> B -> C
@@ -243,6 +245,11 @@ const setupService = async (): Promise<void> => {
     ...ruleCfg,
     logger
   }, RuleServiceDefinition, createChannel(ruleCfg.address));
+  const ownershipDomainCfg = cfg.get('client:ownership_domain');
+  ownershipDomainService = createClient({
+    ...ownershipDomainCfg,
+    logger
+  }, OwnershipDomainServiceDefinition, createChannel(ownershipDomainCfg.address));
 };
 
 const load = async (policiesFile: string): Promise<void> => {
@@ -277,6 +284,10 @@ const truncate = async (): Promise<void> => {
     subject
   });
   await ruleService.delete({
+    collection: true,
+    subject
+  });
+  await ownershipDomainService.delete({
     collection: true,
     subject
   });
