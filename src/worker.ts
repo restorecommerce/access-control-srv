@@ -265,10 +265,10 @@ export class Worker {
       if (eventName === 'hierarchicalScopesResponse') {
         // Add subject_id to waiting list
         const hierarchical_scopes = msg?.hierarchical_scopes ? msg.hierarchical_scopes : [];
-        const tokenDate: string = msg?.token;
+        const tokenUUID: string = msg?.token;
         // store HR scopes to cache with subjectID
         const subID = msg?.subject_id;
-        const token = tokenDate?.split(':')[0];
+        const token = tokenUUID?.split(':')[0];
         let redisHRScopesKey;
         let subject;
         if (token) {
@@ -302,13 +302,13 @@ export class Worker {
         } catch (err) {
           logger.info('Subject not persisted in redis for updating');
         }
-        if (accessController.waiting[tokenDate]) {
+        if (accessController.waiting[tokenUUID]) {
           // clear timeout and resolve
-          accessController.waiting[tokenDate].forEach(waiter => {
+          accessController.waiting[tokenUUID].forEach(waiter => {
             clearTimeout(waiter.timeoutId);
             return waiter.resolve(true);
           });
-          delete accessController.waiting[tokenDate];
+          delete accessController.waiting[tokenUUID];
         }
       } else if (eventName === 'userModified') {
         if (msg && 'id' in msg) {
