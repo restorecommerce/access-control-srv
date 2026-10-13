@@ -57,7 +57,8 @@
       "collections": [
         "policy",
         "rule",
-        "policy_set"
+        "policy_set",
+        "ownership_domain"
       ]
     }
   },
