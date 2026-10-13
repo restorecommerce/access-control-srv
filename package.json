@@ -18,8 +18,8 @@
   ],
   "type": "module",
   "dependencies": {
-    "@restorecommerce/acs-client": "3.2.4",
-    "@restorecommerce/chassis-srv": "1.9.4",
+    "@restorecommerce/acs-client": "3.3.0",
+    "@restorecommerce/chassis-srv": "1.10.0",
     "@restorecommerce/grpc-client": "2.3.3",
     "@restorecommerce/kafka-client": "1.4.4",
     "@restorecommerce/logger": "^1.4.1",
@@ -80,7 +80,7 @@
     "prepare": "node -e \"try { require('husky').install() } catch (e) {}\""
   },
   "engines": {
-    "node": ">= 20.8.0"
+    "node": ">= 22.22.0"
   },
   "release": {
     "branches": [

@@ -128,7 +128,7 @@ export class Worker {
     );
     const events = new Events(kafkaConfig, this.logger); // Kafka
     await events.start();
-    this.offsetStore = new OffsetStore(events, this.cfg, this.logger);
+    this.offsetStore = new chassis.GracefulOffsetStore(events, this.cfg, this.logger);
 
     // init Redis Client for subject index
     const redisConfig = this.cfg.get('redis');
