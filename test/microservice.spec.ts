@@ -331,11 +331,15 @@ describe('testing microservice', () => {
     });
     describe('testing ownership domain resource', () => {
       it('should create, read, update, and delete ownership domains', async () => {
-        const id = `ownership-domain-${randomUUID()}`;
+        const id = randomUUID();
         const attributes = [
           {
             id: 'urn:restorecommerce:acs:names:ownerIndicatoryEntity',
-            value: 'urn:restorecommerce:acs:model:organization.Organization'
+            value: 'urn:restorecommerce:acs:model:organization.Organization',
+            attributes: [{
+              id: 'urn:restorecommerce:acs:names:ownerInstance',
+              value: 'OrgX'
+            }]
           }
         ];
 
