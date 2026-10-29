@@ -59,6 +59,13 @@
         "rule",
         "policy_set",
         "ownership_domain"
+      ],
+      "customQueries": [
+        {
+          "path": "queries/filter_ownership.aql",
+          "name": "filterByOwnership",
+          "type": "filter"
+        }
       ]
     }
   },
@@ -338,8 +345,16 @@
   "fieldHandlers": {
     "timeStampFields": [
       {
-        "fields": ["meta.created", "meta.modified"],
-        "entities": ["rules", "policies", "policy_sets", "ownership_domains"]
+        "fields": [
+          "meta.created",
+          "meta.modified"
+        ],
+        "entities": [
+          "rules",
+          "policies",
+          "policy_sets",
+          "ownership_domains"
+        ]
       }
     ]
   }
