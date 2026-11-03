@@ -90,16 +90,12 @@ export class OwnershipDomainService extends AccessControlledServiceBase<Ownershi
     return await super.create(request, ctx);
   }
 
-  async read(request: ReadRequest, ctx: any): Promise<DeepPartial<OwnershipDomainListResponse>> {
-    return await super.read(request, ctx);
-  }
-
    @access_controlled_function({
     action: AuthZAction.DELETE,
     operation: Operation.isAllowed,
     meta: OwnershipDomainService.ODMetaDataInjectorFactory,
   })
-  async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
+  override async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
     return await super.delete(request, ctx);
   }
 
@@ -108,7 +104,7 @@ export class OwnershipDomainService extends AccessControlledServiceBase<Ownershi
     operation: Operation.isAllowed,
     meta: OwnershipDomainService.ODMetaDataInjectorFactory,
   })
-  async upsert(request: OwnershipDomainList, ctx: any): Promise<DeepPartial<OwnershipDomainListResponse>> {
+  override async upsert(request: OwnershipDomainList, ctx: any): Promise<DeepPartial<OwnershipDomainListResponse>> {
     return await super.upsert(request, ctx);
   }
 }
