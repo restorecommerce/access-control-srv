@@ -2,7 +2,7 @@
   "protosServicePrefix": "io.restorecommerce.",
   "logger": {
     "console": {
-      "level": "debug"
+      "level": "error"
     }
   },
   "database": {

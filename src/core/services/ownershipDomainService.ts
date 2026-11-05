@@ -84,6 +84,7 @@ async function ODMetaDataInjector(
         }],
       } : undefined,
     ].filter(Boolean);
+    item.meta.acls ??= [];
     item.meta.owners.push(...(item.attributes?.filter(
       a => a.id === urns.ownerIndicatoryEntity
         && item.meta.owners?.every(
