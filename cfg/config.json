@@ -241,6 +241,10 @@
     "service": "acs-srv",
     "enabled": true,
     "enforce": true,
+    "entities": {
+      "user": "urn:restorecommerce:acs:model:user.User",
+      "organization": "urn:restorecommerce:acs:model:organization.Organization"
+    },
     "urns": {
       "entity": "urn:restorecommerce:acs:names:model:entity",
       "user": "urn:restorecommerce:acs:model:user.User",
