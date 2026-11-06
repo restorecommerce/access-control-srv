@@ -22,6 +22,7 @@ import { Topic } from '@restorecommerce/kafka-client';
 import { verifyACLList } from './verifyACL.js';
 import { conditionMatches } from './utils.js';
 import { randomUUID } from 'node:crypto';
+import { urns } from '@restorecommerce/acs-client';
 
 export type Awaiter = {
   resolve: (state: boolean) => void,
@@ -32,17 +33,16 @@ export type Awaiter = {
 export class AccessController {
   policySets: Map<string, PolicySetWithCombinables>;
   combiningAlgorithms: Map<string, any>;
-  urns: Map<string, string>;
   resourceAdapter: ResourceAdapter;
   redisClient: RedisClientType<any, any>;
   waiting: Record<string, Awaiter[]>;
 
   constructor(
-    private logger: Logger,
+    private readonly logger: Logger,
     opts: AccessControlConfiguration,
-    public topic: Topic,
-    public cfg: any,
-    public userService: UserServiceClient
+    public readonly  topic: Topic,
+    public readonly cfg: any,
+    public readonly userService: UserServiceClient
   ) {
     this.policySets = new Map<string, PolicySetWithCombinables>();
     this.combiningAlgorithms = new Map<string, any>();
@@ -61,12 +61,6 @@ export class AccessController {
         throw new errors.InvalidCombiningAlgorithm(urn);
       }
     }
-
-    this.urns = new Map<string, string>();
-    for (const urn in opts.urns || {}) {
-      this.urns.set(urn, opts.urns[urn]);
-    }
-    this.cfg = cfg;
     const redisConfig = this.cfg.get('redis');
     redisConfig.database = this.cfg.get('redis:db-indexes:db-subject');
     this.redisClient = createClient(redisConfig);
@@ -160,7 +154,7 @@ export class AccessController {
         // if there are multiple entities in the request.target.resources
         // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
         // to ensure there is an exact policy entity match for each of the requested entity
-        const entityURN = this.urns.get('entity');
+        const entityURN = urns.entity;
         if (exactMatch && request?.target?.resources?.filter(att => att?.id === entityURN)?.length > 1) {
           exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
         }
@@ -190,7 +184,7 @@ export class AccessController {
             // Subject set on Policy validate HR scope matching
             if (policy?.target?.subjects?.length > 0) {
               this.logger.verbose(`Checking Policy subject HR Scope match for ${policy.name}`);
-              policySubjectMatch = await checkHierarchicalScope(policy.target, request, this.urns, this, this.logger);
+              policySubjectMatch = await checkHierarchicalScope(policy.target, request, this, this.logger);
             } else {
               policySubjectMatch = true;
             }
@@ -222,7 +216,7 @@ export class AccessController {
                 if (matches) {
                   this.logger.verbose(`Checking rule HR Scope for ${rule.name}`);
                   if (matches && rule.target) {
-                    matches = await checkHierarchicalScope(rule.target, request, this.urns, this, this.logger);
+                    matches = await checkHierarchicalScope(rule.target, request, this, this.logger);
                   }
 
                   try {
@@ -272,7 +266,7 @@ export class AccessController {
 
                   // check if request has an ACL property set, if so verify it with the current rule target
                   if (matches && rule?.target) {
-                    matches = await verifyACLList(rule.target, request, this.urns, this, this.logger);
+                    matches = await verifyACLList(rule.target, request, this, this.logger);
                   }
 
                   if (matches && policySubjectMatch) {
@@ -372,7 +366,7 @@ export class AccessController {
         // if there are multiple entities in the request.target.resources
         // and if exactMatch is true, then check again with the resourcesAttributeMatch providing one entity each time
         // to ensure there is an exact policy entity match for each of the requested entity
-        const entityURN = this.urns.get('entity');
+        const entityURN = urns.entity;
         if (exactMatch && request?.target?.resources?.filter(att => att?.id === entityURN)?.length > 1) {
           exactMatch = this.checkMultipleEntitiesMatch(value, request, obligations);
         }
@@ -431,7 +425,7 @@ export class AccessController {
     let multipleEntitiesMatch;
     let exactMatch = true;
     // iterate and find for each of the exact mathing resource attribute
-    const entityURN = this.urns.get('entity');
+    const entityURN = urns.entity;
     for (const requestAttributeObj of request?.target?.resources || []) {
       if (requestAttributeObj.id === entityURN) {
         multipleEntitiesMatch = false;
@@ -466,10 +460,10 @@ export class AccessController {
   private resourceAttributesMatch(ruleAttributes: Attribute[],
     requestAttributes: Attribute[], operation: AccessControlOperation,
     maskPropertyList: Attribute[], effect: Effect, regexMatch?: boolean): boolean {
-    const entityURN = this.urns.get('entity');
-    const propertyURN = this.urns.get('property');
-    const maskedPropertyURN = this.urns.get('maskedProperty');
-    const operationURN = this.urns.get('operation');
+    const entityURN = urns.entity;
+    const propertyURN = urns.property;
+    const maskedPropertyURN = urns.maskedProperty;
+    const operationURN = urns.operation;
     let entityMatch = false;
     let propertyMatch = false;
     let rulePropertiesExist = false;
@@ -794,7 +788,7 @@ export class AccessController {
     requestSubAttributes: Attribute[], request: Request): Promise<boolean> {
     const context = (request as any)?.context as ContextWithSubResolved;
     // Just check the Role value matches here in subject
-    const roleURN = this.urns.get('role');
+    const roleURN = urns.role;
     let ruleRole: string;
     if (!ruleSubAttributes || ruleSubAttributes.length === 0) {
       return true;
@@ -941,7 +935,6 @@ export class AccessController {
    * @param adapterConfig
    */
   createResourceAdapter(adapterConfig: any): void {
-
     if (!_.isNil(adapterConfig.graphql)) {
       const opts = adapterConfig.graphql;
       this.resourceAdapter = new GraphQLAdapter(opts.url, this.logger, opts.clientOpts);

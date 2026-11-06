@@ -191,7 +191,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList>
           value: id
         }]
       }]
-    }), undefined);
+    }), {} as any);
     return result;
   }
 
@@ -291,7 +291,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList>
   async getPolicies(policyIDs?: string[]): Promise<Map<string, PolicyWithCombinables>> {
     const ruleService = this.resourceManager.getResourceService('rule');
     const filters = policyIDs ? makeFilter(policyIDs) : [];
-    const result = await super.read(ReadRequest.fromPartial({ filters }), undefined);
+    const result = await super.read(ReadRequest.fromPartial({ filters }), {} as any);
 
     const policies = new Map<string, PolicyWithCombinables>();
     if (result?.items?.length > 0) {
@@ -440,7 +440,7 @@ export class PolicySetService
           value: id
         }]
       }]
-    }), undefined);
+    }), {} as any);
     return result;
   }
 
@@ -449,7 +449,7 @@ export class PolicySetService
    */
   async load(): Promise<Map<string, PolicySet>> {
     const policyService = this.resourceManager.getResourceService('policy');
-    const data = await super.read(ReadRequest.fromPartial({}), undefined);
+    const data = await super.read(ReadRequest.fromPartial({}), {} as any);
 
     if (!data || !data.items || data.items.length == 0) {
       this.logger.warn('No policy sets retrieved from database');

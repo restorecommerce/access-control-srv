@@ -6,11 +6,11 @@ import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/i
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 import { Resource, ContextWithSubResolved } from './interfaces.js';
 import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
+import { urns } from '@restorecommerce/acs-client';
 
 export const checkHierarchicalScope = async (
   ruleTarget: Target,
   request: Request,
-  urns: Map<string, string>,
   accessController: AccessController,
   logger?: Logger
 ): Promise<boolean> => {
@@ -24,14 +24,14 @@ export const checkHierarchicalScope = async (
   }
   let hierarchicalRoleScopeCheck = 'true'; // default is to check for HR scope for all resources
   let ruleRole: string;
-  const roleURN = urns.get('role');
+  const roleURN = urns.role;
   let ruleRoleScopingEntity: string; // target scoping entity to match from owners and role associations
   ruleTarget?.subjects?.forEach((subjectObject) => {
     if (subjectObject?.id === roleURN) {
       ruleRole = subjectObject?.value;
-    } else if (subjectObject?.id === urns.get('hierarchicalRoleScoping')) {
+    } else if (subjectObject?.id === urns.hierarchicalRoleScoping) {
       hierarchicalRoleScopeCheck = subjectObject.value;
-    } else if (subjectObject?.id === urns.get('roleScopingEntity')) {
+    } else if (subjectObject?.id === urns.roleScopingEntity) {
       ruleRoleScopingEntity = subjectObject.value;
     }
   });
@@ -52,7 +52,7 @@ export const checkHierarchicalScope = async (
   let entityOrOperation: string;
   // iterating through all targeted resources and retrieve relevant owners instances
   for (const attribute of ruleTarget.resources || []) {
-    if (attribute?.id == urns.get('entity')) { // resource type found
+    if (attribute?.id == urns.entity) { // resource type found
       logger.debug('Evaluating resource entity match');
       entityOrOperation = attribute?.value;
 
@@ -100,10 +100,10 @@ export const checkHierarchicalScope = async (
             }
           }
         }
-        else if (requestAttribute?.id == urns?.get('resourceID') && entitiesMatch) { // resource instance ID of a matching entity
+        else if (requestAttribute?.id == urns.resourceID && entitiesMatch) { // resource instance ID of a matching entity
           const instanceID = requestAttribute?.value;
           // found resource instance ID, iterating through the context to check if owners entities match the scoping entities
-          let ctxResource: Resource = _.find(ctxResources ?? [], ['instance.id', instanceID]);
+          let ctxResource: any = _.find(ctxResources ?? [], ['instance.id', instanceID]);
           if (ctxResource) {
             ctxResource = ctxResource?.instance;
           } else {
@@ -123,7 +123,7 @@ export const checkHierarchicalScope = async (
           }
         }
       }
-    } else if (attribute?.id === urns.get('operation')) {
+    } else if (attribute?.id === urns.operation) {
       logger.debug('Evaluating resource operation match');
       entityOrOperation = attribute?.value;
       for (const reqAttribute of reqTarget.resources || []) {
@@ -168,12 +168,12 @@ export const checkHierarchicalScope = async (
         // check if Rule's roleScoping Entity matches the Owner's role scoping entity and RoleAssociation RoleScoping entity (ex: Organization / User / Klasse etc)
         // and check if roleScoping Instance matches with owner instance
         const match = roleObj?.attributes?.some(
-          (roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
-            && ownerObj?.id === urns.get('ownerEntity')
+          (roleAttributeObject) => roleAttributeObject?.id === urns.roleScopingEntity
+            && ownerObj?.id === urns.ownerIndicatoryEntity
             && ownerObj.value === ruleRoleScopingEntity
             && ownerObj.value === roleAttributeObject?.value
             && roleAttributeObject?.attributes?.some(
-              (roleInstObj) => roleInstObj?.id === urns.get('roleScopingInstance')
+              (roleInstObj) => roleInstObj?.id === urns.roleScopingInstance
                 && ownerObj?.attributes?.find(
                   (ownerInstObj) => ownerInstObj?.value === roleInstObj?.value
                 )
@@ -222,8 +222,8 @@ export const checkHierarchicalScope = async (
       const ownerInstances: string[] = owners.filter(
         owner => reducedUserRoleAssocs?.some((roleObj) => {
           return roleObj?.attributes?.some(
-            (roleAttributeObject) => roleAttributeObject?.id === urns.get('roleScopingEntity')
-              && owner?.id === urns.get('ownerEntity')
+            (roleAttributeObject) => roleAttributeObject?.id === urns.roleScopingEntity
+              && owner?.id === urns.ownerIndicatoryEntity
               && owner?.value === ruleRoleScopingEntity
               && owner?.value === roleAttributeObject?.value
           );
@@ -231,7 +231,7 @@ export const checkHierarchicalScope = async (
         )
       ).flatMap(
         owner => owner?.attributes?.filter(
-          attr => attr?.id === urns.get('ownerInstance')
+          attr => attr?.id === urns.ownerInstance
         ).map(
           attr => attr?.value
         )

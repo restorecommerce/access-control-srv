@@ -4,21 +4,26 @@ import { Request } from '@restorecommerce/rc-grpc-clients/dist/generated-server/
 import { Target } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 import { AccessController } from './index.js';
-import { Resource, ContextWithSubResolved } from './interfaces.js';
+import { ContextWithSubResolved } from './interfaces.js';
 import { HierarchicalScope } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
-import { CtxResource } from '@restorecommerce/acs-client';
+import { CtxResource, urns, entities } from '@restorecommerce/acs-client';
+Object.assign(entities, urns);
 
-export const verifyACLList = async (ruleTarget: Target,
-  request: Request, urns: Map<string, string>, accessController: AccessController, logger?: Logger): Promise<boolean> => {
+export const verifyACLList = async (
+  ruleTarget: Target,
+  request: Request,
+  accessController: AccessController,
+  logger?: Logger
+): Promise<boolean> => {
   const scopedRoles: string[] = []; // list of roles in Rule subject
   let role: string;
   const ruleSubject = ruleTarget.subjects || [];
   // retrieving all role scoping entities from the rule's subject
   for (const attribute of ruleSubject) {
-    if (attribute.id === urns.get('role')) {
+    if (attribute.id === urns.role) {
       role = attribute.value;
       scopedRoles.push(role);
-    } else if (attribute.id === urns.get('skipACL')) {
+    } else if (attribute.id === urns.skipACL) {
       logger.debug('Skipping ACL check as attribute skipACL is set');
       return true;
     }
@@ -35,7 +40,7 @@ export const verifyACLList = async (ruleTarget: Target,
   // iterating through all targeted resources and retrieve relevant target instances
   const targetScopeEntInstances = new Map<string, string[]>(); // <org.Org, [a, b, c]> OR <user.User, [user1, user2 user3]>
   for (const reqAttribute of reqTarget.resources || []) {
-    if (reqAttribute.id == urns.get('resourceID') || (reqAttribute.id === urns.get('operation'))) {
+    if (reqAttribute.id == urns.resourceID || (reqAttribute.id === urns.operation)) {
       const instanceID = reqAttribute.value;
       let ctxResource: CtxResource = _.find(ctxResources, ['instance.id', instanceID]);
       let aclList, scopingEntity;
@@ -61,7 +66,7 @@ export const verifyACLList = async (ruleTarget: Target,
       // verify ACL list
       if (aclList?.length > 0) {
         for (const acl of aclList) {
-          if (acl?.id === urns.get('aclIndicatoryEntity')) {
+          if (acl?.id === urns.aclIndicatoryEntity) {
             scopingEntity = acl.value;
             if (!targetScopeEntInstances.get(scopingEntity)) {
               targetScopeEntInstances.set(scopingEntity, []);
@@ -71,7 +76,7 @@ export const verifyACLList = async (ruleTarget: Target,
               return false;
             }
             for (const attribute of acl.attributes) {
-              if (attribute.id === urns.get('aclInstance')) {
+              if (attribute.id === urns.aclInstance) {
                 targetScopeEntInstances.get(scopingEntity).push(attribute.value);
               } else {
                 logger.info('Missing ACL instance value');
@@ -107,14 +112,14 @@ export const verifyACLList = async (ruleTarget: Target,
     if (scopedRoles.includes(role)) {
       let roleScopingEntity;
       for (const roleAttr of attributes) {
-        if (roleAttr?.id === urns.get('roleScopingEntity') && targetScopingEntities.includes(roleAttr?.value)) {
+        if (roleAttr?.id === urns.roleScopingEntity && targetScopingEntities.includes(roleAttr?.value)) {
           roleScopingEntity = roleAttr?.value;
           if (!subjectScopedEntityInstances.get(roleAttr?.value)) {
             subjectScopedEntityInstances.set(roleAttr?.value, []);
           }
           if (roleAttr?.attributes?.length > 0) {
             for (const roleInstObj of roleAttr.attributes) {
-              if (roleInstObj?.id === urns.get('roleScopingInstance')) {
+              if (roleInstObj?.id === urns.roleScopingInstance) {
                 subjectScopedEntityInstances?.get(roleScopingEntity)?.push(roleInstObj?.value);
               }
             }
@@ -145,8 +150,8 @@ export const verifyACLList = async (ruleTarget: Target,
   getRoleOrgMapping(hierarchical_scopes);
 
 
-  if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
-    (actionObj[0].value === urns.get('create'))) {
+  if (actionObj && actionObj[0] && actionObj[0].id === urns.actionID &&
+    (actionObj[0].value === urns.create)) {
     let validTargetInstances = false;
     if (_.isEmpty(targetScopingEntities)) {
       logger.debug('ACL data was not set in the meta data request, hence no ACL check is done');
@@ -154,9 +159,9 @@ export const verifyACLList = async (ruleTarget: Target,
     }
     for (const scopingEntity of targetScopingEntities) {
       // do not verify the ACL check for subject identifiers
-      if ((scopingEntity === urns.get('user')) && (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
-        (actionObj[0].value === urns.get('create')))) {
-        logger.info(`ACL indicatory entity is Subject ${urns.get('user')} and hence no verification is needed`);
+      if ((scopingEntity === entities.user) && (actionObj && actionObj[0] && actionObj[0].id === urns.actionID &&
+        (actionObj[0].value === urns.create))) {
+        logger.info(`ACL indicatory entity is Subject ${entities.user} and hence no verification is needed`);
         validTargetInstances = true;
         continue;
       }
@@ -171,8 +176,8 @@ export const verifyACLList = async (ruleTarget: Target,
       // verify each of targetInstance is under subjectInstances
       // if action is create / modify then only verify the HR scopes (if not direct match should be done)
       const validatedACLInstances: string[] = [];
-      if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
-        (actionObj[0].value === urns.get('create'))) {
+      if (actionObj && actionObj[0] && actionObj[0].id === urns.actionID &&
+        (actionObj[0].value === urns.create)) {
 
         const hrScopedRoles = Array.from(roleWithOrgScopesMap.keys());
         // check for every HR scoped role
@@ -204,9 +209,9 @@ export const verifyACLList = async (ruleTarget: Target,
     }
   }
 
-  if (actionObj && actionObj[0] && actionObj[0].id === urns.get('actionID') &&
-    (actionObj[0].value === urns.get('read') || actionObj[0].value === urns.get('modify')
-      || actionObj[0].value === urns.get('delete'))) {
+  if (actionObj && actionObj[0] && actionObj[0].id === urns.actionID &&
+    (actionObj[0].value === urns.read || actionObj[0].value === urns.modify
+      || actionObj[0].value === urns.delete)) {
     let validSubjectInstance = false;
     // if targeScopingEntities is emtpy => no ACL data was sent in meta object / not a target for specific request ID
     if (_.isEmpty(targetScopingEntities)) {
@@ -218,7 +223,7 @@ export const verifyACLList = async (ruleTarget: Target,
       const subjectInstances = subjectScopedEntityInstances.get(scopingEntity);
 
       // if ACL scoping entity is user, then directly verify if the subject id is in the targetInstances
-      if (scopingEntity === urns.get('user')) {
+      if (scopingEntity === entities.user) {
         if (targetInstances.includes(context.subject.id)) {
           validSubjectInstance = true;
           break;
