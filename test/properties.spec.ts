@@ -2,7 +2,7 @@
 import should from 'should';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import fs from 'node:fs';
 import { updateConfig } from '@restorecommerce/acs-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';

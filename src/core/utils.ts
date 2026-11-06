@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
 import fs from 'node:fs';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { AccessController } from './accessController.js';
 import {
   AuthZAction,
@@ -30,7 +30,6 @@ import { RoleAssociation } from '@restorecommerce/rc-grpc-clients/dist/generated
 import { Topic } from '@restorecommerce/kafka-client';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 import { randomUUID } from 'node:crypto';
-
 
 export const formatTarget = (target: any): Target => {
   if (!target) {

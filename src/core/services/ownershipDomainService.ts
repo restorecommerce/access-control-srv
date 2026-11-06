@@ -1,3 +1,4 @@
+import * as _ from 'lodash-es';
 import { DatabaseProvider } from "@restorecommerce/chassis-srv";
 import { Topic } from "@restorecommerce/kafka-client";
 import { Logger } from "@restorecommerce/logger";
@@ -24,7 +25,7 @@ import {
   entities,
 } from "@restorecommerce/acs-client";
 import { randomUUID } from 'node:crypto';
-import * as _ from 'lodash-es';
+import { Seedable } from "./utils.js";
 
 const URNS = {
   ...entities,
@@ -87,9 +88,9 @@ async function ODMetaDataInjector(
     item.meta.acls ??= [];
     item.meta.owners.push(...(item.attributes?.filter(
       a => a.id === urns.ownerIndicatoryEntity
-        && item.meta.owners?.every(
+        /*&& item.meta.owners?.every(
           o => !_.isEqual(o, a) // not deep equal
-        )
+        )*/
     ) ?? []));
     item.meta.acls.push(...(item.attributes?.filter(
       a => a.id === urns.aclIndicatoryEntity
@@ -104,7 +105,7 @@ async function ODMetaDataInjector(
 
 export class OwnershipDomainService
   extends AccessControlledServiceBase<OwnershipDomainListResponse, OwnershipDomainList>
-  implements OwnershipDomainServiceImplementation
+  implements OwnershipDomainServiceImplementation, Seedable<OwnershipDomainList>
 {
   constructor(
     logger: Logger,
@@ -149,5 +150,9 @@ export class OwnershipDomainService
   })
   override async update(request: OwnershipDomainList, ctx: CallContext): Promise<DeepPartial<OwnershipDomainListResponse>> {
     return await super.update(request, ctx);
+  }
+
+  async insertSeedData(request: OwnershipDomainList, context?: CallContext): Promise<void> {
+    this.superUpsert(request, context);
   }
 }

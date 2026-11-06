@@ -1,10 +1,10 @@
 import * as fs from 'node:fs';
 import * as _ from 'lodash-es';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { createClient, RedisClientType } from 'redis';
 import * as chassis from '@restorecommerce/chassis-srv';
 import { createLogger, Logger } from '@restorecommerce/logger';
-import { Events, registerProtoMeta, Topic } from '@restorecommerce/kafka-client';
+import { Events, registerProtoMeta } from '@restorecommerce/kafka-client';
 import { AccessControlCommandInterface, AccessControlService } from './accessControlService.js';
 import { Arango } from '@restorecommerce/chassis-srv/lib/database/provider/arango/base.js';
 import { AccessController } from './core/accessController.js';
@@ -54,7 +54,7 @@ import {
   Resource,
   protoMetadata as baseMeta,
 } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/resource_base.js';
-import { ResourceManager } from './resourceManager.js';
+import { ResourceManager, ServiceName } from './resourceManager.js';
 import { ServiceConfig } from '@restorecommerce/service-config';
 import { OffsetStore } from '@restorecommerce/chassis-srv';
 
@@ -149,7 +149,7 @@ export class Worker {
         logger: this.logger
       }, UserServiceDefinition, channel);
     }
-    this.accessController = new AccessController(
+    const accessController = this.accessController = new AccessController(
       this.logger,
       this.cfg.get('policies:options'),
       topic,
@@ -163,9 +163,28 @@ export class Worker {
     await initializeCache();
     // init AuthZ
     this.authZ = await initAuthZ(this.cfg) as ACSAuthZ;
-    const resourceManager = new ResourceManager(this.cfg, this.logger, events, db,
-      this.accessController, this.redisClient, this.authZ);
+    // resource manager
+    const resourceManager = new ResourceManager(
+      this.cfg,
+      this.logger,
+      events,
+      db,
+      this.accessController,
+      this.redisClient,
+      this.authZ
+    );
     await resourceManager.setup();
+    // access control service
+    const accessControlService = new AccessControlService(this.cfg, this.logger, resourceManager, this.accessController);
+    // command interface
+    const commandInterface = this.commandInterface = new AccessControlCommandInterface(
+      server,
+      this.cfg,
+      this.logger,
+      events,
+      accessControlService,
+      this.redisClient
+    );
     await server.bind('io-restorecommerce-policy-set-srv', {
       service: PolicySetServiceDefinition,
       implementation: resourceManager.getResourceService('policy_set')
@@ -185,15 +204,10 @@ export class Worker {
       service: OwnershipDomainServiceDefinition,
       implementation: resourceManager.getResourceService('ownership_domain')
     } as BindConfig<OwnershipDomainServiceDefinition>); 
-    // access control service
-    const accessControlService = new AccessControlService(this.cfg, this.logger, resourceManager, this.accessController);
     await server.bind('io-restorecommerce-access-control-srv', {
       service: AccessControlServiceDefinition,
       implementation: accessControlService
     } as BindConfig<AccessControlServiceDefinition>);
-    // command interface
-    this.commandInterface = new AccessControlCommandInterface(server, this.cfg,
-      this.logger, events, accessControlService, this.redisClient);
     await server.bind('io-restorecommerce-access-control-ci', {
       service: CommandInterfaceServiceDefinition,
       implementation: this.commandInterface
@@ -236,14 +250,13 @@ export class Worker {
             this.logger.info(`Loaded ${seedData?.length} seed ${entity}`);
 
             // get respective service object for upserting resource
-            const service = resourceManager.getResourceService(entity);
-
-            service.superUpsert({ items: seedData }, undefined)
+            const service = resourceManager.getResourceService(entity as ServiceName);
+            service.insertSeedData({ items: seedData })
               .then(() => {
                 this.logger.info(`Seed ${entity} upserted successfully`);
                 resolve();
               })
-              .catch(err => {
+              .catch((err: any) => {
                 this.logger.error(`Failed upserting seed ${entity} file`, err);
                 reject(err);
               });
@@ -256,9 +269,6 @@ export class Worker {
 
     this.logger.info('Access control service started correctly!');
     await accessControlService.loadPolicies();
-
-    const commandInterface = this.commandInterface;
-    const accessController = this.accessController;
     const commandTopic = await events.topic(this.cfg.get('events:kafka:topics:command:topic'));
     const eventListener = async (msg: any,
       context: any, config: any, eventName: string): Promise<any> => {

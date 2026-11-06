@@ -25,14 +25,12 @@ export class AccessControlService implements AccessControlServiceImplementation 
   logger: Logger;
   resourceManager: ResourceManager;
   accessController: AccessController;
-  ownerDomainURN: string;
 
   constructor(cfg: any, logger: Logger, resourceManager: ResourceManager, accessController: AccessController) {
     this.cfg = cfg;
     this.logger = logger;
     this.resourceManager = resourceManager;
     this.accessController = accessController;
-    this.ownerDomainURN = (urns as any).ownershipDomain;
 
     // create a resource adapter if any is defined in the config
     const adapterCfg = this.cfg.get('adapter') || {};
@@ -76,7 +74,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
     const domainIDs = new Set<string>();
     for (const resource of resources) {
       for (const attr of [...(resource?.meta?.owners ?? []), ...(resource?.meta?.acls ?? [])]) {
-        if (attr?.id === this.ownerDomainURN && attr.value) {
+        if (attr?.id === urns.ownershipDomain && attr.value) {
           domainIDs.add(attr.value);
         }
       }
@@ -105,7 +103,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
       if (!list?.length) return list;
       const result = [...list];
       for (const attr of list) {
-        if (attr?.id !== this.ownerDomainURN) continue;
+        if (attr?.id !== urns.ownershipDomain) continue;
         const resolved = domains.get(attr.value);
         if (resolved) {
           result.push(...resolved);
@@ -134,7 +132,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
       return attributes;
     }
 
-    const hasOwnerRefs = attributes.some(attr => attr?.id === this.ownerDomainURN);
+    const hasOwnerRefs = attributes.some(attr => attr?.id === urns.ownershipDomain);
     if (!hasOwnerRefs) {
       return attributes;
     }
@@ -144,7 +142,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
 
     const resolved: Attribute[] = [];
     for (const attr of attributes) {
-      if (attr?.id !== this.ownerDomainURN) {
+      if (attr?.id !== urns.ownershipDomain) {
         resolved.push(attr);
         continue;
       }
@@ -175,7 +173,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
     return context;
   }
 
-  async isAllowed(request: Request, context: any): Promise<DeepPartial<Response>> {
+  async isAllowed(request: Request, context?: any): Promise<DeepPartial<Response>> {
     const acsRequest: Request = {
       target: request.target,
       context: request.context ? await this.parseContext(request.context) : {}
@@ -196,7 +194,7 @@ export class AccessControlService implements AccessControlServiceImplementation 
     }
   }
 
-  async whatIsAllowed(request: Request, context: any): Promise<DeepPartial<ReverseQuery>> {
+  async whatIsAllowed(request: Request, context?: any): Promise<DeepPartial<ReverseQuery>> {
     const acsRequest: Request = {
       target: request.target,
       context: request.context ? await this.parseContext(request.context) : {}
@@ -233,11 +231,14 @@ export class AccessControlService implements AccessControlServiceImplementation 
 
 
 export class AccessControlCommandInterface extends CommandInterface implements CommandInterfaceServiceImplementation {
-  accessControlService: AccessControlService;
-  constructor(server: Server, cfg: any, logger: Logger, events: Events,
-    accessControlService: AccessControlService, redisClient: RedisClientType<any, any>) {
-    super(server, cfg, logger, events, redisClient);
-    this.accessControlService = accessControlService;
+  constructor(
+    server: Server,
+    cfg: any,
+    logger: Logger,
+    events: Events,
+    readonly accessControlService: AccessControlService,
+    redisClient: RedisClientType<any, any>) {
+    super(server, cfg, logger, events, redisClient as any);
   }
 
   async restore(payload: any): Promise<any> {

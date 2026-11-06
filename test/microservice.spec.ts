@@ -2,7 +2,7 @@ import should from 'should';
 import { randomUUID } from 'node:crypto';
 import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import fs from 'node:fs';
 import { updateConfig } from '@restorecommerce/acs-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
@@ -12,7 +12,7 @@ import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecomm
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { PolicySetWithCombinables, PolicyWithCombinables } from '../src/core/interfaces.js';
 import { cfg, logger } from './utils.js';
-import { it, describe, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { it, describe, beforeAll, afterAll } from 'vitest';
 import { OwnershipDomainServiceClient, OwnershipDomainServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/ownership_domain.js';
 
 let worker: Worker;
@@ -351,6 +351,7 @@ describe('testing microservice', () => {
           createResult.items!.should.have.length(1);
           createResult.items![0]!.payload!.id!.should.equal(id);
           createResult.items![0]!.payload!.domain!.should.equal('test-domain');
+          createResult.items![0]!.payload!.meta!.owners!.length!.should.equal(attributes.length);
 
           const readResult = await ownershipDomainService.read({});
           should.exist(readResult.items);
@@ -364,6 +365,7 @@ describe('testing microservice', () => {
           should.exist(updateResult.items);
           updateResult.items!.should.have.length(1);
           updateResult.items![0]!.payload!.domain!.should.equal('updated-test-domain');
+          updateResult.items![0]!.payload!.meta!.owners!.length!.should.equal(attributes.length);
 
           await ownershipDomainService.delete({ ids: [id] });
           const readAfterDelete = await ownershipDomainService.read({});
@@ -603,7 +605,7 @@ describe('testing microservice', () => {
                 rules: policy.rules?.map(rule => rule.id)
               }))
             }));
-          policySetIds(domainOwnerResult).should.deepEqual(policySetIds(explicitOwnerResult));
+          policySetIds(domainOwnerResult)!.should.deepEqual(policySetIds(explicitOwnerResult));
           should.exist(domainOwnerResult.policy_sets);
           domainOwnerResult.policy_sets!.should.have.length(1);
         } finally {

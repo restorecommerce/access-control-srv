@@ -7,19 +7,29 @@ import { Rule, RuleList, RuleListResponse, RuleServiceImplementation } from "@re
 import { ReadRequest } from "@restorecommerce/resource-base-interface";
 import { ServiceConfig } from "@restorecommerce/service-config";
 import { CacheSyncedResourceService } from "./cacheSyncedResourceService.js";
-import { makeFilter, marshallResource } from "./utils.js";
+import { makeFilter, marshallResource, Seedable } from "./utils.js";
 import { AccessController } from '../accessController.js';
+import { CallContext } from "@restorecommerce/grpc-client";
 
 
-export class RuleService extends CacheSyncedResourceService<Rule, RuleList, RuleListResponse> implements RuleServiceImplementation {
-  constructor(logger: Logger, topic: Topic, db: DatabaseProvider, cfg: ServiceConfig, _accessController: AccessController) {
+export class RuleService
+  extends CacheSyncedResourceService<RuleList, RuleListResponse>
+  implements RuleServiceImplementation, Seedable<RuleList>
+{
+  constructor(
+    logger: Logger,
+    topic: Topic,
+    db: DatabaseProvider,
+    cfg: ServiceConfig,
+    accessController: AccessController
+  ) {
     super('rule', topic, db, cfg, logger, true, 'rules', {
       onWrite: (rules) => {
         for (const rule of rules) {
-          for (const [, policySet] of _accessController.policySets) {
+          for (const [, policySet] of accessController.policySets) {
             for (const [, policy] of policySet.combinables) {
               if (policy?.combinables?.has(rule.id)) {
-                _accessController.updateRule(policySet.id, policy.id, rule);
+                accessController.updateRule(policySet.id, policy.id, rule);
               }
             }
           }
@@ -27,19 +37,19 @@ export class RuleService extends CacheSyncedResourceService<Rule, RuleList, Rule
       },
       onDelete: (ids, dropAll) => {
         if (dropAll) {
-          for (const [, policySet] of _accessController.policySets) {
+          for (const [, policySet] of accessController.policySets) {
             for (const [, policy] of policySet.combinables) {
               policy.combinables = new Map();
-              _accessController.updatePolicy(policySet.id, policy);
+              accessController.updatePolicy(policySet.id, policy);
             }
           }
           return;
         }
         for (const id of ids) {
-          for (const [, policySet] of _accessController.policySets) {
+          for (const [, policySet] of accessController.policySets) {
             for (const [, policy] of policySet.combinables) {
               if (policy?.combinables?.has(id)) {
-                _accessController.removeRule(policySet.id, policy.id, id);
+                accessController.removeRule(policySet.id, policy.id, id);
               }
             }
           }
@@ -71,5 +81,9 @@ export class RuleService extends CacheSyncedResourceService<Rule, RuleList, Rule
     return this.superRead(ReadRequest.fromPartial({
       filters: [{ filters: [{ field: 'id', operation: Filter_Operation.eq, value: id }] }]
     }));
+  }
+
+  async insertSeedData(request: RuleList, context?: CallContext): Promise<void> {
+    this.superUpsert(request, context);
   }
 }

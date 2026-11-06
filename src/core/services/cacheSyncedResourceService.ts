@@ -4,7 +4,7 @@ import { Topic } from "@restorecommerce/kafka-client";
 import { DeepPartial } from "@restorecommerce/kafka-client/dist/protos.js";
 import { Logger } from "@restorecommerce/logger";
 import { ResourceListResponse, DeleteRequest, DeleteResponse } from "@restorecommerce/rc-grpc-clients/dist/generated/io/restorecommerce/resource_base.js";
-import { ResourceList } from "@restorecommerce/resource-base-interface";
+import { ElementOf, ResourceList } from "@restorecommerce/resource-base-interface";
 import { AccessControlledServiceBase } from "@restorecommerce/resource-base-interface/lib/experimental/AccessControlledServiceBase.js";
 import { ServiceConfig } from "@restorecommerce/service-config";
 
@@ -16,7 +16,6 @@ export interface CacheSync<T> {
 }
 
 export abstract class CacheSyncedResourceService<
-  T extends { id?: string },
   I extends ResourceList,
   O extends ResourceListResponse
 > extends AccessControlledServiceBase<O, I> {
@@ -29,12 +28,12 @@ export abstract class CacheSyncedResourceService<
     logger: Logger,
     enableEvents: boolean,
     collectionName: string,
-    protected readonly cacheSync?: CacheSync<T>,
+    protected readonly cacheSync?: CacheSync<ElementOf<I['items']>>,
   ) {
     super(resourceName, topic, db, cfg, logger, enableEvents, collectionName);
   }
 
-  protected abstract marshall(payload: any): T;
+  protected abstract marshall(payload: any): ElementOf<I['items']>;
 
   private async syncWrite(result: DeepPartial<O>): Promise<DeepPartial<O>> {
     const items = (result as any)?.items?.filter((i: any) => i.payload);
