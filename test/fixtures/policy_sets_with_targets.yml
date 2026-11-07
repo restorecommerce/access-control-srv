@@ -60,6 +60,7 @@ policy_sets:
         description: A Policy targeting access from ExternalUsers to 'User' resource content
         combining_algorithm: urn:oasis:names:tc:xacml:3.0:rule-combining-algorithm:permit-overrides
         target:
+          subjects: []
           resources:
             - id: urn:restorecommerce:acs:names:model:entity
               value: urn:restorecommerce:acs:model:user.User
@@ -68,6 +69,7 @@ policy_sets:
             name: Rule BA1
             description: A rule targeting 'modify' actions
             target:
+              subjects: []
               actions:
                 - id: urn:oasis:names:tc:xacml:1.0:action:action-id
                   value: urn:restorecommerce:acs:names:action:modify

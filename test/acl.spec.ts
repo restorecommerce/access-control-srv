@@ -1,7 +1,7 @@
 import should from 'should';
-import { Worker } from '../src/worker';
+import { Worker } from '../src/worker.js';
 import * as testUtils from './utils.js';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import fs from 'node:fs';
 import { updateConfig } from '@restorecommerce/acs-client';
 import { createChannel, createClient } from '@restorecommerce/grpc-client';
@@ -11,10 +11,9 @@ import { PolicySetServiceDefinition, PolicySetServiceClient } from '@restorecomm
 import { AccessControlServiceDefinition, AccessControlServiceClient, Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
 import { cfg, logger } from './utils.js';
 import { it, describe, beforeAll, afterAll } from 'vitest';
-import { OwnershipDomainServiceClient, OwnershipDomainServiceDefinition } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/ownership_domain.js';
 
 let worker: Worker;
-let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient, ownershipDomainService: OwnershipDomainServiceClient;
+let ruleService: RuleServiceClient, policyService: PolicyServiceClient, policySetService: PolicySetServiceClient;
 let accessControlService: AccessControlServiceClient;
 let rules: any, policies: any, policySets: any, ownershipDomains: any;
 
@@ -40,11 +39,6 @@ const setupService = async (): Promise<void> => {
     ...ruleCfg,
     logger
   }, RuleServiceDefinition, createChannel(ruleCfg.address));
-  const ownershipDomainCfg = cfg.get('client:ownership_domain');
-  ownershipDomainService = createClient({
-    ...ownershipDomainCfg,
-    logger
-  }, OwnershipDomainServiceDefinition, createChannel(ownershipDomainCfg.address));
 };
 
 const truncate = async (): Promise<void> => {
@@ -55,9 +49,6 @@ const truncate = async (): Promise<void> => {
     collection: true
   });
   await ruleService.delete({
-    collection: true
-  });
-  await ownershipDomainService.delete({
     collection: true
   });
 };
@@ -89,9 +80,6 @@ const create = async (policiesFile: string): Promise<void> => {
   });
   await ruleService.create({
     items: rules
-  });
-  await ownershipDomainService.create({
-    items: ownershipDomains
   });
 };
 

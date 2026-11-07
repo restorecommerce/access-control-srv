@@ -1,11 +1,18 @@
-import _ from 'lodash-es';
-import { ResourcesAPIBase, ServiceBase, FilterOperation } from '@restorecommerce/resource-base-interface';
+import * as _ from 'lodash-es';
+import { ResourcesAPIBase, ServiceBase, ElementOf } from '@restorecommerce/resource-base-interface';
 import { Topic, Events } from '@restorecommerce/kafka-client';
 import { AccessController } from './core/accessController.js';
 import { createMetadata, checkAccessRequest } from './core/utils.js';
-import { AuthZAction, Operation, ACSAuthZ, DecisionResponse, PolicySetRQResponse, ACSResource, CtxResource } from '@restorecommerce/acs-client';
+import {
+  AuthZAction,
+  Operation,
+  ACSAuthZ,
+  DecisionResponse,
+  PolicySetRQResponse,
+  CtxResource,
+} from '@restorecommerce/acs-client';
 import { RedisClientType } from 'redis';
-import { Logger } from 'winston';
+import { Logger } from '@restorecommerce/logger';
 import {
   Response_Decision
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
@@ -15,41 +22,45 @@ import {
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy_set.js';
 import {
   PolicyServiceImplementation,
-  PolicyList, PolicyListResponse, Policy
+  PolicyList, PolicyListResponse
 } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js';
-import {
-  RuleServiceImplementation,
-  RuleList, RuleListResponse, Rule
-} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js';
-import { ReadRequest, Filter_Operation, DeepPartial, DeleteRequest, DeleteResponse } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/resource_base.js';
+import { 
+  ReadRequest,
+  Filter_Operation,
+  DeepPartial,
+  DeleteRequest,
+  DeleteResponse,
+  ResourceList,
+  ResourceListResponse,
+} from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/resource_base.js';
 import { PolicyWithCombinables, PolicySetWithCombinables } from './core/interfaces.js';
-import { makeFilter, marshallResource } from './core/services/utils.js';
+import { makeFilter, marshallResource, Seedable } from './core/services/utils.js';
 import { OwnershipDomainService } from './core/services/ownershipDomainService.js';
 import { RuleService } from './core/services/ruleService.js';
+import { CallContext } from '@restorecommerce/grpc-client';
+import { ServiceConfig } from '@restorecommerce/service-config';
+import { DatabaseProvider } from '@restorecommerce/chassis-srv';
 
-
-export interface IAccessControlResourceService<T> {
-  load(): Promise<Map<string, T>>;
-  readMetaData(id?: string): Promise<any>;
+export interface IAccessControlResourceService<O extends ResourceListResponse, I extends ResourceList>
+  extends Seedable<I>
+{
+  load(): Promise<Map<string, ElementOf<I['items']>>>;
+  readMetaData(id?: string): Promise<DeepPartial<O>>;
 }
-
-let _accessController: AccessController;
-let policySetService: PolicySetService,
-  policyService: PolicyService,
-  ruleService: RuleService,
-  ownershipDomainService: OwnershipDomainService;
-
 
 /**
  * Policy resource service.
  */
-export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> implements IAccessControlResourceService<Policy>, PolicyServiceImplementation {
-  ruleService: RuleService;
-  cfg: any;
-  redisClient: RedisClientType<any, any>;
-  authZ: ACSAuthZ;
-  constructor(logger: any, db: any, policyTopic: Topic, rulesTopic: Topic, cfg: any,
-    redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
+export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList>
+  implements IAccessControlResourceService<PolicyListResponse, PolicyList>, PolicyServiceImplementation
+{
+  constructor(
+    readonly logger: Logger,
+    policyTopic: Topic,
+    cfg: ServiceConfig,
+    private readonly resourceManager: ResourceManager,
+    private readonly accessController = resourceManager.accessController,
+  ) {
     let resourceFieldConfig;
     if (cfg.get('fieldHandlers')) {
       resourceFieldConfig = cfg.get('fieldHandlers');
@@ -68,7 +79,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       policyTopic,
       logger,
       new ResourcesAPIBase(
-        db,
+        resourceManager.db,
         'policies',
         resourceFieldConfig,
         undefined,
@@ -78,10 +89,6 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       ),
       true
     );
-    this.ruleService = new RuleService(this.logger, rulesTopic, db, cfg, redisClient, authZ);
-    this.cfg = cfg;
-    this.redisClient = redisClient;
-    this.authZ = authZ;
   }
 
   /**
@@ -91,9 +98,10 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     return this.getPolicies();
   }
 
-  async superUpsert(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+  async insertSeed(request: PolicyList, ctx?: any): Promise<void> {
+    const ruleService = this.resourceManager.getResourceService('rule');
     const result = await super.upsert(request, ctx);
-    const policySets = _.cloneDeep(_accessController.policySets);
+    const policySets = _.cloneDeep(this.accessController.policySets);
 
     if (result?.items?.length > 0) {
       for (const item of result.items) {
@@ -112,15 +120,15 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
                 }
               }
             }
-            _accessController.updatePolicy(policySet.id, policy);
+            this.accessController.updatePolicy(policySet.id, policy);
           }
         }
       }
     }
-    return result;
   }
 
-  async create(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+  async create(request: PolicyList, ctx?: any): Promise<DeepPartial<PolicyListResponse>> {
+    const ruleService = this.resourceManager.getResourceService('rule');
     const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
@@ -133,11 +141,11 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.CREATE,
         Operation.isAllowed);
-    } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv for create Policies', { code: err.code, message: err.message, stack: err.stack });
+    } catch (err: any) {
+      this.logger.error('Error occurred requesting access-control-srv for create Policies', err);
       return {
         operation_status: {
-          code: err.code,
+          code: Number.isInteger(err.code) ? err.code : 500,
           message: err.message
         }
       };
@@ -146,7 +154,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.create(request, ctx);
-    const policySets = _.cloneDeep(_accessController.policySets);
+    const policySets = _.cloneDeep(this.accessController.policySets);
 
     if (result?.items?.length > 0) {
       for (const item of result.items) {
@@ -165,7 +173,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
                 }
               }
             }
-            _accessController.updatePolicy(policySet.id, policy);
+            this.accessController.updatePolicy(policySet.id, policy);
           }
         }
       }
@@ -183,11 +191,11 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
           value: id
         }]
       }]
-    }), {});
+    }), {} as any);
     return result;
   }
 
-  async read(request: ReadRequest, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+  async read(request: ReadRequest, ctx?: any): Promise<DeepPartial<PolicyListResponse>> {
     const subject = request.subject;
     let acsResponse: PolicySetRQResponse;
     try {
@@ -196,8 +204,8 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       ctx.resources = [];
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy' }], AuthZAction.READ,
         Operation.whatIsAllowed) as PolicySetRQResponse;
-    } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv for read Policies', { code: err.code, message: err.message, stack: err.stack });
+    } catch (err: any) {
+      this.logger.error('Error occurred requesting access-control-srv for read Policies', err);
       return {
         operation_status: {
           code: err.code,
@@ -216,7 +224,8 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     return result;
   }
 
-  async update(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+  async update(request: PolicyList, ctx?: any): Promise<DeepPartial<PolicyListResponse>> {
+    const policySetService = this.resourceManager.getResourceService('policy_set');
     const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
@@ -229,7 +238,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error('Error occurred requesting access-control-srv for update Policies', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
@@ -242,12 +251,13 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.update(request, ctx);
-    _accessController.policySets = await policySetService.load() || new Map();
+    this.accessController.policySets = await policySetService.load() || new Map();
     this.logger.info('Reloaded Policies after update operation');
     return result;
   }
 
-  async upsert(request: PolicyList, ctx: any): Promise<DeepPartial<PolicyListResponse>> {
+  async upsert(request: PolicyList, ctx?: any): Promise<DeepPartial<PolicyListResponse>> {
+    const policySetService = this.resourceManager.getResourceService('policy_set');
     const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
@@ -260,8 +270,8 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
-    } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv for upsert Policies', { code: err.code, message: err.message, stack: err.stack });
+    } catch (err: any) {
+      this.logger.error('Error occurred requesting access-control-srv for upsert Policies', err);
       return {
         operation_status: {
           code: err.code,
@@ -273,14 +283,15 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.upsert(request, ctx);
-    _accessController.policySets = await policySetService.load() || new Map();
+    this.resourceManager.accessController.policySets = await policySetService.load() || new Map();
     this.logger.info('Reloaded Policies after upsert operation');
     return result;
   }
 
   async getPolicies(policyIDs?: string[]): Promise<Map<string, PolicyWithCombinables>> {
+    const ruleService = this.resourceManager.getResourceService('rule');
     const filters = policyIDs ? makeFilter(policyIDs) : [];
-    const result = await super.read(ReadRequest.fromPartial({ filters }), {});
+    const result = await super.read(ReadRequest.fromPartial({ filters }), {} as any);
 
     const policies = new Map<string, PolicyWithCombinables>();
     if (result?.items?.length > 0) {
@@ -288,10 +299,10 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
         const policy: PolicyWithCombinables = marshallResource(result.items[i].payload, 'policy');
 
         if (!_.isEmpty(result.items[i]?.payload?.rules)) {
-          policy.combinables = await this.ruleService.getRules(result.items[i].payload.rules);
+          policy.combinables = await ruleService.getRules(result.items[i].payload.rules);
           if (policy.combinables.size != result.items[i].payload.rules.length) {
             for (const ruleID of result.items[i].payload.rules) {
-              const ruleData = await this.ruleService.getRules([ruleID]);
+              const ruleData = await ruleService.getRules([ruleID]);
               if (ruleData.size === 0) {
                 this.logger.info(`No rules were found for rule identifier ${ruleID}`);
                 continue;
@@ -311,7 +322,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
     return policies;
   }
 
-  async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
+  async delete(request: DeleteRequest, ctx?: any): Promise<DeepPartial<DeleteResponse>> {
     const resources = new Array<CtxResource>();
     const subject = request.subject;
     const policyIDs = request.ids;
@@ -360,28 +371,36 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList> i
 
     if (request?.ids?.length > 0) {
       for (const id of request.ids) {
-        for (const [, policySet] of _accessController.policySets) {
+        for (const [, policySet] of this.accessController.policySets) {
           if (policySet.combinables.has(id)) {
-            _accessController.removePolicy(policySet.id, id);
+            this.accessController.removePolicy(policySet.id, id);
           }
         }
       }
     } else if (request?.collection && request.collection === true) {
-      for (const [, policySet] of _accessController.policySets) {
+      for (const [, policySet] of this.accessController.policySets) {
         policySet.combinables = new Map();
-        _accessController.updatePolicySet(policySet);
+        this.accessController.updatePolicySet(policySet);
       }
     }
     return deleteResponse;
   }
+
+  async insertSeedData(request: PolicyList, context?: CallContext): Promise<void> {
+    super.upsert(request, context);
+  }
 }
 
-export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicySetList> implements IAccessControlResourceService<PolicySet>, PolicySetServiceImplementation {
-  cfg: any;
-  redisClient: RedisClientType<any, any>;
-  authZ: ACSAuthZ;
-  constructor(logger: any, db: any, policySetTopic: Topic, cfg: any,
-    redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
+export class PolicySetService
+  extends ServiceBase<PolicySetListResponse, PolicySetList>
+  implements IAccessControlResourceService<PolicySetListResponse, PolicySetList>, PolicySetServiceImplementation
+{
+  constructor(
+    readonly logger: Logger,
+    readonly policySetTopic: Topic,
+    readonly cfg: ServiceConfig,
+    readonly resourceManager: ResourceManager,
+  ) {
     let resourceFieldConfig;
     if (cfg.get('fieldHandlers')) {
       resourceFieldConfig = cfg.get('fieldHandlers');
@@ -400,7 +419,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       policySetTopic,
       logger,
       new ResourcesAPIBase(
-        db,
+        resourceManager.db,
         'policy_sets',
         resourceFieldConfig,
         undefined,
@@ -410,9 +429,6 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       ),
       true
     );
-    this.cfg = cfg;
-    this.redisClient = redisClient;
-    this.authZ = authZ;
   }
 
   async readMetaData(id?: string): Promise<DeepPartial<PolicySetListResponse>> {
@@ -424,7 +440,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
           value: id
         }]
       }]
-    }), {});
+    }), {} as any);
     return result;
   }
 
@@ -432,7 +448,8 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
    * Load policy sets and map them to policies.
    */
   async load(): Promise<Map<string, PolicySet>> {
-    const data = await super.read(ReadRequest.fromPartial({}), {});
+    const policyService = this.resourceManager.getResourceService('policy');
+    const data = await super.read(ReadRequest.fromPartial({}), {} as any);
 
     if (!data || !data.items || data.items.length == 0) {
       this.logger.warn('No policy sets retrieved from database');
@@ -451,7 +468,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
 
       const policySet: PolicySetWithCombinables = marshallResource(item.payload, 'policy_set');
 
-      _.forEach(item.payload.policies, (policyID) => {
+      _.forEach(item.payload.policies, (policyID: string) => {
         if (policies.has(policyID)) {
           policySet.combinables.set(policyID, policies.get(policyID));
         } else {
@@ -465,7 +482,8 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     return policySets;
   }
 
-  async superUpsert(request: PolicySetList, context: any): Promise<DeepPartial<PolicySetListResponse>> {
+  async insertSeed(request: PolicySetList, context: any): Promise<void> {
+    const policyService = this.resourceManager.getResourceService('policy');
     const result = await super.upsert(request, context);
     if (result?.items?.length > 0) {
       for (const item of result.items) {
@@ -481,13 +499,13 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
             }
           }
         }
-        _accessController.updatePolicySet(policySet);
+        this.resourceManager.accessController.updatePolicySet(policySet);
       }
     }
-    return result;
   }
 
   async create(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
+    const policyService = this.resourceManager.getResourceService('policy');
     const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
@@ -500,8 +518,8 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.CREATE,
         Operation.isAllowed);
-    } catch (err) {
-      this.logger.error('Error occurred requesting access-control-srv for create PolicySets', { code: err.code, message: err.message, stack: err.stack });
+    } catch (err: any) {
+      this.logger.error('Error occurred requesting access-control-srv for create PolicySets', err);
       return {
         operation_status: {
           code: err.code,
@@ -527,7 +545,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
             }
           }
         }
-        _accessController.updatePolicySet(policySet);
+        this.resourceManager.accessController.updatePolicySet(policySet);
       }
     }
 
@@ -535,6 +553,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   }
 
   async update(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
+    const policyService = this.resourceManager.getResourceService('policy');
     const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
@@ -547,7 +566,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error('Error occurred requesting access-control-srv for update PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
@@ -564,7 +583,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
     // update in memory policies if no exception was thrown
     const reqItems = request?.items;
     for (const item of reqItems) {
-      let policySet = _accessController.policySets.get(item.id);
+      let policySet = this.resourceManager.accessController.policySets.get(item.id);
       let policies = policySet.combinables;
 
       if (_.has(item, 'policies')) {
@@ -596,20 +615,20 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
 
       policySet = _.merge(policySet, marshallResource(item, 'policy_set'));
       policySet.combinables = policies;
-      _accessController.policySets.set(policySet.id, policySet);
+      this.resourceManager.accessController.policySets.set(policySet.id, policySet);
     }
 
     return result;
   }
 
-  async delete(request: DeleteRequest, ctx: any): Promise<DeepPartial<DeleteResponse>> {
-    let resources = [];
+  async delete(request: DeleteRequest, ctx?: any): Promise<DeepPartial<DeleteResponse>> {
+    let resources = new Array<ElementOf<CtxResource['items']>>;
     const subject = request.subject;
     const policySetIDs = request.ids;
     let action;
     if (policySetIDs) {
       action = AuthZAction.DELETE;
-      if (_.isArray(policySetIDs)) {
+      if (Array.isArray(policySetIDs)) {
         for (const id of policySetIDs) {
           resources.push({ id });
         }
@@ -631,7 +650,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       ctx.resources = resources;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: policySetIDs }], action,
         Operation.isAllowed);
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error('Error occurred requesting access-control-srv for delete PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
@@ -647,10 +666,10 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
 
     if (request?.ids?.length > 0) {
       for (const id of request.ids) {
-        _accessController.removePolicySet(id);
+        this.resourceManager.accessController.removePolicySet(id);
       }
     } else if (request.collection && request.collection == true) {
-      _accessController.clearPolicies();
+      this.resourceManager.accessController.clearPolicies();
     }
     return deleteResponse;
   }
@@ -664,7 +683,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       ctx.resources = [];
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set' }], AuthZAction.READ,
         Operation.whatIsAllowed) as PolicySetRQResponse;
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error('Error occurred requesting access-control-srv for read PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
@@ -685,6 +704,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
   }
 
   async upsert(request: PolicySetList, ctx: any): Promise<DeepPartial<PolicySetListResponse>> {
+    const policySetService = this.resourceManager.getResourceService('policy_set');
     const subject = request.subject;
     // update meta data for owner information
     let items = request.items;
@@ -697,7 +717,7 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       ctx.resources = items;
       acsResponse = await checkAccessRequest(ctx, [{ resource: 'policy_set', id: items.map(item => item.id) }], AuthZAction.MODIFY,
         Operation.isAllowed);
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error('Error occurred requesting access-control-srv for upsert PolicySets', { code: err.code, message: err.message, stack: err.stack });
       return {
         operation_status: {
@@ -710,31 +730,36 @@ export class PolicySetService extends ServiceBase<PolicySetListResponse, PolicyS
       return { operation_status: acsResponse.operation_status };
     }
     const result = await super.upsert(request, ctx);
-    _accessController.policySets = await policySetService.load() || new Map();
+    this.resourceManager.accessController.policySets = await policySetService.load() || new Map();
     this.logger.info('Reloaded PolicySet after upsert operation');
     return result;
   }
+
+  async insertSeedData(request: PolicySetList, context?: CallContext): Promise<void> {
+    super.upsert(request, context);
+  }
 }
 
+export type ServiceMap = {
+  policy_set: PolicySetService;
+  policy: PolicyService;
+  rule: RuleService;
+  ownership_domain: OwnershipDomainService;
+};
+export type ServiceName = keyof ServiceMap;
+
 export class ResourceManager {
+  private serviceMap: ServiceMap;
 
-  cfg: any;
-  logger: Logger;
-  events: Events;
-  db: any;
-  redisClient: RedisClientType<any, any>;
-  authZ: any;
-
-  constructor(cfg: any, logger: Logger, events: Events, db: any,
-    accessController: AccessController, redisClient: RedisClientType<any, any>, authZ: ACSAuthZ) {
-    _accessController = accessController;
-    this.cfg = cfg;
-    this.logger = logger;
-    this.events = events;
-    this.db = db;
-    this.redisClient = redisClient;
-    this.authZ = authZ;
-  }
+  constructor(
+    readonly cfg: ServiceConfig,
+    readonly logger: Logger,
+    readonly events: Events,
+    readonly db: DatabaseProvider,
+    readonly accessController: AccessController,
+    readonly redisClient: RedisClientType<any, any>,
+    readonly authZ: ACSAuthZ
+  ) {}
 
   async setup() {
     const kafkaCfg = this.cfg.get('events:kafka');
@@ -742,24 +767,21 @@ export class ResourceManager {
     const policyTopic = await this.events.topic(kafkaCfg.topics['policy.resource'].topic);
     const policySetTopic = await this.events.topic(kafkaCfg.topics['policy_set.resource'].topic);
     const ownershipDomainTopic = await this.events.topic(kafkaCfg.topics['ownership_domain.resource'].topic);
-
-    policySetService = new PolicySetService(this.logger, this.db, policySetTopic, this.cfg, this.redisClient, this.authZ);
-    policyService = new PolicyService(this.logger, this.db, policyTopic, rulesTopic, this.cfg, this.redisClient, this.authZ);
-    ruleService = new RuleService(this.logger, rulesTopic, this.db, this.cfg, _accessController);
-    ownershipDomainService = new OwnershipDomainService(this.logger, ownershipDomainTopic, this.db, this.cfg);
+    this.serviceMap = {
+      policy_set: new PolicySetService(this.logger, policySetTopic, this.cfg, this),
+      policy: new PolicyService(this.logger, policyTopic, this.cfg, this),
+      rule: new RuleService(this.logger, rulesTopic, this.db, this.cfg, this.accessController),
+      ownership_domain: new OwnershipDomainService(this.logger, ownershipDomainTopic, this.db, this.cfg),
+    };
   }
 
-  getResourceService(resource: string): RuleService | PolicyService | PolicySetService | OwnershipDomainService {
-    switch (resource) {
-      case 'policy_set':
-        return policySetService;
-      case 'policy':
-        return policyService;
-      case 'rule':
-        return ruleService;
-      case 'ownership_domain':
-        return ownershipDomainService;
-      default: throw new Error(`Unknown resource ${resource}`);
+  getResourceService<T extends ServiceName>(resource: T): ServiceMap[T] {
+    const service = this.serviceMap[resource];
+    if (service) {
+      return service as ServiceMap[T];
+    }
+    else {
+      throw new Error(`Unknown resource ${resource}`);
     }
   }
 }

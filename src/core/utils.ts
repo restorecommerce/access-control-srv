@@ -1,6 +1,6 @@
 import * as _ from 'lodash-es';
 import fs from 'node:fs';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { AccessController } from './accessController.js';
 import {
   AuthZAction,
@@ -11,7 +11,9 @@ import {
   PolicySetRQResponse,
   Obligation,
   ACSClientContext,
-  ACSResource as Resource
+  ACSResource as Resource,
+  entities,
+  urns,
 } from '@restorecommerce/acs-client';
 import { Subject } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/auth.js';
 import { Response_Decision } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/access_control.js';
@@ -30,7 +32,7 @@ import { RoleAssociation } from '@restorecommerce/rc-grpc-clients/dist/generated
 import { Topic } from '@restorecommerce/kafka-client';
 import { Attribute } from '@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/attribute.js';
 import { randomUUID } from 'node:crypto';
-
+Object.assign(entities, urns);
 
 export const formatTarget = (target: any): Target => {
   if (!target) {
@@ -272,13 +274,12 @@ export async function createMetadata(resources: any,
   if (resources && !Array.isArray(resources)) {
     resources = [resources];
   }
-  const urns = service.cfg.get('authorization:urns');
   if (subject && subject.scope && (action === AuthZAction.CREATE || action === AuthZAction.MODIFY)) {
     // add user and subject scope as default owner
     orgOwnerAttributes.push(
       {
         id: urns.ownerIndicatoryEntity,
-        value: urns.organization,
+        value: entities.organization,
         attributes: [{
           id: urns.ownerInstance,
           value: subject.scope
@@ -311,7 +312,7 @@ export async function createMetadata(resources: any,
             ownerAttributes.push(
               {
                 id: urns.ownerIndicatoryEntity,
-                value: urns.user,
+                value: entities.user,
                 attributes: [{
                   id: urns.ownerInstance,
                   value: subject.id
@@ -334,7 +335,7 @@ export async function createMetadata(resources: any,
           ownerAttributes.push(
             {
               id: urns.ownerIndicatoryEntity,
-              value: urns.user,
+              value: entities.user,
               attributes: [{
                 id: urns.ownerInstance,
                 value: subject.id

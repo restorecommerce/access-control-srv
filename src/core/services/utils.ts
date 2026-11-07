@@ -1,7 +1,12 @@
+import { CallContext } from "@restorecommerce/grpc-client";
 import { Policy } from "@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/policy.js";
 import { Rule } from "@restorecommerce/rc-grpc-clients/dist/generated-server/io/restorecommerce/rule.js";
 import { FilterOperation } from "@restorecommerce/resource-base-interface";
-import _ from "lodash";
+import * as _ from 'lodash-es';
+
+export interface Seedable<T> {
+  insertSeedData(request: T, context?: CallContext): Promise<void>;
+}
 
 export const marshallResource = (resource: any, resourceName: string): any => {
   let marshalled: any = _.pick(resource, ['id', 'name', 'description', 'evaluation_cacheable']);

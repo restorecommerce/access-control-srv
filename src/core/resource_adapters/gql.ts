@@ -1,6 +1,6 @@
 import { ResourceAdapter, QueryResult } from './adapter.js';
 import pkg from 'apollo-client';
-import gql from 'graphql-tag';
+import { gql } from 'graphql-tag';
 import { InMemoryCache } from 'apollo-cache-inmemory';
 import { HttpLink } from 'apollo-link-http';
 import * as _ from 'lodash-es';
@@ -71,8 +71,10 @@ export class GraphQLAdapter implements ResourceAdapter {
         link: new HttpLink({ uri: this.url, fetch, headers }),
         cache: new InMemoryCache({ addTypename: false })
       });
-    } catch (err) {
-      throw new Error('Error occured creating graphql client', { cause: err });
+    } catch (err: any) {
+      throw new class extends Error {
+        cause = err;
+      }('Error occured creating graphql client');
     }
     const response = await client.query({ query: gql`${query}`, variables: { filters: filtersArr } });
     if (_.isEmpty(response)) {
