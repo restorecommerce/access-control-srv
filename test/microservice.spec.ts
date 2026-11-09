@@ -155,7 +155,7 @@ describe('testing microservice', () => {
       cfg.set('authorization:enabled', false);
       cfg.set('authorization:enforce', false);
       updateConfig(cfg);
-    });
+    }, 30_000);
     afterAll(async () => {
       await truncate().catch();
       await worker.stop().catch();

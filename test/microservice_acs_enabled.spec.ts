@@ -316,22 +316,6 @@ const hrScopeReqListener = async (msg: any) => {
 describe('testing microservice', () => {
   describe('testing resource ownership with ACS Enabled', () => {
     beforeAll(async () => {
-      await setupService();
-      await load('./test/fixtures/default_policies.yml');
-      // Add a HR scopeReq listener and send back HR scope response
-      // to imitate mock from service which is responsible for creating HR scopes
-      // const events = new Events(cfg.get('events:kafka'), logger);
-      const events = new Events({
-        ...cfg.get('events:kafka'),
-        groupId: 'restore-access-control-srv-test-runner',
-        kafka: {
-          ...cfg.get('events:kafka:kafka'),
-        }
-      }, logger);
-      await events.start();
-      authTopic = await events.topic(cfg.get('events:kafka:topics:auth:topic'));
-      await authTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
-      // start mock ids-srv needed for findByToken response and return subject
       const user = {
         payload: {
           id: 'admin_user_id',
@@ -344,6 +328,13 @@ describe('testing microservice', () => {
         }
       };
       await startGrpcMockServer([{ method: 'findByToken', output: user }]);
+      await setupService();
+      await load('./test/fixtures/default_policies.yml');
+      // Add a HR scopeReq listener and send back HR scope response
+      // to imitate mock from service which is responsible for creating HR scopes
+      authTopic = await worker.events.topic(cfg.get('events:kafka:topics:auth:topic'));
+      await authTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
+      // start mock ids-srv needed for findByToken response and return subject
       await truncate();
     });
     afterAll(async () => {
