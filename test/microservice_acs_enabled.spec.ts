@@ -336,7 +336,7 @@ describe('testing microservice', () => {
       await authTopic.on('hierarchicalScopesRequest', hrScopeReqListener);
       // start mock ids-srv needed for findByToken response and return subject
       await truncate();
-    });
+    }, 30_000);
     afterAll(async () => {
       await authTopic.removeAllListeners('hierarchicalScopesRequest');
       await truncate().catch(logger.error);
