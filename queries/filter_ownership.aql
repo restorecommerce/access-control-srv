@@ -1,4 +1,5 @@
-LET found = (
+LET owners = (
+  FILTER node.meta.owners != NULL
   FOR o IN node.meta.owners
     FILTER o.id == "urn:restorecommerce:acs:names:ownerIndicatoryEntity"
     FOR arg IN @customArguments
@@ -7,13 +8,16 @@ LET found = (
         FILTER ownerInst.id == "urn:restorecommerce:acs:names:ownerInstance"
         FILTER ownerInst.value IN arg.instance    
         RETURN TRUE
-  FOR o IN node.meta.acls
-    FILTER o.id == "urn:restorecommerce:acs:names:aclIndicatoryEntity"
+)
+LET acls = (
+  FILTER node.meta.acls != NULL
+  FOR a IN node.meta.acls
+    FILTER a.id == "urn:restorecommerce:acs:names:aclIndicatoryEntity"
     FOR arg IN @customArguments
-      FILTER o.value == arg.entity
-      FOR aclInst IN o.attributes
+      FILTER a.value == arg.entity
+      FOR aclInst IN a.attributes
         FILTER aclInst.id == "urn:restorecommerce:acs:names:aclInstance"
         FILTER aclInst.value IN arg.instance    
         RETURN TRUE
 )
-FILTER TRUE IN found
+FILTER TRUE IN APPEND(owners, acls)

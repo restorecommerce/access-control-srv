@@ -270,8 +270,13 @@ export class Worker {
     this.logger.info('Access control service started correctly!');
     await accessControlService.loadPolicies();
     const commandTopic = await events.topic(this.cfg.get('events:kafka:topics:command:topic'));
-    const eventListener = async (msg: any,
-      context: any, config: any, eventName: string): Promise<any> => {
+    const eventListener = async (
+      msg: any,
+      context: any,
+      config: any,
+      eventName: string,
+      ...args: any[]
+    ): Promise<any> => {
       if (eventName === 'hierarchicalScopesResponse') {
         // Add subject_id to waiting list
         const hierarchical_scopes = msg?.hierarchical_scopes ? msg.hierarchical_scopes : [];
@@ -371,8 +376,7 @@ export class Worker {
       }
     };
 
-    for (const topicLabel in kafkaConfig.topics) {
-      const topicCfg = kafkaConfig.topics[topicLabel];
+    for (const topicCfg of Object.values<any>(kafkaConfig.topics ?? [])) {
       const topic = await events.topic(topicCfg.topic);
       const offSetValue = await this.offsetStore.getOffset(topicCfg.topic);
       logger.info('subscribing to topic with offset value', { topic: topicCfg.topic, offset: Number(offSetValue) });
