@@ -348,8 +348,8 @@ describe('testing microservice', () => {
     });
     afterAll(async () => {
       await authTopic.removeAllListeners('hierarchicalScopesRequest');
-      await truncate();
-      await worker.stop();
+      await truncate().catch(logger.error);
+      await worker.stop().catch(logger.error);
     });
     describe('testing create() operations', () => {
       it('it should insert default rules, policies and policy sets with ACS disabled', async () => {

@@ -157,7 +157,8 @@ describe('testing microservice', () => {
       updateConfig(cfg);
     });
     afterAll(async () => {
-      await worker.stop();
+      await truncate().catch();
+      await worker.stop().catch();
     });
     describe('testing create() operations', () => {
       it('it should insert policy sets', async () => {
@@ -381,7 +382,8 @@ describe('testing microservice', () => {
       await setupService();
     });
     afterAll(async () => {
-      await worker.stop();
+      await await truncate().catch(logger.error);
+      await worker.stop().catch(logger.error);
     });
     describe('isAllowed()', () => {
       beforeAll(async () => {

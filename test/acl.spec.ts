@@ -90,7 +90,8 @@ describe('testing ACL for microservice', () => {
       await setupService();
     });
     afterAll(async () => {
-      await worker.stop();
+      await truncate().catch(logger.error);
+      await worker.stop().catch(logger.error);
     });
     describe('isAllowed()', () => {
       beforeAll(async () => {

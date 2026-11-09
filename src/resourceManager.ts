@@ -751,17 +751,27 @@ export type ServiceName = keyof ServiceMap;
 export class ResourceManager {
   private serviceMap: ServiceMap;
 
-  constructor(
+  public static async setup(
+    cfg: ServiceConfig,
+    logger: Logger,
+    events: Events,
+    db: DatabaseProvider,
+    accessController: AccessController,
+    redisClient: RedisClientType<any, any>,
+  ): Promise<ResourceManager> {
+    return await new ResourceManager(cfg, logger, events, db, accessController, redisClient).setup();
+  }
+
+  protected constructor(
     readonly cfg: ServiceConfig,
     readonly logger: Logger,
     readonly events: Events,
     readonly db: DatabaseProvider,
     readonly accessController: AccessController,
-    readonly redisClient: RedisClientType<any, any>,
-    readonly authZ: ACSAuthZ
+    readonly redisClient: RedisClientType<any, any>
   ) {}
 
-  async setup() {
+  protected async setup(): Promise<ResourceManager> {
     const kafkaCfg = this.cfg.get('events:kafka');
     const rulesTopic = await this.events.topic(kafkaCfg.topics['rule.resource'].topic);
     const policyTopic = await this.events.topic(kafkaCfg.topics['policy.resource'].topic);
@@ -773,6 +783,7 @@ export class ResourceManager {
       rule: new RuleService(this.logger, rulesTopic, this.db, this.cfg, this.accessController),
       ownership_domain: new OwnershipDomainService(this.logger, ownershipDomainTopic, this.db, this.cfg),
     };
+    return this;
   }
 
   getResourceService<T extends ServiceName>(resource: T): ServiceMap[T] {

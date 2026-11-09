@@ -107,8 +107,8 @@ export class Worker {
   commandInterface: AccessControlCommandInterface;
   accessController: AccessController;
   redisClient: RedisClientType<any, any>;
-  authZ: ACSAuthZ;
   offsetStore: chassis.OffsetStore;
+
   async start(cfg?: any, logger?: any): Promise<any> {
     this.cfg = cfg ?? await chassis.config.get();
     const loggerCfg = this.cfg.get('logger');
@@ -159,21 +159,17 @@ export class Worker {
 
     // resources
     const db = await chassis.database.get(this.cfg.get('database:main'), this.logger);
-    // init ACS cache
-    await initializeCache();
     // init AuthZ
-    this.authZ = await initAuthZ(this.cfg) as ACSAuthZ;
+    await initAuthZ(this.cfg);
     // resource manager
-    const resourceManager = new ResourceManager(
+    const resourceManager = await ResourceManager.setup(
       this.cfg,
       this.logger,
       events,
       db,
       this.accessController,
-      this.redisClient,
-      this.authZ
+      this.redisClient
     );
-    await resourceManager.setup();
     // access control service
     const accessControlService = new AccessControlService(this.cfg, this.logger, resourceManager, this.accessController);
     // command interface
@@ -391,9 +387,9 @@ export class Worker {
   }
 
   async stop(): Promise<void> {
-    await this.offsetStore.stop();
-    await this.events.stop();
-    await this.server.stop();
-    await this.redisClient.quit();
+    await this.events.stop().catch(this.logger?.error);
+    await this.server.stop().catch(this.logger?.error);
+    await this.offsetStore.stop().catch(this.logger?.error);
+    await this.redisClient.quit().catch(this.logger?.error);
   }
 }
