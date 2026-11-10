@@ -98,7 +98,7 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList>
     return this.getPolicies();
   }
 
-  async insertSeed(request: PolicyList, ctx?: any): Promise<void> {
+  async insertSeedData(request: PolicyList, ctx?: any): Promise<void> {
     const ruleService = this.resourceManager.getResourceService('rule');
     const result = await super.upsert(request, ctx);
     const policySets = _.cloneDeep(this.accessController.policySets);
@@ -385,10 +385,6 @@ export class PolicyService extends ServiceBase<PolicyListResponse, PolicyList>
     }
     return deleteResponse;
   }
-
-  async insertSeedData(request: PolicyList, context?: CallContext): Promise<void> {
-    super.upsert(request, context);
-  }
 }
 
 export class PolicySetService
@@ -482,7 +478,7 @@ export class PolicySetService
     return policySets;
   }
 
-  async insertSeed(request: PolicySetList, context: any): Promise<void> {
+  async insertSeedData(request: PolicySetList, context: any): Promise<void> {
     const policyService = this.resourceManager.getResourceService('policy');
     const result = await super.upsert(request, context);
     if (result?.items?.length > 0) {
@@ -733,10 +729,6 @@ export class PolicySetService
     this.resourceManager.accessController.policySets = await policySetService.load() || new Map();
     this.logger.info('Reloaded PolicySet after upsert operation');
     return result;
-  }
-
-  async insertSeedData(request: PolicySetList, context?: CallContext): Promise<void> {
-    super.upsert(request, context);
   }
 }
 
