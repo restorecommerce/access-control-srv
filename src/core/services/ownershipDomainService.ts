@@ -88,9 +88,9 @@ async function ODMetaDataInjector(
     item.meta.acls ??= [];
     item.meta.owners.push(...(item.attributes?.filter(
       a => a.id === urns.ownerIndicatoryEntity
-        /*&& item.meta.owners?.every(
-          o => !_.isEqual(o, a) // not deep equal
-        )*/
+      && !(item.meta.owners?.some(
+        o => _.isEqual(o, a)
+      ))
     ) ?? []));
     item.meta.acls.push(...(item.attributes?.filter(
       a => a.id === urns.aclIndicatoryEntity
@@ -105,8 +105,7 @@ async function ODMetaDataInjector(
 
 export class OwnershipDomainService
   extends AccessControlledServiceBase<OwnershipDomainListResponse, OwnershipDomainList>
-  implements OwnershipDomainServiceImplementation, Seedable<OwnershipDomainList>
-{
+  implements OwnershipDomainServiceImplementation, Seedable<OwnershipDomainList> {
   constructor(
     logger: Logger,
     topic: Topic,
@@ -125,7 +124,7 @@ export class OwnershipDomainService
     return await super.create(request, ctx);
   }
 
-   @access_controlled_function({
+  @access_controlled_function({
     action: AuthZAction.DELETE,
     operation: Operation.isAllowed,
     meta: ODMetaDataInjector,
