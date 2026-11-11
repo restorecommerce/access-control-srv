@@ -151,7 +151,7 @@ export const verifyACLList = async (
 
 
   if (actionObj && actionObj[0] && actionObj[0].id === urns.actionID &&
-    (actionObj[0].value === urns.create)) {
+    (actionObj[0].value === urns.create || actionObj[0].value === urns.modify)) {
     let validTargetInstances = false;
     if (_.isEmpty(targetScopingEntities)) {
       logger.debug('ACL data was not set in the meta data request, hence no ACL check is done');
@@ -160,7 +160,7 @@ export const verifyACLList = async (
     for (const scopingEntity of targetScopingEntities) {
       // do not verify the ACL check for subject identifiers
       if ((scopingEntity === entities.user) && (actionObj && actionObj[0] && actionObj[0].id === urns.actionID &&
-        (actionObj[0].value === urns.create))) {
+        (actionObj[0].value === urns.create || actionObj[0].value === urns.modify))) {
         logger.info(`ACL indicatory entity is Subject ${entities.user} and hence no verification is needed`);
         validTargetInstances = true;
         continue;
@@ -177,7 +177,7 @@ export const verifyACLList = async (
       // if action is create / modify then only verify the HR scopes (if not direct match should be done)
       const validatedACLInstances: string[] = [];
       if (actionObj && actionObj[0] && actionObj[0].id === urns.actionID &&
-        (actionObj[0].value === urns.create)) {
+        (actionObj[0].value === urns.create || actionObj[0].value === urns.modify)) {
 
         const hrScopedRoles = Array.from(roleWithOrgScopesMap.keys());
         // check for every HR scoped role
