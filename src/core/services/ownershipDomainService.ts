@@ -86,18 +86,18 @@ async function ODMetaDataInjector(
       } : undefined,
     ].filter(Boolean);
     item.meta.acls ??= [];
-    item.meta.owners.push(...(item.attributes?.filter(
-      a => a.id === urns.ownerIndicatoryEntity
-      && !(item.meta.owners?.some(
-        o => _.isEqual(o, a)
-      ))
-    ) ?? []));
-    item.meta.acls.push(...(item.attributes?.filter(
-      a => a.id === urns.aclIndicatoryEntity
-        && item.meta.acls?.every(
-          o => !_.isEqual(o, a)
-        )
-    ) ?? []));
+    item.meta.owners.push(
+      ...(item.attributes?.filter(
+        a => a.id === urns.ownerIndicatoryEntity
+      ) ?? [])
+    );
+    item.meta.acls.push(
+      ...(item.attributes?.filter(
+        a => a.id === urns.aclIndicatoryEntity
+      ) ?? [])
+    );
+    item.meta.owners = _.uniqWith(item.meta.owners, _.isEqual);
+    item.meta.acls = _.uniqWith(item.meta.acls, _.isEqual);
     item.id ??= randomUUID().replace(/-/g, '');
   });
   return request;
