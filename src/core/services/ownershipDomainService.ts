@@ -121,7 +121,7 @@ export class OwnershipDomainService
     meta: ODMetaDataInjector,
   })
   override async create(request: OwnershipDomainList, ctx: CallContext): Promise<DeepPartial<OwnershipDomainListResponse>> {
-    return await super.create(request, ctx);
+    return await this.superCreate(request, ctx);
   }
 
   @access_controlled_function({
@@ -130,7 +130,7 @@ export class OwnershipDomainService
     meta: ODMetaDataInjector,
   })
   override async delete(request: DeleteRequest, ctx: CallContext): Promise<DeepPartial<DeleteResponse>> {
-    return await super.delete(request, ctx);
+    return await this.superDelete(request, ctx);
   }
 
   @access_controlled_function({
@@ -139,7 +139,7 @@ export class OwnershipDomainService
     meta: ODMetaDataInjector,
   })
   override async upsert(request: OwnershipDomainList, ctx: CallContext): Promise<DeepPartial<OwnershipDomainListResponse>> {
-    return await super.upsert(request, ctx);
+    return await this.superUpsert(request, ctx);
   }
 
   @access_controlled_function({
@@ -148,7 +148,7 @@ export class OwnershipDomainService
     meta: ODMetaDataInjector,
   })
   override async update(request: OwnershipDomainList, ctx: CallContext): Promise<DeepPartial<OwnershipDomainListResponse>> {
-    return await super.update(request, ctx);
+    return await this.superUpdate(request, ctx);
   }
 
   async insertSeedData(request: OwnershipDomainList, context?: CallContext): Promise<void> {
